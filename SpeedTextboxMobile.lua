@@ -70,11 +70,11 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللا نهائي (خانة عادية بدون دائرة)
+-- 2️⃣ القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
-InfJumpButton.Size = UDim2.new(0, 160, 0, 40) -- أصبح مثل أي خانة عادية
+InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
 InfJumpButton.Text = "قفز لا نهائي"
 InfJumpButton.TextScaled = true
 InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
@@ -120,12 +120,12 @@ ClipButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- 4️⃣ منع نقص الدم
+-- 4️⃣ God Mode حقيقي + بقاء الأدوات والأجزاء
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
-GodModeButton.Text = "منع نقص الدم"
+GodModeButton.Text = "God Mode"
 GodModeButton.TextScaled = true
 GodModeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -135,42 +135,34 @@ UICornerGod.CornerRadius = UDim.new(0, 8)
 UICornerGod.Parent = GodModeButton
 
 local godModeEnabled = false
-local originalHealth = humanoid.Health
+
 GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
-
-    if godModeEnabled then
-        originalHealth = humanoid.Health
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    else
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
-    end
 end)
 
--- حماية الدم
+-- حماية اللاعب من الموت نهائيًا وحفظ كل الأدوات والأجزاء
 RunService.Heartbeat:Connect(function()
     if godModeEnabled and humanoid then
-        humanoid.Health = originalHealth
+        humanoid.Health = humanoid.MaxHealth
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        
+        -- نقل كل الأدوات والإكسسوارات والأجزاء إلى Workspace إذا كانت في Character
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") or part:IsA("Accessory") or part:IsA("Tool") then
+                if part.Parent ~= workspace then
+                    part.Parent = workspace
+                end
+            end
+        end
     end
 end)
 
--- تحديث المرجع عند تولد اللاعب
+-- تحديث عند تولد الشخصية
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
-
-    if infiniteJumpEnabled then
-        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-
-    if clipping then
-        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-
     if godModeEnabled then
-        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        originalHealth = humanoid.Health
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
     end
 end)
