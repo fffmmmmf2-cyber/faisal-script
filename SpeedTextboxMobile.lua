@@ -2,36 +2,41 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
-local humanoidRoot = char:WaitForChild("HumanoidRootPart")
-
--- زر في الشاشة
+-- زر لتفعيل التأثير
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local btn = Instance.new("TextButton", screenGui)
 btn.Size = UDim2.new(0,150,0,50)
 btn.Position = UDim2.new(0,50,0,50)
-btn.Text = "☠ شوف التأثير"
-btn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+btn.Text = "🔮 تأثير التشوه"
+btn.BackgroundColor3 = Color3.fromRGB(150,0,200)
 btn.TextColor3 = Color3.fromRGB(255,255,255)
 
+local active = false
+
 btn.MouseButton1Click:Connect(function()
-    for _, part in pairs(char:GetChildren()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            -- نجعل الجزء يتحرك بشكل غريب
-            spawn(function()
-                for i = 1, 30 do
-                    part.CFrame = part.CFrame * CFrame.new(
-                        math.random(-2,2)/10,
-                        math.random(-2,2)/10,
-                        math.random(-2,2)/10
-                    ) * CFrame.Angles(
-                        math.rad(math.random(-15,15)),
-                        math.rad(math.random(-15,15)),
-                        math.rad(math.random(-15,15))
-                    )
-                    wait(0.05)
-                end
-            end)
+    active = not active
+end)
+
+-- تحديث مستمر
+game:GetService("RunService").RenderStepped:Connect(function()
+    if active then
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                -- نحرك الجزء بشكل عشوائي قليل لكن نسبة لجسمك
+                local offset = Vector3.new(
+                    math.random(-20,20)/50,
+                    math.random(-20,20)/50,
+                    math.random(-20,20)/50
+                )
+                local rot = CFrame.Angles(
+                    math.rad(math.random(-30,30)),
+                    math.rad(math.random(-30,30)),
+                    math.rad(math.random(-30,30))
+                )
+                part.CFrame = root.CFrame * CFrame.new(offset) * rot
+            end
         end
     end
 end)
