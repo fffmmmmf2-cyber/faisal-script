@@ -179,15 +179,4 @@ player.CharacterAdded:Connect(function(newChar)
     if godModeEnabled then
         GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
     end
-end)    rootPart = newChar:WaitForChild("HumanoidRootPart")
-
-    if infiniteJumpEnabled then
-        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-    if clipping then
-        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-    if godModeEnabled then
-        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
 end)
