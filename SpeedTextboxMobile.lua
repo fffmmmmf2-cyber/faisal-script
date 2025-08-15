@@ -96,14 +96,14 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران
+-- 3️⃣ اختراق الجدران (كل شيء ما عدا الأرضيات)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
-ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- افتراضي أحمر
+ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerClip = Instance.new("UICorner")
@@ -114,9 +114,18 @@ local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Feet" then
-            part.CanCollide = not clipping
+end)
+
+-- تحديث CanCollide لكل جزء باستثناء الأرضيات
+RunService.Heartbeat:Connect(function()
+    if clipping and workspace and char then
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local nameLower = part.Name:lower()
+                if not (nameLower:find("baseplate") or nameLower:find("floor") or nameLower:find("terrain")) then
+                    part.CanCollide = false
+                end
+            end
         end
     end
 end)
@@ -128,7 +137,7 @@ GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
-GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- افتراضي أحمر
+GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerGod = Instance.new("UICorner")
@@ -136,7 +145,6 @@ UICornerGod.CornerRadius = UDim.new(0, 8)
 UICornerGod.Parent = GodModeButton
 
 local godModeEnabled = false
-
 GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
