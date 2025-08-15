@@ -164,9 +164,30 @@ end)
 local FlyBox = CreateButton("طيران", currentY)
 currentY = currentY + 50
 local flyingEnabled = false
+local flySpeed = 50
+
 FlyBox.MouseButton1Click:Connect(function()
     flyingEnabled = not flyingEnabled
     FlyBox.BackgroundColor3 = flyingEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+-- ميكانيكية الطيران
+RunService.RenderStepped:Connect(function()
+    if flyingEnabled and humanoid and rootPart then
+        local moveDirection = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection = moveDirection - Vector3.new(0,1,0) end
+
+        if moveDirection.Magnitude > 0 then
+            rootPart.Velocity = moveDirection.Unit * flySpeed
+        else
+            rootPart.Velocity = Vector3.new(0,0,0)
+        end
+    end
 end)
 
 -- تحديث حجم ScrollFrame تلقائي حسب عدد الخانات
