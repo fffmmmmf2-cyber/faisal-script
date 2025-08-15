@@ -2,25 +2,20 @@ local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
 
--- رسالة عند تشغيل السكربت
-game.StarterGui:SetCore("SendNotification", {
-    Title = "Script Active",
-    Text = "السكربت اشتغل",
-    Duration = 3
-})
+-- ضبط الصحة الأولية
+humanoid.MaxHealth = 5000
+humanoid.Health = 5000
 
--- منع نقص الدم
-spawn(function()
-    while true do
-        if humanoid and humanoid.Health > 0 then
-            humanoid.Health = 100
-        end
-        wait(0.01)
+-- زيادة الصحة كل ثانية بمقدار 100
+task.spawn(function()
+    while task.wait(1) do
+        humanoid.Health = math.min(humanoid.Health + 100, humanoid.MaxHealth)
     end
 end)
 
--- تحديث إذا الشخصية ماتت أو أعيدت
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    humanoid = char:WaitForChild("Humanoid")
-end)
+-- إشعار النظام
+game.StarterGui:SetCore("SendNotification", {
+    Title = "✅",
+    Text = "صحتك الان 5000 وتزيد كل ثانيه +100",
+    Duration = 5
+})
