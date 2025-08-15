@@ -1,10 +1,16 @@
--- LocalScript: جسم أحمر Neon + اسم + شريط دم لكل اللاعبين
+-- LocalScript: جسم أحمر Neon + اسم + شريط دم + تحديث كل 5 ثواني
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local function createHealthGui(player, humanoid)
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp or not humanoid then return end
+
+    -- إزالة أي Billboard سابق
+    local old = player.Character:FindFirstChild("EnemyBillboard")
+    if old then old:Destroy() end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Adornee = hrp
@@ -39,7 +45,7 @@ local function createHealthGui(player, humanoid)
 end
 
 local function applyEnemyEffect(player)
-    if player == Players.LocalPlayer then return end -- تجاهل نفسك
+    if player == Players.LocalPlayer then return end
 
     local function onCharacter(char)
         if not char then return end
@@ -50,16 +56,13 @@ local function applyEnemyEffect(player)
         if char:FindFirstChild("EnemyHighlight") then
             char.EnemyHighlight:Destroy()
         end
-        if char:FindFirstChild("EnemyBillboard") then
-            char.EnemyBillboard:Destroy()
-        end
 
         -- Highlight أحمر Neon
         local highlight = Instance.new("Highlight")
         highlight.Name = "EnemyHighlight"
         highlight.Adornee = char
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- يظهر من خلف الجدران
-        highlight.FillColor = Color3.fromRGB(255,0,0) -- أحمر فاقع
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.FillColor = Color3.fromRGB(255,0,0)
         highlight.FillTransparency = 0
         highlight.OutlineTransparency = 0.7
         highlight.Parent = char
@@ -74,10 +77,24 @@ local function applyEnemyEffect(player)
     player.CharacterAdded:Connect(onCharacter)
 end
 
--- تطبيق على اللاعبين الحاليين
+-- تطبيق على اللاعبين الحاليين عند بدء اللعبة
 for _, player in pairs(Players:GetPlayers()) do
     applyEnemyEffect(player)
 end
 
--- تطبيق على أي لاعب يدخل لاحقًا
-Players.PlayerAdded:Connect(applyEnemyEffect)
+-- أي لاعب جديد يدخل اللعبة
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        applyEnemyEffect(player)
+    end)
+end)
+
+-- تحديث كل 5 ثواني لجميع اللاعبين (تأكد من أي لاعب جديد أو تغييرات)
+while true do
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            applyEnemyEffect(player)
+        end
+    end
+    wait(5)
+end
