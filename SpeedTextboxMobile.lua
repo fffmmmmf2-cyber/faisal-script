@@ -117,16 +117,16 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- تحديث CanCollide ذكي
+-- تحديث CanCollide ذكي ومتطور
 RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
                     if part.Position.Y >= rootPart.Position.Y then
-                        part.CanCollide = false
+                        part.CanCollide = false -- يخترق أي شيء فوق اللاعب أو أمامه
                     else
-                        part.CanCollide = true
+                        part.CanCollide = true -- الأرض تحت اللاعب تبقى صلبة
                     end
                 else
                     part.CanCollide = true
