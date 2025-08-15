@@ -1,3 +1,4 @@
+-- سكربت كامل: ScrollFrame + خانات + طيران للموبايل باللمس بدون أزرار
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
@@ -5,7 +6,6 @@ local rootPart = char:WaitForChild("HumanoidRootPart")
 
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TouchService = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
@@ -76,7 +76,7 @@ local function CreateButton(name,posY)
     return btn
 end
 
--- توليد الخانات
+-- توليد الخانات (الترتيب: سرعة - قفز لانهائي - اختراق - منع نقص دم - طيران)
 local currentY = 10
 local SpeedBox = CreateBox(currentY,"السرعة (1-1000)")
 currentY = currentY + 50
@@ -150,24 +150,48 @@ spawn(function()
     end
 end)
 
--- الطيران السلس للجوال
-local FlyBox = CreateButton("طيران", currentY)
+-- === طيران سلس للموبايل بدون أزرار ===
+local FlyBox = CreateButton("طيران", currentY) -- زر داخل الواجهة فقط للتفعيل/الغلق
 currentY = currentY + 50
 local flyingEnabled = false
-local flySpeed = 50
-local bodyVelocity
+local flySpeed = 80            -- اضبط السرعة حسب رغبتك
+local sensitivity = 0.008      -- حساسية السحب (صغير = أقل حساسية)
+local bodyVelocity = nil
 
-local lastTouch = nil
-TouchService.TouchMoved:Connect(function(touch)
-    lastTouch = touch.Position
-end)
-TouchService.TouchEnded:Connect(function()
-    lastTouch = nil
+-- متغيرات اللمس
+local touchActive = false
+local touchPos = nil
+local touchStartPos = nil
+
+-- إدارة اللمس: InputBegan / InputChanged / InputEnded (يدعم الجوال)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Touch then
+        touchActive = true
+        touchStartPos = input.Position
+        touchPos = input.Position
+    end
 end)
 
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and touchActive then
+        touchPos = input.Position
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        touchActive = false
+        touchPos = nil
+        touchStartPos = nil
+    end
+end)
+
+-- تفعيل/إيقاف الطيران عبر الزر في الواجهة
 FlyBox.MouseButton1Click:Connect(function()
     flyingEnabled = not flyingEnabled
     FlyBox.BackgroundColor3 = flyingEnabled and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,0,0)
+
     if flyingEnabled then
         humanoid.PlatformStand = true
         bodyVelocity = Instance.new("BodyVelocity")
@@ -176,28 +200,62 @@ FlyBox.MouseButton1Click:Connect(function()
         bodyVelocity.Parent = rootPart
     else
         humanoid.PlatformStand = false
-        if bodyVelocity then
-            bodyVelocity:Destroy()
-            bodyVelocity = nil
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    end
+end)
+
+-- تحديث الحركة كل فريم
+RunService.RenderStepped:Connect(function()
+    -- لو الطيران مفعل وعندنا bodyVelocity
+    if flyingEnabled and bodyVelocity then
+        if touchActive and touchPos then
+            -- نحسب دلتا السحب نسبة لمركز الشاشة أو نقطة البداية
+            -- هنا نستخدم مركز الشاشة كمرجع علشان الحركة تتجه بالنسبة للكاميرا
+            local cam = workspace.CurrentCamera
+            local screenCenter = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
+            local delta = touchPos - screenCenter
+
+            -- لو تريد حركة أقل حساسية لو تحب تستخدم touchStartPos بدل المركز:
+            -- local delta = touchPos - (touchStartPos or touchPos)
+
+            -- نحول دلتا الشاشة لاتجاه ثلاثي الأبعاد بالاعتماد على كاميرا اللاعب
+            local right = cam.CFrame.RightVector
+            local look = cam.CFrame.LookVector
+            -- ملاحظة: نستخدم -delta.Y لأن الشاشة Y زيادة = لأسفل
+            local dir = (right * (delta.X * sensitivity)) + (look * (-delta.Y * sensitivity))
+
+            -- ممكن نضيف تحكم عمودي بسيط حسب مقدار السحب الرأسي الكبير
+            -- لو سحبت فوق بشكل قوي نصعد، لو سحبت تحت ننزل
+            local vertical = 0
+            if math.abs(delta.Y) > 100 then
+                vertical = -delta.Y * sensitivity * 0.3 -- تعديل عمودي أصغر
+            end
+            dir = dir + Vector3.new(0, vertical, 0)
+
+            -- تأمين المقياس
+            if dir.Magnitude > 1 then
+                dir = dir.Unit
+            end
+
+            bodyVelocity.Velocity = dir * flySpeed
+        else
+            -- لو ما فيه لمس نوقف الحركة (جسمك يثبت)
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
         end
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if flyingEnabled and bodyVelocity and lastTouch then
-        local screenCenter = Vector2.new(workspace.CurrentCamera.ViewportSize.X/2, workspace.CurrentCamera.ViewportSize.Y/2)
-        local delta = (lastTouch - screenCenter)
-        local dir = Vector3.new(delta.X, -delta.Y, 0).Unit
-        bodyVelocity.Velocity = (workspace.CurrentCamera.CFrame.LookVector * dir.Z + workspace.CurrentCamera.CFrame.RightVector * dir.X + Vector3.new(0,dir.Y,0)) * flySpeed
-    end
-end)
-
--- تحديث ScrollFrame حسب عدد الخانات
+-- ضبط حجم ScrollFrame تلقائي حسب الخانات
 MainFrame.CanvasSize = UDim2.new(0,0,0,currentY+10)
 
--- تحديث المرجع عند تولد اللاعب
+-- تحديث المراجع عند إعادة تولد الشخصية
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
+    -- لو الطيران كان مفعل نعيد تفعيل bodyVelocity صح
+    if flyingEnabled then
+        humanoid.PlatformStand = true
+        if bodyVelocity then bodyVelocity.Parent = rootPart end
+    end
 end)
