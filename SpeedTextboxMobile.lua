@@ -1,107 +1,37 @@
 -- خدمات
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
-local rootPart = char:WaitForChild("HumanoidRootPart")
 
--- واجهة
+local humanoidRoot = char:WaitForChild("HumanoidRootPart")
+
+-- زر في الشاشة
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 300, 0, 400)
-frame.Position = UDim2.new(0,50,0,50)
-frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-frame.BorderSizePixel = 0
+local btn = Instance.new("TextButton", screenGui)
+btn.Size = UDim2.new(0,150,0,50)
+btn.Position = UDim2.new(0,50,0,50)
+btn.Text = "☠ شوف التأثير"
+btn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+btn.TextColor3 = Color3.fromRGB(255,255,255)
 
--- زر الإخفاء فوق كل شيء
-local toggleBtn = Instance.new("TextButton", frame)
-toggleBtn.Size = UDim2.new(1,0,0,30)
-toggleBtn.Position = UDim2.new(0,0,0,0)
-toggleBtn.Text = "⬆ إخفاء/إظهار"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-
--- ScrollFrame لعرض اللاعبين
-local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1,-10,1,-40)
-scroll.Position = UDim2.new(0,5,0,35)
-scroll.BackgroundTransparency = 1
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 6
-
-local UIListLayout = Instance.new("UIListLayout", scroll)
-UIListLayout.Padding = UDim.new(0,5)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- دالة تحديث القائمة
-local function updateList()
-    scroll:ClearAllChildren()
-    local yOffset = 0
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player then
-            -- Container لكل لاعب
-            local container = Instance.new("Frame", scroll)
-            container.Size = UDim2.new(1,-10,0,35)
-            container.Position = UDim2.new(0,5,0,yOffset)
-            container.BackgroundTransparency = 1
-
-            -- زر الاسم
-            local nameLabel = Instance.new("TextLabel", container)
-            nameLabel.Size = UDim2.new(0.4,0,1,0)
-            nameLabel.Position = UDim2.new(0,0,0,0)
-            nameLabel.Text = p.Name
-            nameLabel.BackgroundColor3 = Color3.fromRGB(70,70,70)
-            nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
-
-            -- زر أخضر → ينقلك لعند اللاعب
-            local goToBtn = Instance.new("TextButton", container)
-            goToBtn.Size = UDim2.new(0.3,0,1,0)
-            goToBtn.Position = UDim2.new(0.45,0,0,0)
-            goToBtn.Text = "➡"
-            goToBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
-            goToBtn.TextColor3 = Color3.fromRGB(255,255,255)
-
-            goToBtn.MouseButton1Click:Connect(function()
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    rootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+btn.MouseButton1Click:Connect(function()
+    for _, part in pairs(char:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            -- نجعل الجزء يتحرك بشكل غريب
+            spawn(function()
+                for i = 1, 30 do
+                    part.CFrame = part.CFrame * CFrame.new(
+                        math.random(-2,2)/10,
+                        math.random(-2,2)/10,
+                        math.random(-2,2)/10
+                    ) * CFrame.Angles(
+                        math.rad(math.random(-15,15)),
+                        math.rad(math.random(-15,15)),
+                        math.rad(math.random(-15,15))
+                    )
+                    wait(0.05)
                 end
             end)
-
-            -- زر أحمر → ينقل اللاعب لعندك
-            local bringBtn = Instance.new("TextButton", container)
-            bringBtn.Size = UDim2.new(0.25,0,1,0)
-            bringBtn.Position = UDim2.new(0.75,0,0,0)
-            bringBtn.Text = "⬅"
-            bringBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
-            bringBtn.TextColor3 = Color3.fromRGB(255,255,255)
-
-            bringBtn.MouseButton1Click:Connect(function()
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    p.Character.HumanoidRootPart.CFrame = rootPart.CFrame + Vector3.new(0,3,0)
-                end
-            end)
-
-            yOffset = yOffset + 40
         end
     end
-
-    scroll.CanvasSize = UDim2.new(0,0,0,yOffset)
-end
-
-RunService.RenderStepped:Connect(updateList)
-
--- زر إخفاء/إظهار
-local hidden = false
-toggleBtn.MouseButton1Click:Connect(function()
-    hidden = not hidden
-    local goal = {}
-    if hidden then
-        goal.Size = UDim2.new(0,0,0,0)
-    else
-        goal.Size = UDim2.new(0,300,0,400)
-    end
-    TweenService:Create(frame, TweenInfo.new(0.3), goal):Play()
 end)
