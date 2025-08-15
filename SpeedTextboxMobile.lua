@@ -13,7 +13,7 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
 MainFrame.Size = UDim2.new(0, 180, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
+MainFrame.Position = UDim2.new(0.5, -90, 0.3, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -34,6 +34,7 @@ ToggleButton.BorderSizePixel = 0
 ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleButton.ZIndex = 10
 
+-- وظيفة تغيير لون الرينبو باستمرار
 spawn(function()
     local hue = 0
     while true do
@@ -79,7 +80,7 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- القفز اللا نهائي
+-- القفز اللانهائي
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
@@ -100,10 +101,25 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران (بس بارت تحت اللاعب)
+-- رفع اللاعب
+local RaiseButton = Instance.new("TextButton")
+RaiseButton.Parent = MainFrame
+RaiseButton.Position = UDim2.new(0, 10, 0, 110)
+RaiseButton.Size = UDim2.new(0, 160, 0, 40)
+RaiseButton.Text = "رفع اللاعب"
+RaiseButton.TextScaled = true
+RaiseButton.BackgroundColor3 = buttonColor
+RaiseButton.TextColor3 = Color3.fromRGB(0,0,0)
+
+local raisingEnabled = false
+RaiseButton.MouseButton1Click:Connect(function()
+    raisingEnabled = not raisingEnabled
+end)
+
+-- اختراق الجدران
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
-ClipButton.Position = UDim2.new(0, 10, 0, 110)
+ClipButton.Position = UDim2.new(0, 10, 0, 160)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
@@ -115,29 +131,10 @@ ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
 end)
 
-RunService.Heartbeat:Connect(function()
-    if char then
-        for _, part in pairs(workspace:GetDescendants()) do
-            if part:IsA("BasePart") then
-                if clipping then
-                    -- أي بارت ما يصطدم إلا الأرض تحت اللاعب
-                    if part.Position.Y < rootPart.Position.Y - 3 then
-                        part.CanCollide = true
-                    else
-                        part.CanCollide = false
-                    end
-                else
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end)
-
 -- منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
-GodModeButton.Position = UDim2.new(0, 10, 0, 160)
+GodModeButton.Position = UDim2.new(0, 10, 0, 210)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
@@ -161,7 +158,7 @@ end)
 -- الطيران
 local FlyButton = Instance.new("TextButton")
 FlyButton.Parent = MainFrame
-FlyButton.Position = UDim2.new(0, 10, 0, 210)
+FlyButton.Position = UDim2.new(0, 10, 0, 260)
 FlyButton.Size = UDim2.new(0, 160, 0, 40)
 FlyButton.Text = "طيران"
 FlyButton.TextScaled = true
@@ -176,25 +173,26 @@ FlyButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- رفع اللاعب 15 ستود
-local LiftButton = Instance.new("TextButton")
-LiftButton.Parent = MainFrame
-LiftButton.Position = UDim2.new(0, 10, 0, 260)
-LiftButton.Size = UDim2.new(0, 160, 0, 40)
-LiftButton.Text = "رفع اللاعب 15 ستود"
-LiftButton.TextScaled = true
-LiftButton.BackgroundColor3 = buttonColor
-LiftButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+-- تحديث CanCollide واستخدام Raise
+RunService.Heartbeat:Connect(function()
+    if char then
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(char) then
+                if clipping then
+                    if part.Position.Y < rootPart.Position.Y - 3 then
+                        part.CanCollide = true
+                    else
+                        part.CanCollide = false
+                    end
+                else
+                    part.CanCollide = true
+                end
+            end
+        end
 
-local liftEnabled = false
-local originalY = rootPart.Position.Y
-
-LiftButton.MouseButton1Click:Connect(function()
-    liftEnabled = not liftEnabled
-    if liftEnabled then
-        rootPart.CFrame = rootPart.CFrame + Vector3.new(0,15,0)
-    else
-        rootPart.CFrame = CFrame.new(rootPart.Position.X, originalY, rootPart.Position.Z)
+        if raisingEnabled then
+            rootPart.Position = rootPart.Position + Vector3.new(0,0.5,0)
+        end
     end
 end)
 
@@ -202,5 +200,4 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
-    originalY = rootPart.Position.Y
 end)
