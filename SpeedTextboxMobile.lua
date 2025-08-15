@@ -1,15 +1,15 @@
 local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
 local rootPart = char:WaitForChild("HumanoidRootPart")
 
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- زر الإظهار/الإخفاء
+-- زر الإخفاء/الإظهار
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = ScreenGui
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
@@ -23,7 +23,7 @@ local UICornerBtn = Instance.new("UICorner")
 UICornerBtn.CornerRadius = UDim.new(0, 25)
 UICornerBtn.Parent = ToggleButton
 
--- القائمة
+-- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
 MainFrame.Size = UDim2.new(0, 180, 0, 260)
@@ -43,7 +43,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.BackgroundColor3 = visible and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- السرعة
+-- 1️⃣ السرعة
 local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
@@ -71,7 +71,7 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- القفز اللا نهائي
+-- 2️⃣ القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران
+-- 3️⃣ اختراق الجدران ذكي
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -117,18 +117,30 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
+-- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
     if clipping and workspace and char then
+        local rayOrigin = rootPart.Position
+        local rayDirection = Vector3.new(0, -5, 0)
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {char}
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                local relativeHeight = part.Position.Y - rootPart.Position.Y
-                part.CanCollide = relativeHeight < -5
+                -- افحص إذا البارت تحت اللاعب مباشرة
+                local rayResult = workspace:Raycast(rayOrigin, Vector3.new(0, -5, 0), raycastParams)
+                if rayResult and rayResult.Instance == part then
+                    part.CanCollide = true
+                else
+                    part.CanCollide = false
+                end
             end
         end
     end
 end)
 
--- منع نقص الدم
+-- 4️⃣ منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
@@ -148,6 +160,7 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
+-- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
@@ -157,20 +170,19 @@ spawn(function()
     end
 end)
 
--- عند تولد الشخصية بعد الموت، كل الميزات تتوقف وتصبح الخانات حمراء
+-- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
 
-    -- إيقاف كل الميزات
-    infiniteJumpEnabled = false
-    clipping = false
-    godModeEnabled = false
-
-    -- تحديث ألوان الخانات
-    SpeedBox.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    if infiniteJumpEnabled then
+        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if clipping then
+        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if godModeEnabled then
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
 end)
