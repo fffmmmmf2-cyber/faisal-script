@@ -1,6 +1,7 @@
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local humanoid = char:WaitForChild("Humanoid")
+local rootPart = char:WaitForChild("HumanoidRootPart")
 
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -96,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران (كل شيء ما عدا الأرضيات)
+-- 3️⃣ اختراق الجدران ذكي
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -116,13 +117,16 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- تحديث CanCollide لكل جزء باستثناء الأرضيات
+-- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
     if clipping and workspace and char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                local nameLower = part.Name:lower()
-                if not (nameLower:find("baseplate") or nameLower:find("floor") or nameLower:find("terrain")) then
+                local relativeHeight = part.Position.Y - rootPart.Position.Y
+                -- إذا الجزء منخفض جدًا بالنسبة للاعب نخليه صلب
+                if relativeHeight < -5 then
+                    part.CanCollide = true
+                else
                     part.CanCollide = false
                 end
             end
@@ -164,6 +168,7 @@ end)
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
+    rootPart = newChar:WaitForChild("HumanoidRootPart")
 
     if infiniteJumpEnabled then
         InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
