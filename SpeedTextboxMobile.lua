@@ -12,7 +12,7 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 400)
+MainFrame.Size = UDim2.new(0, 180, 0, 360)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -34,7 +34,6 @@ ToggleButton.BorderSizePixel = 0
 ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleButton.ZIndex = 10
 
--- وظيفة تغيير لون الرينبو باستمرار
 spawn(function()
     local hue = 0
     while true do
@@ -101,7 +100,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران (يؤثر على كل شيء إلا الأرض تحته)
+-- اختراق الجدران
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -121,7 +120,7 @@ RunService.Heartbeat:Connect(function()
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
-                    if part.Position.Y >= rootPart.Position.Y + 0.5 then
+                    if part.Position.Y >= rootPart.Position.Y then
                         part.CanCollide = false
                     else
                         part.CanCollide = true
@@ -176,21 +175,25 @@ FlyButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- زر حذف الهيت بوكس نهائي
-local DeleteHitboxButton = Instance.new("TextButton")
-DeleteHitboxButton.Parent = MainFrame
-DeleteHitboxButton.Position = UDim2.new(0, 10, 0, 260)
-DeleteHitboxButton.Size = UDim2.new(0, 160, 0, 40)
-DeleteHitboxButton.Text = "حذف الهيت بوكس"
-DeleteHitboxButton.TextScaled = true
-DeleteHitboxButton.BackgroundColor3 = buttonColor
-DeleteHitboxButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+-- رفع اللاعب 15 ستود
+local LiftButton = Instance.new("TextButton")
+LiftButton.Parent = MainFrame
+LiftButton.Position = UDim2.new(0, 10, 0, 260)
+LiftButton.Size = UDim2.new(0, 160, 0, 40)
+LiftButton.Text = "رفع اللاعب 15 ستود"
+LiftButton.TextScaled = true
+LiftButton.BackgroundColor3 = buttonColor
+LiftButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 
-DeleteHitboxButton.MouseButton1Click:Connect(function()
-    if rootPart then
-        rootPart:Destroy()
-        DeleteHitboxButton.Text = "تم الحذف"
-        DeleteHitboxButton.Active = false
+local liftEnabled = false
+local originalY = rootPart.Position.Y
+
+LiftButton.MouseButton1Click:Connect(function()
+    liftEnabled = not liftEnabled
+    if liftEnabled then
+        rootPart.CFrame = rootPart.CFrame + Vector3.new(0,15,0)
+    else
+        rootPart.CFrame = CFrame.new(rootPart.Position.X, originalY, rootPart.Position.Z)
     end
 end)
 
@@ -198,4 +201,5 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
+    originalY = rootPart.Position.Y
 end)
