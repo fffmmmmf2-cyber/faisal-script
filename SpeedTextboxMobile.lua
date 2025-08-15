@@ -6,7 +6,6 @@ local rootPart = char:WaitForChild("HumanoidRootPart")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- ScreenGui رئيسي
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -27,8 +26,8 @@ UICornerBtn.Parent = ToggleButton
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -90, 0.3, -160)
+MainFrame.Size = UDim2.new(0, 180, 0, 350) -- اطول لين يكفي كل الخانات
+MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -36,14 +35,6 @@ MainFrame.Draggable = true
 local UICornerMain = Instance.new("UICorner")
 UICornerMain.CornerRadius = UDim.new(0, 12)
 UICornerMain.Parent = MainFrame
-
--- ScrollFrame
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Parent = MainFrame
-ScrollFrame.Size = UDim2.new(1, 0, 1, 0)
-ScrollFrame.CanvasSize = UDim2.new(0,0,0,500)
-ScrollFrame.ScrollBarThickness = 8
-ScrollFrame.BackgroundTransparency = 1
 
 local visible = true
 ToggleButton.MouseButton1Click:Connect(function()
@@ -54,7 +45,7 @@ end)
 
 -- 1️⃣ السرعة
 local SpeedBox = Instance.new("TextBox")
-SpeedBox.Parent = ScrollFrame
+SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
 SpeedBox.PlaceholderText = "السرعة (1-1000)"
@@ -71,7 +62,9 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
         if s and s >= 1 and s <= 1000 then
-            humanoid.WalkSpeed = s
+            if humanoid and humanoid.Parent then
+                humanoid.WalkSpeed = s
+            end
         else
             SpeedBox.Text = "❌"
         end
@@ -80,7 +73,7 @@ end)
 
 -- 2️⃣ القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
-InfJumpButton.Parent = ScrollFrame
+InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
 InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
 InfJumpButton.Text = "قفز لا نهائي"
@@ -99,20 +92,29 @@ InfJumpButton.MouseButton1Click:Connect(function()
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if infiniteJumpEnabled then
+    if infiniteJumpEnabled and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
 -- 3️⃣ اختراق الجدران ذكي مع رسالة
 local ClipButton = Instance.new("TextButton")
-ClipButton.Parent = ScrollFrame
+ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
-ClipButton.Size = UDim2.new(0, 120, 0, 40)
+ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local ClipInfo = Instance.new("TextLabel")
+ClipInfo.Parent = MainFrame
+ClipInfo.Position = UDim2.new(0, 10, 0, 150)
+ClipInfo.Size = UDim2.new(0, 160, 0, 20)
+ClipInfo.Text = "لا يمكنك اختراق كل شيء"
+ClipInfo.TextColor3 = Color3.fromRGB(255, 255, 0)
+ClipInfo.TextScaled = true
+ClipInfo.BackgroundTransparency = 1
 
 local UICornerClip = Instance.new("UICorner")
 UICornerClip.CornerRadius = UDim.new(0, 8)
@@ -122,26 +124,37 @@ local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    
-    -- إشعار achievement
-    local notif = Instance.new("TextLabel")
-    notif.Parent = ScrollFrame
-    notif.Size = UDim2.new(0, 180, 0, 30)
-    notif.Position = UDim2.new(0, 10, 0, 80)
-    notif.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    notif.TextColor3 = Color3.fromRGB(255,255,255)
-    notif.Text = "❌ لا يمكنك اختراق كل شيء"
-    notif.TextScaled = true
-    notif.BackgroundTransparency = 0.5
-    notif.TextXAlignment = Enum.TextXAlignment.Center
-    notif.ZIndex = 10
-    game:GetService("Debris"):AddItem(notif, 2)
+    -- إظهار الرسالة كAchievement عند التفعيل
+    if clipping then
+        ClipInfo.Visible = true
+        wait(2)
+        ClipInfo.Visible = false
+    end
+end)
+
+-- تحديث CanCollide ذكي ومتطور
+RunService.Heartbeat:Connect(function()
+    if char then
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") then
+                if clipping then
+                    if part.Position.Y >= rootPart.Position.Y then
+                        part.CanCollide = false
+                    else
+                        part.CanCollide = true
+                    end
+                else
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
 end)
 
 -- 4️⃣ منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
-GodModeButton.Parent = ScrollFrame
-GodModeButton.Position = UDim2.new(0, 10, 0, 160)
+GodModeButton.Parent = MainFrame
+GodModeButton.Position = UDim2.new(0, 10, 0, 180)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
@@ -160,32 +173,41 @@ end)
 
 spawn(function()
     while true do
-        if godModeEnabled then
+        if godModeEnabled and humanoid then
             humanoid.Health = 100
         end
         wait(0.10)
     end
 end)
 
--- 5️⃣ زر الطيران (Ashley's Script)
+-- 5️⃣ الطيران مع سكربت آشلي
 local FlyButton = Instance.new("TextButton")
-FlyButton.Parent = ScrollFrame
-FlyButton.Position = UDim2.new(0, 10, 0, 210)
+FlyButton.Parent = MainFrame
+FlyButton.Position = UDim2.new(0, 10, 0, 230)
 FlyButton.Size = UDim2.new(0, 160, 0, 40)
 FlyButton.Text = "طيران"
 FlyButton.TextScaled = true
 FlyButton.BackgroundColor3 = Color3.fromRGB(120, 120, 120) -- رمادي
-FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
 
-local flyActive = false
+local flyEnabled = false
 FlyButton.MouseButton1Click:Connect(function()
-    flyActive = not flyActive
-    if flyActive then
+    flyEnabled = not flyEnabled
+    if flyEnabled then
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
+    else
+        -- إيقاف الطيران عند الضغط مرة ثانية
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local bv = char:FindFirstChildWhichIsA("BodyVelocity", true)
+            local bg = char:FindFirstChildWhichIsA("BodyGyro", true)
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+            game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
+        end
     end
 end)
 
--- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
