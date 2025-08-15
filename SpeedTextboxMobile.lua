@@ -100,7 +100,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران
+-- اختراق الجدران (بس بارت تحت اللاعب)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -120,10 +120,11 @@ RunService.Heartbeat:Connect(function()
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
-                    if part.Position.Y >= rootPart.Position.Y then
-                        part.CanCollide = false
-                    else
+                    -- أي بارت ما يصطدم إلا الأرض تحت اللاعب
+                    if part.Position.Y < rootPart.Position.Y - 3 then
                         part.CanCollide = true
+                    else
+                        part.CanCollide = false
                     end
                 else
                     part.CanCollide = true
