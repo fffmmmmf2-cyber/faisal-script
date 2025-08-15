@@ -120,12 +120,12 @@ ClipButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- 4️⃣ God Mode حقيقي + بقاء الأدوات والأجزاء
+-- 4️⃣ منع نقص الدم (يرجع الدم 100 كل 0.10 ثانية)
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
-GodModeButton.Text = "God Mode"
+GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
 GodModeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -141,28 +141,29 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
 end)
 
--- حماية اللاعب من الموت نهائيًا وحفظ كل الأدوات والأجزاء
-RunService.Heartbeat:Connect(function()
-    if godModeEnabled and humanoid then
-        humanoid.Health = humanoid.MaxHealth
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-        
-        -- نقل كل الأدوات والإكسسوارات والأجزاء إلى Workspace إذا كانت في Character
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") or part:IsA("Accessory") or part:IsA("Tool") then
-                if part.Parent ~= workspace then
-                    part.Parent = workspace
-                end
-            end
+-- إعادة الدم كل 0.10 ثانية
+spawn(function()
+    while true do
+        if godModeEnabled and humanoid then
+            humanoid.Health = 100
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
         end
+        wait(0.10)
     end
 end)
 
--- تحديث عند تولد الشخصية
+-- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
+
+    if infiniteJumpEnabled then
+        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if clipping then
+        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
     if godModeEnabled then
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
     end
 end)
