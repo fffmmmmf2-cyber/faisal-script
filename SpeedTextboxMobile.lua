@@ -48,7 +48,7 @@ local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "السرعة (1-100)"
+SpeedBox.PlaceholderText = "السرعة (1-1000)"
 SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -61,7 +61,7 @@ UICornerSpeed.Parent = SpeedBox
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
-        if s and s >= 1 and s <= 100 then
+        if s and s >= 1 and s <= 1000 then
             if humanoid and humanoid.Parent then
                 humanoid.WalkSpeed = s
             end
@@ -117,16 +117,19 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
-    if clipping and workspace and char then
+    if workspace and char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                local relativeHeight = part.Position.Y - rootPart.Position.Y
-                if relativeHeight < -5 then
-                    part.CanCollide = true
+                if clipping then
+                    local relativeHeight = part.Position.Y - rootPart.Position.Y
+                    if relativeHeight < -5 then
+                        part.CanCollide = true
+                    else
+                        part.CanCollide = false
+                    end
                 else
-                    part.CanCollide = false
+                    part.CanCollide = true -- لما يكون الأحمر يرجع طبيعي
                 end
             end
         end
@@ -153,7 +156,6 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
@@ -163,7 +165,6 @@ spawn(function()
     end
 end)
 
--- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
