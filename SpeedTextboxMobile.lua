@@ -1,63 +1,58 @@
--- سكربت واحد يتحكم بالـ GUI والطرد
+-- خدمات
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
--- إنشاء RemoteEvent للطرد إذا ما موجود
-local KickEvent = ReplicatedStorage:FindFirstChild("KickEvent")
-if not KickEvent then
-    KickEvent = Instance.new("RemoteEvent")
-    KickEvent.Name = "KickEvent"
-    KickEvent.Parent = ReplicatedStorage
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local rootPart = char:WaitForChild("HumanoidRootPart")
+
+-- واجهة
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 200, 0, 400)
+frame.Position = UDim2.new(0, 50, 0, 50)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, -10, 1, -10)
+scroll.Position = UDim2.new(0, 5, 0, 5)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.BackgroundTransparency = 1
+
+local UIListLayout = Instance.new("UIListLayout", scroll)
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- دالة تحديث القائمة
+local function updateList()
+    scroll:ClearAllChildren()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    local yOffset = 0
+    
+    -- هنا تختار من وين تجيب الأسماء
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then
+            local btn = Instance.new("TextButton", scroll)
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Position = UDim2.new(0, 5, 0, yOffset)
+            btn.Text = p.Name
+            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            btn.TextColor3 = Color3.fromRGB(255,255,255)
+            
+            btn.MouseButton1Click:Connect(function()
+                local targetChar = p.Character
+                if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+                    rootPart.CFrame = targetChar.HumanoidRootPart.CFrame
+                end
+            end)
+            
+            yOffset = yOffset + 35
+        end
+    end
+    
+    scroll.CanvasSize = UDim2.new(0, 0, 0, yOffset)
 end
 
--- عند استلام طلب الطرد
-KickEvent.OnServerEvent:Connect(function(playerWhoSent, targetName)
-    local targetPlayer = Players:FindFirstChild(targetName)
-    if targetPlayer and targetPlayer ~= playerWhoSent then
-        targetPlayer:Kick("انقلع")
-    end
-end)
-
--- إنشاء GUI لكل لاعب عند دخول اللعبة
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        local playerGui = player:WaitForChild("PlayerGui")
-
-        local ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Parent = playerGui
-
-        local MainFrame = Instance.new("Frame")
-        MainFrame.Size = UDim2.new(0, 200, 0, 100)
-        MainFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
-        MainFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-        MainFrame.Parent = ScreenGui
-
-        local UICorner = Instance.new("UICorner")
-        UICorner.CornerRadius = UDim.new(0,10)
-        UICorner.Parent = MainFrame
-
-        local TextBox = Instance.new("TextBox")
-        TextBox.Size = UDim2.new(0, 180, 0, 30)
-        TextBox.Position = UDim2.new(0,10,0,10)
-        TextBox.PlaceholderText = "اكتب اسم اللاعب"
-        TextBox.TextScaled = true
-        TextBox.Parent = MainFrame
-
-        local KickButton = Instance.new("TextButton")
-        KickButton.Size = UDim2.new(0, 180, 0, 40)
-        KickButton.Position = UDim2.new(0,10,0,50)
-        KickButton.Text = "طرد"
-        KickButton.TextScaled = true
-        KickButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-        KickButton.TextColor3 = Color3.fromRGB(255,255,255)
-        KickButton.Parent = MainFrame
-
-        KickButton.MouseButton1Click:Connect(function()
-            local targetName = TextBox.Text
-            if targetName ~= "" then
-                KickEvent:FireServer(targetName)
-            end
-        end)
-    end)
-end)
+-- تحديث تلقائي كل ثانية
+RunService.RenderStepped:Connect(updateList)
