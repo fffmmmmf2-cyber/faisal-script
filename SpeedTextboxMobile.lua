@@ -23,12 +23,14 @@ local UICornerBtn = Instance.new("UICorner")
 UICornerBtn.CornerRadius = UDim.new(0, 25)
 UICornerBtn.Parent = ToggleButton
 
--- المربع القابل للسحب
-local MainFrame = Instance.new("Frame")
+-- المربع القابل للسحب (ScrollFrame)
+local MainFrame = Instance.new("ScrollingFrame")
 MainFrame.Parent = ScreenGui
 MainFrame.Size = UDim2.new(0, 180, 0, 260)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.CanvasSize = UDim2.new(0, 0, 0, 500)
+MainFrame.ScrollBarThickness = 8
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -43,20 +45,47 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.BackgroundColor3 = visible and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- 1️⃣ السرعة
-local SpeedBox = Instance.new("TextBox")
-SpeedBox.Parent = MainFrame
-SpeedBox.Position = UDim2.new(0, 10, 0, 10)
-SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "السرعة (1-1000)"
-SpeedBox.Text = ""
-SpeedBox.TextScaled = true
-SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- دالة لإنشاء خانة
+local function CreateBox(name, posY, placeholder)
+    local box = Instance.new("TextBox")
+    box.Parent = MainFrame
+    box.Position = UDim2.new(0, 10, 0, posY)
+    box.Size = UDim2.new(0, 160, 0, 40)
+    box.PlaceholderText = placeholder or ""
+    box.Text = ""
+    box.TextScaled = true
+    box.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local UICornerSpeed = Instance.new("UICorner")
-UICornerSpeed.CornerRadius = UDim.new(0, 8)
-UICornerSpeed.Parent = SpeedBox
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = box
+
+    return box
+end
+
+local function CreateButton(name, posY)
+    local btn = Instance.new("TextButton")
+    btn.Parent = MainFrame
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.Size = UDim2.new(0, 160, 0, 40)
+    btn.Text = name
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    return btn
+end
+
+-- توليد الخانات
+local currentY = 10
+-- 1️⃣ السرعة
+local SpeedBox = CreateBox("Speed", currentY, "السرعة (1-1000)")
+currentY = currentY + 50
 
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
@@ -71,20 +100,9 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللا نهائي
-local InfJumpButton = Instance.new("TextButton")
-InfJumpButton.Parent = MainFrame
-InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
-InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
-InfJumpButton.Text = "قفز لا نهائي"
-InfJumpButton.TextScaled = true
-InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-InfJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local UICornerJump = Instance.new("UICorner")
-UICornerJump.CornerRadius = UDim.new(0, 8)
-UICornerJump.Parent = InfJumpButton
-
+-- 2️⃣ القفز اللانهائي
+local InfJumpButton = CreateButton("قفز لا نهائي", currentY)
+currentY = currentY + 50
 local infiniteJumpEnabled = false
 InfJumpButton.MouseButton1Click:Connect(function()
     infiniteJumpEnabled = not infiniteJumpEnabled
@@ -97,36 +115,24 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران ذكي
-local ClipButton = Instance.new("TextButton")
-ClipButton.Parent = MainFrame
-ClipButton.Position = UDim2.new(0, 10, 0, 110)
-ClipButton.Size = UDim2.new(0, 160, 0, 40)
-ClipButton.Text = "اختراق الجدران"
-ClipButton.TextScaled = true
-ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local UICornerClip = Instance.new("UICorner")
-UICornerClip.CornerRadius = UDim.new(0, 8)
-UICornerClip.Parent = ClipButton
-
+-- 3️⃣ اختراق الجدران
+local ClipButton = CreateButton("اختراق الجدران", currentY)
+currentY = currentY + 50
 local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- تحديث CanCollide ذكي ومتطور
 RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
                     if part.Position.Y >= rootPart.Position.Y then
-                        part.CanCollide = false -- يخترق أي شيء فوق اللاعب أو أمامه
+                        part.CanCollide = false
                     else
-                        part.CanCollide = true -- الأرض تحت اللاعب تبقى صلبة
+                        part.CanCollide = true
                     end
                 else
                     part.CanCollide = true
@@ -137,26 +143,14 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- 4️⃣ منع نقص الدم
-local GodModeButton = Instance.new("TextButton")
-GodModeButton.Parent = MainFrame
-GodModeButton.Position = UDim2.new(0, 10, 0, 160)
-GodModeButton.Size = UDim2.new(0, 160, 0, 40)
-GodModeButton.Text = "منع نقص الدم"
-GodModeButton.TextScaled = true
-GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-local UICornerGod = Instance.new("UICorner")
-UICornerGod.CornerRadius = UDim.new(0, 8)
-UICornerGod.Parent = GodModeButton
-
+local GodModeButton = CreateButton("منع نقص الدم", currentY)
+currentY = currentY + 50
 local godModeEnabled = false
 GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
@@ -166,19 +160,21 @@ spawn(function()
     end
 end)
 
+-- 5️⃣ الطيران (آخر خانة)
+local FlyBox = CreateButton("طيران", currentY)
+currentY = currentY + 50
+local flyingEnabled = false
+FlyBox.MouseButton1Click:Connect(function()
+    flyingEnabled = not flyingEnabled
+    FlyBox.BackgroundColor3 = flyingEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+-- تحديث حجم ScrollFrame تلقائي حسب عدد الخانات
+MainFrame.CanvasSize = UDim2.new(0, 0, 0, currentY + 10)
+
 -- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
-
-    if infiniteJumpEnabled then
-        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-    if clipping then
-        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
-    if godModeEnabled then
-        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-    end
 end)
