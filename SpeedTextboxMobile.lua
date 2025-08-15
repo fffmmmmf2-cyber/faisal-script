@@ -1,51 +1,63 @@
--- LocalScript: جسم أحمر Neon + اسم + شريط دم + تحديث كل 5 ثواني
+-- LocalScript: GUI Toggle + RedEnemy + NoClip آمن
 
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 
-local function createHealthGui(player, humanoid)
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+-- ==========================
+-- إنشاء ScreenGui
+-- ==========================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MyMenu"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- ==========================
+-- دوال اللون الأحمر على اللاعبين
+-- ==========================
+local function createHealthGui(playerToApply, humanoid)
+    local hrp = playerToApply.Character and playerToApply.Character:FindFirstChild("HumanoidRootPart")
     if not hrp or not humanoid then return end
 
     -- إزالة أي Billboard سابق
-    local old = player.Character:FindFirstChild("EnemyBillboard")
+    local old = playerToApply.Character:FindFirstChild("EnemyBillboard")
     if old then old:Destroy() end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0,150,0,40)
+    billboard.Size = UDim2.new(0,200,0,50)
     billboard.StudsOffset = Vector3.new(0,4,0)
     billboard.AlwaysOnTop = true
     billboard.Name = "EnemyBillboard"
-    billboard.Parent = player.Character
+    billboard.Parent = playerToApply.Character
 
     -- اسم اللاعب
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1,0,0.5,0)
     nameLabel.Position = UDim2.new(0,0,0,0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name
+    nameLabel.Text = playerToApply.Name
     nameLabel.TextColor3 = Color3.fromRGB(255,0,0)
     nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.SourceSansBold
     nameLabel.Parent = billboard
 
     -- شريط الدم
     local healthBar = Instance.new("Frame")
-    healthBar.Size = UDim2.new(1,0,0.3,0)
+    healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
     healthBar.Position = UDim2.new(0,0,0.6,0)
     healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
     healthBar.BorderSizePixel = 1
     healthBar.Parent = billboard
 
-    -- تحديث الدم باستمرار
     humanoid:GetPropertyChangedSignal("Health"):Connect(function()
         healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
     end)
 end
 
-local function applyEnemyEffect(player)
-    if player == Players.LocalPlayer then return end
+local function applyEnemyEffect(playerToApply)
+    if playerToApply == player then return end
 
     local function onCharacter(char)
         if not char then return end
@@ -55,6 +67,9 @@ local function applyEnemyEffect(player)
         -- إزالة أي Highlight سابق
         if char:FindFirstChild("EnemyHighlight") then
             char.EnemyHighlight:Destroy()
+        end
+        if char:FindFirstChild("EnemyBillboard") then
+            char.EnemyBillboard:Destroy()
         end
 
         -- Highlight أحمر Neon
@@ -68,33 +83,93 @@ local function applyEnemyEffect(player)
         highlight.Parent = char
 
         -- إنشاء اسم وشريط الدم
-        createHealthGui(player, humanoid)
+        createHealthGui(playerToApply, humanoid)
     end
 
-    if player.Character then
-        onCharacter(player.Character)
+    if playerToApply.Character then
+        onCharacter(playerToApply.Character)
     end
-    player.CharacterAdded:Connect(onCharacter)
+    playerToApply.CharacterAdded:Connect(onCharacter)
 end
 
--- تطبيق على اللاعبين الحاليين عند بدء اللعبة
-for _, player in pairs(Players:GetPlayers()) do
-    applyEnemyEffect(player)
-end
+-- ==========================
+-- Toggle variables
+-- ==========================
+local redEnabled = false
+local noclipEnabled = false
 
--- أي لاعب جديد يدخل اللعبة
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        applyEnemyEffect(player)
+-- ==========================
+-- دالة إنشاء الزر
+-- ==========================
+local function createButton(name, positionY, initialColor, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0,200,0,50)
+    button.Position = UDim2.new(0.5,-100,0,positionY)
+    button.BackgroundColor3 = initialColor
+    button.TextColor3 = Color3.fromRGB(255,255,255)
+    button.TextScaled = true
+    button.Text = name
+    button.Parent = screenGui
+
+    button.MouseButton1Click:Connect(function()
+        callback(button)
     end)
-end)
+end
 
--- تحديث كل 5 ثواني لجميع اللاعبين (تأكد من أي لاعب جديد أو تغييرات)
-while true do
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            applyEnemyEffect(player)
+-- ==========================
+-- الخانة الأولى: اللون الأحمر على اللاعبين
+-- ==========================
+createButton("تفعيل اللون الأحمر", 100, Color3.fromRGB(255,0,0), function(button)
+    redEnabled = not redEnabled
+    if redEnabled then
+        button.BackgroundColor3 = Color3.fromRGB(0,255,0)
+        for _, p in pairs(Players:GetPlayers()) do
+            applyEnemyEffect(p)
+        end
+        Players.PlayerAdded:Connect(function(newPlayer)
+            applyEnemyEffect(newPlayer)
+        end)
+    else
+        button.BackgroundColor3 = Color3.fromRGB(255,0,0)
+        -- إزالة أي تأثير موجود
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                local char = p.Character
+                if char:FindFirstChild("EnemyHighlight") then
+                    char.EnemyHighlight:Destroy()
+                end
+                if char:FindFirstChild("EnemyBillboard") then
+                    char.EnemyBillboard:Destroy()
+                end
+            end
         end
     end
-    wait(5)
-end
+end)
+
+-- ==========================
+-- الخانة الثانية: NoClip آمن
+-- ==========================
+createButton("تفعيل NoClip", 160, Color3.fromRGB(255,0,0), function(button)
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        button.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    else
+        button.BackgroundColor3 = Color3.fromRGB(255,0,0)
+    end
+end)
+
+-- ==========================
+-- NoClip loop
+-- ==========================
+RunService.RenderStepped:Connect(function()
+    if noclipEnabled then
+        local char = player.Character
+        if char then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
