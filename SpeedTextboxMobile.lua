@@ -12,7 +12,7 @@ ScreenGui.Parent = player:WaitForChild("PlayerGui")
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 320)
+MainFrame.Size = UDim2.new(0, 180, 0, 400)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -34,7 +34,7 @@ ToggleButton.BorderSizePixel = 0
 ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleButton.ZIndex = 10
 
--- لون رينبو يتحرك باستمرار
+-- وظيفة تغيير لون الرينبو باستمرار
 spawn(function()
     local hue = 0
     while true do
@@ -101,7 +101,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران سلس للـParkour
+-- اختراق الجدران (يؤثر على كل شيء إلا الأرض تحته)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -121,8 +121,7 @@ RunService.Heartbeat:Connect(function()
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
-                    -- كل البارتات فوق أو على مستوى القدمين تصير CanCollide false
-                    if part.Position.Y > rootPart.Position.Y + 0.1 then
+                    if part.Position.Y >= rootPart.Position.Y + 0.5 then
                         part.CanCollide = false
                     else
                         part.CanCollide = true
@@ -174,6 +173,24 @@ FlyButton.MouseButton1Click:Connect(function()
     flyingEnabled = not flyingEnabled
     if flyingEnabled then
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
+    end
+end)
+
+-- زر حذف الهيت بوكس نهائي
+local DeleteHitboxButton = Instance.new("TextButton")
+DeleteHitboxButton.Parent = MainFrame
+DeleteHitboxButton.Position = UDim2.new(0, 10, 0, 260)
+DeleteHitboxButton.Size = UDim2.new(0, 160, 0, 40)
+DeleteHitboxButton.Text = "حذف الهيت بوكس"
+DeleteHitboxButton.TextScaled = true
+DeleteHitboxButton.BackgroundColor3 = buttonColor
+DeleteHitboxButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+DeleteHitboxButton.MouseButton1Click:Connect(function()
+    if rootPart then
+        rootPart:Destroy()
+        DeleteHitboxButton.Text = "تم الحذف"
+        DeleteHitboxButton.Active = false
     end
 end)
 
