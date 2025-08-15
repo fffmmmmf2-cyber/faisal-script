@@ -8,11 +8,13 @@ local UserInputService = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = true
 
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 320)
+MainFrame.Size = UDim2.new(0, 180, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -22,7 +24,6 @@ local UICornerMain = Instance.new("UICorner")
 UICornerMain.CornerRadius = UDim.new(0, 12)
 UICornerMain.Parent = MainFrame
 
--- كل الأزرار بيضاء دائمًا
 local buttonColor = Color3.fromRGB(255,255,255)
 
 -- السرعة
@@ -31,7 +32,6 @@ SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
 SpeedBox.PlaceholderText = "السرعة (1-1000)"
-SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = buttonColor
 SpeedBox.TextColor3 = Color3.fromRGB(0, 0, 0)
@@ -59,7 +59,7 @@ InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
 InfJumpButton.Text = "قفز لا نهائي"
 InfJumpButton.TextScaled = true
 InfJumpButton.BackgroundColor3 = buttonColor
-InfJumpButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+InfJumpButton.TextColor3 = Color3.fromRGB(0,0,0)
 
 local infiniteJumpEnabled = false
 InfJumpButton.MouseButton1Click:Connect(function()
@@ -80,7 +80,7 @@ ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = buttonColor
-ClipButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+ClipButton.TextColor3 = Color3.fromRGB(0,0,0)
 
 local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
@@ -91,15 +91,7 @@ RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                if clipping then
-                    if part.Position.Y >= rootPart.Position.Y then
-                        part.CanCollide = false
-                    else
-                        part.CanCollide = true
-                    end
-                else
-                    part.CanCollide = true
-                end
+                part.CanCollide = not clipping
             end
         end
     end
@@ -113,7 +105,7 @@ GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
 GodModeButton.BackgroundColor3 = buttonColor
-GodModeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+GodModeButton.TextColor3 = Color3.fromRGB(0,0,0)
 
 local godModeEnabled = false
 GodModeButton.MouseButton1Click:Connect(function()
@@ -137,7 +129,7 @@ FlyButton.Size = UDim2.new(0, 160, 0, 40)
 FlyButton.Text = "طيران"
 FlyButton.TextScaled = true
 FlyButton.BackgroundColor3 = buttonColor
-FlyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+FlyButton.TextColor3 = Color3.fromRGB(0,0,0)
 
 local flyingEnabled = false
 FlyButton.MouseButton1Click:Connect(function()
