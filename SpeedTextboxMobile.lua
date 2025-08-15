@@ -7,36 +7,38 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "GridGUI"
 screenGui.Parent = playerGui
 
--- إنشاء الإطار الرئيسي للمربع
+-- الإطار الرئيسي للمربع
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 420, 0, 480) -- مناسب لـ 2x4 خانات
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -240)
-mainFrame.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+mainFrame.Size = UDim2.new(0, 220, 0, 260) -- صغر الحجم
+mainFrame.Position = UDim2.new(0.5, -110, 0.5, -130)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- اللون أسود
 mainFrame.Parent = screenGui
 
--- دالة لإنشاء خانة
+-- دالة لإنشاء خانة صغيرة
 local function createCell(parent, posX, posY)
     local cell = Instance.new("Frame")
-    cell.Size = UDim2.new(0, 200, 0, 100) -- كل خانة أعرض
+    cell.Size = UDim2.new(0, 100, 0, 50) -- حجم أصغر
     cell.Position = UDim2.new(0, posX, 0, posY)
-    cell.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+    cell.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- خانات داكنة سوداء
     cell.BorderSizePixel = 2
+    cell.BorderColor3 = Color3.fromRGB(80, 80, 80) -- حدود خفيفة
     cell.Parent = parent
 end
 
--- إنشاء 2x4 خانات
+-- إنشاء 2x4 خانات صغيرة
 for row = 0, 3 do
     for col = 0, 1 do
-        createCell(mainFrame, col * 210, row * 120)
+        createCell(mainFrame, col * 110, row * 60)
     end
 end
 
--- إنشاء زر فتح وإغلاق المربع
+-- زر فتح وإغلاق المربع
 local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 120, 0, 50)
+toggleButton.Size = UDim2.new(0, 120, 0, 40)
 toggleButton.Position = UDim2.new(0.5, -60, 1, 10)
-toggleButton.Text = "فتح/إغلاق المربع"
-toggleButton.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+toggleButton.Text = "فتح/إغلاق"
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.Parent = screenGui
 
 local isOpen = true
