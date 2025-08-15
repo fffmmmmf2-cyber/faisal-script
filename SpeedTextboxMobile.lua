@@ -2,6 +2,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
 -- إنشاء RemoteEvent تلقائي إذا مش موجود
 local ChangeSizeEvent = ReplicatedStorage:FindFirstChild("ChangeSizeEvent")
@@ -11,55 +13,43 @@ if not ChangeSizeEvent then
     ChangeSizeEvent.Parent = ReplicatedStorage
 end
 
--- سكربت السيرفر (ServerScriptService) تلقائي
-if game:GetService("RunService"):IsStudio() or game:GetService("RunService"):IsClient() then
-    -- نسوي سيرفر سكربت مؤقت
-    local ServerScriptService = game:GetService("ServerScriptService")
-    if not ServerScriptService:FindFirstChild("AutoSizeServer") then
-        local serverScript = Instance.new("Script")
-        serverScript.Name = "AutoSizeServer"
-        serverScript.Source = [[
+-- إنشاء ServerScript تلقائي إذا مش موجود
+local ServerScriptService = game:GetService("ServerScriptService")
+if not ServerScriptService:FindFirstChild("AutoSizeServer") then
+    local serverScript = Instance.new("Script")
+    serverScript.Name = "AutoSizeServer"
+    serverScript.Source = [[
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChangeSizeEvent = ReplicatedStorage:WaitForChild("ChangeSizeEvent")
 
 ChangeSizeEvent.OnServerEvent:Connect(function(player, scale)
     local character = player.Character
     if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local clampedScale = math.clamp(scale, 0.2, 1)
-            
-            if not humanoid:FindFirstChild("BodyHeightScale") then
-                local bhs = Instance.new("NumberValue")
-                bhs.Name = "BodyHeightScale"
-                bhs.Value = 1
-                bhs.Parent = humanoid
-            end
-            if not humanoid:FindFirstChild("BodyWidthScale") then
-                local bws = Instance.new("NumberValue")
-                bws.Name = "BodyWidthScale"
-                bws.Value = 1
-                bws.Parent = humanoid
-            end
-            if not humanoid:FindFirstChild("BodyDepthScale") then
-                local bds = Instance.new("NumberValue")
-                bds.Name = "BodyDepthScale"
-                bds.Value = 1
-                bds.Parent = humanoid
-            end
+        for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player and otherPlayer.Character then
+                local dummyName = player.Name.."_SizeDummy"
+                local oldDummy = workspace:FindFirstChild(dummyName)
+                if oldDummy then oldDummy:Destroy() end
 
-            humanoid.BodyHeightScale.Value = clampedScale
-            humanoid.BodyWidthScale.Value = clampedScale
-            humanoid.BodyDepthScale.Value = clampedScale
+                local dummy = character:Clone()
+                dummy.Name = dummyName
+                dummy.Parent = workspace
+                dummy:SetPrimaryPartCFrame(character.PrimaryPart.CFrame)
+
+                for _, part in pairs(dummy:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Size = part.Size * scale
+                    end
+                end
+            end
         end
     end
 end)
 ]]
-        serverScript.Parent = ServerScriptService
-    end
+    serverScript.Parent = ServerScriptService
 end
 
--- إنشاء GUI تلقائي
+-- إنشاء GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -79,6 +69,15 @@ for i = 1, 10 do
 
     Button.MouseButton1Click:Connect(function()
         local scale = 1 - (i * 0.08)
+        
+        -- يصغر جسمك عندك
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Size = part.Size * scale
+            end
+        end
+        
+        -- يرسل للاعبين الآخرين
         ChangeSizeEvent:FireServer(scale)
     end)
 end
