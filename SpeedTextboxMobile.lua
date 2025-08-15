@@ -10,10 +10,10 @@ local UserInputService = game:GetService("UserInputService")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- زر الإخفاء/الإظهار (أصبح 50x50 بدل 70x70)
+-- زر الإخفاء/الإظهار (50x50)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Parent = ScreenGui
-ToggleButton.Size = UDim2.new(0, 50, 0, 50) -- هنا تم التصغير
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(0, 12, 0, 12)
 ToggleButton.Text = ""
 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
@@ -21,14 +21,14 @@ ToggleButton.Active = true
 ToggleButton.Draggable = true
 
 local UICornerBtn = Instance.new("UICorner")
-UICornerBtn.CornerRadius = UDim.new(0, 25) -- تصغير الزوايا لتناسب الحجم الجديد
+UICornerBtn.CornerRadius = UDim.new(0, 25)
 UICornerBtn.Parent = ToggleButton
 
--- المربع الصغير القابل للسحب
+-- المربع القابل للسحب (تم تعديل الارتفاع لإضافة الزر الرابع)
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 220)
-MainFrame.Position = UDim2.new(0.5, -90, 0.3, -110)
+MainFrame.Size = UDim2.new(0, 180, 0, 260) -- زيادة الارتفاع لاستيعاب الزر الجديد
+MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -44,12 +44,12 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.BackgroundColor3 = visible and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- 1️⃣ السرعة (كما هي)
+-- 1️⃣ السرعة (مع إضافة كلمة "السرعة")
 local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "1-100"
+SpeedBox.PlaceholderText = "السرعة (1-100)"
 SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -72,14 +72,14 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللانهائي (بدل الطيران)
+-- 2️⃣ القفز اللانهائي (مع تغيير النص)
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 60, 0, 60)
 InfJumpButton.Size = UDim2.new(0, 60, 0, 60)
-InfJumpButton.Text = "قفز"
+InfJumpButton.Text = "قفز لا نهائي"
 InfJumpButton.TextScaled = true
-InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- أحمر في البداية
+InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 InfJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerJump = Instance.new("UICorner")
@@ -99,12 +99,12 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدار (كما هو)
+-- 3️⃣ اختراق الجدران (كما هي)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
-ClipButton.Position = UDim2.new(0, 10, 0, 150)
+ClipButton.Position = UDim2.new(0, 10, 0, 130)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
-ClipButton.Text = "اختراق الجدار"
+ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -123,8 +123,59 @@ ClipButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- 4️⃣ منع نقص الدم (إضافة جديدة)
+local GodModeButton = Instance.new("TextButton")
+GodModeButton.Parent = MainFrame
+GodModeButton.Position = UDim2.new(0, 10, 0, 180)
+GodModeButton.Size = UDim2.new(0, 160, 0, 40)
+GodModeButton.Text = "منع نقص الدم"
+GodModeButton.TextScaled = true
+GodModeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local UICornerGod = Instance.new("UICorner")
+UICornerGod.CornerRadius = UDim.new(0, 8)
+UICornerGod.Parent = GodModeButton
+
+local godModeEnabled = false
+local originalHealth = humanoid.Health
+
+GodModeButton.MouseButton1Click:Connect(function()
+    godModeEnabled = not godModeEnabled
+    GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
+    
+    if godModeEnabled then
+        originalHealth = humanoid.Health
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+    else
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+    end
+end)
+
+-- حماية الدم من النقصان
+RunService.Heartbeat:Connect(function()
+    if godModeEnabled and humanoid then
+        humanoid.Health = originalHealth
+    end
+end)
+
 -- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
+    
+    -- إعادة تفعيل الميزات إذا كانت نشطة
+    if infiniteJumpEnabled then
+        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    
+    if clipping then
+        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    
+    if godModeEnabled then
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        originalHealth = humanoid.Health
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+    end
 end)
