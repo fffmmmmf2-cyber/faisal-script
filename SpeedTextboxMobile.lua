@@ -1,6 +1,7 @@
 -- Server Script
 local Players = game:GetService("Players")
 
+-- وظيفة لتفعيل منع نقص الدم لكل لاعب
 local function enableGodMode(player)
     local char = player.Character
     if not char then return end
