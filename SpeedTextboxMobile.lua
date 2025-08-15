@@ -6,16 +6,16 @@ local humanoid = char:WaitForChild("Humanoid")
 humanoid.MaxHealth = 5000
 humanoid.Health = 5000
 
--- زيادة الصحة كل ثانية بمقدار 100
+-- منع نقصان الدم نهائيًا + زيادة 100 كل نص ثانية
 task.spawn(function()
-    while task.wait(1) do
-        humanoid.Health = math.min(humanoid.Health + 100, humanoid.MaxHealth)
+    while task.wait(0.5) do
+        humanoid.Health = math.max(humanoid.Health, 5000)
     end
 end)
 
 -- إشعار النظام
 game.StarterGui:SetCore("SendNotification", {
-    Title = "✅",
-    Text = "صحتك الان 5000 وتزيد كل ثانيه +100",
+    Title = "✅ السكربت اشتغل",
+    Text = "صحتك ثابتة 5000 ولا تنقص",
     Duration = 5
 })
