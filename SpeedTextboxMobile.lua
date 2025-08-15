@@ -23,7 +23,7 @@ local UICornerBtn = Instance.new("UICorner")
 UICornerBtn.CornerRadius = UDim.new(0, 25)
 UICornerBtn.Parent = ToggleButton
 
--- المربع القابل للسحب (ScrollFrame)
+-- ScrollFrame للخانات
 local MainFrame = Instance.new("ScrollingFrame")
 MainFrame.Parent = ScreenGui
 MainFrame.Size = UDim2.new(0, 180, 0, 260)
@@ -45,8 +45,8 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.BackgroundColor3 = visible and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- دالة لإنشاء خانة
-local function CreateBox(name, posY, placeholder)
+-- دوال لإنشاء خانة وزر
+local function CreateBox(posY, placeholder)
     local box = Instance.new("TextBox")
     box.Parent = MainFrame
     box.Position = UDim2.new(0, 10, 0, posY)
@@ -56,11 +56,9 @@ local function CreateBox(name, posY, placeholder)
     box.TextScaled = true
     box.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     box.TextColor3 = Color3.fromRGB(255, 255, 255)
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = box
-
     return box
 end
 
@@ -73,20 +71,16 @@ local function CreateButton(name, posY)
     btn.TextScaled = true
     btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
-
     return btn
 end
 
 -- توليد الخانات
 local currentY = 10
--- 1️⃣ السرعة
-local SpeedBox = CreateBox("Speed", currentY, "السرعة (1-1000)")
+local SpeedBox = CreateBox(currentY, "السرعة (1-1000)")
 currentY = currentY + 50
-
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
@@ -100,7 +94,6 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللانهائي
 local InfJumpButton = CreateButton("قفز لا نهائي", currentY)
 currentY = currentY + 50
 local infiniteJumpEnabled = false
@@ -115,7 +108,6 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران
 local ClipButton = CreateButton("اختراق الجدران", currentY)
 currentY = currentY + 50
 local clipping = false
@@ -142,7 +134,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 4️⃣ منع نقص الدم
 local GodModeButton = CreateButton("منع نقص الدم", currentY)
 currentY = currentY + 50
 local godModeEnabled = false
@@ -160,38 +151,91 @@ spawn(function()
     end
 end)
 
--- 5️⃣ الطيران (آخر خانة)
+-- الطيران للجوال
 local FlyBox = CreateButton("طيران", currentY)
 currentY = currentY + 50
 local flyingEnabled = false
 local flySpeed = 50
+local bodyVelocity
+
+-- أزرار تحكم الطيران للجوال
+local function CreateFlyButton(text, posX, posY)
+    local btn = Instance.new("TextButton")
+    btn.Parent = ScreenGui
+    btn.Size = UDim2.new(0, 50, 0, 50)
+    btn.Position = UDim2.new(0, posX, 1, posY)
+    btn.Text = text
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = btn
+    return btn
+end
+
+local forwardBtn = CreateFlyButton("⬆️", 80, -120)
+local backBtn = CreateFlyButton("⬇️", 80, -60)
+local leftBtn = CreateFlyButton("⬅️", 30, -90)
+local rightBtn = CreateFlyButton("➡️", 130, -90)
+local upBtn = CreateFlyButton("⬆️🌟", 250, -120)
+local downBtn = CreateFlyButton("⬇️🌟", 250, -60)
+
+local moveDir = Vector3.new()
 
 FlyBox.MouseButton1Click:Connect(function()
     flyingEnabled = not flyingEnabled
     FlyBox.BackgroundColor3 = flyingEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-end)
 
--- ميكانيكية الطيران
-RunService.RenderStepped:Connect(function()
-    if flyingEnabled and humanoid and rootPart then
-        local moveDirection = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection = moveDirection - Vector3.new(0,1,0) end
-
-        if moveDirection.Magnitude > 0 then
-            rootPart.Velocity = moveDirection.Unit * flySpeed
-        else
-            rootPart.Velocity = Vector3.new(0,0,0)
+    if flyingEnabled then
+        humanoid.PlatformStand = true
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
+        bodyVelocity.Parent = rootPart
+    else
+        humanoid.PlatformStand = false
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
         end
+        moveDir = Vector3.new()
     end
 end)
 
--- تحديث حجم ScrollFrame تلقائي حسب عدد الخانات
-MainFrame.CanvasSize = UDim2.new(0, 0, 0, currentY + 10)
+-- التحكم بالطيران عن طريق الأزرار
+local function UpdateDir()
+    if flyingEnabled and bodyVelocity then
+        local camCFrame = workspace.CurrentCamera.CFrame
+        local dir = Vector3.new()
+        if forwardBtn:GetAttribute("Pressed") then dir = dir + camCFrame.LookVector end
+        if backBtn:GetAttribute("Pressed") then dir = dir - camCFrame.LookVector end
+        if leftBtn:GetAttribute("Pressed") then dir = dir - camCFrame.RightVector end
+        if rightBtn:GetAttribute("Pressed") then dir = dir + camCFrame.RightVector end
+        if upBtn:GetAttribute("Pressed") then dir = dir + Vector3.new(0,1,0) end
+        if downBtn:GetAttribute("Pressed") then dir = dir - Vector3.new(0,1,0) end
+
+        if dir.Magnitude > 0 then
+            bodyVelocity.Velocity = dir.Unit * flySpeed
+        else
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+    end
+end
+
+local function SetButtonEvents(btn, attr)
+    btn:SetAttribute("Pressed", false)
+    btn.MouseButton1Down:Connect(function() btn:SetAttribute("Pressed", true) end)
+    btn.MouseButton1Up:Connect(function() btn:SetAttribute("Pressed", false) end)
+end
+
+for _, b in pairs({forwardBtn, backBtn, leftBtn, rightBtn, upBtn, downBtn}) do
+    SetButtonEvents(b)
+end
+
+RunService.RenderStepped:Connect(UpdateDir)
+
+-- تحديث ScrollFrame حسب عدد الخانات
+MainFrame.CanvasSize = UDim2.new(0,0,0,currentY + 10)
 
 -- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
