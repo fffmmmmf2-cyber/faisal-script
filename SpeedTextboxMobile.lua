@@ -61,7 +61,7 @@ UICornerSpeed.Parent = SpeedBox
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
-        if s and s >= 1 and s <= 100 then
+        if s and s >= 1 and s <= 500 then
             if humanoid and humanoid.Parent then
                 humanoid.WalkSpeed = s
             end
