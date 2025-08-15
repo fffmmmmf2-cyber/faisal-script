@@ -8,13 +8,11 @@ local UserInputService = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Enabled = true
 
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 280)
+MainFrame.Size = UDim2.new(0, 180, 0, 320)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -24,63 +22,28 @@ local UICornerMain = Instance.new("UICorner")
 UICornerMain.CornerRadius = UDim.new(0, 12)
 UICornerMain.Parent = MainFrame
 
--- ScrollFrame لكل الأزرار
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Parent = MainFrame
-ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
-ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.ScrollBarThickness = 6
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = ScrollFrame
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 10)
-
--- تحديث حجم Canvas تلقائي
-UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
-end)
-
+-- كل الأزرار بيضاء دائمًا
 local buttonColor = Color3.fromRGB(255,255,255)
 
--- دالة لإنشاء TextBox
-local function CreateTextBox(placeholder, parent)
-    local box = Instance.new("TextBox")
-    box.Parent = parent
-    box.Size = UDim2.new(1, 0, 0, 40)
-    box.TextScaled = true
-    box.PlaceholderText = placeholder
-    box.BackgroundColor3 = buttonColor
-    box.TextColor3 = Color3.fromRGB(0,0,0)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = box
-    return box
-end
-
--- دالة لإنشاء زر
-local function CreateButton(text, parent)
-    local btn = Instance.new("TextButton")
-    btn.Parent = parent
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Text = text
-    btn.TextScaled = true
-    btn.BackgroundColor3 = buttonColor
-    btn.TextColor3 = Color3.fromRGB(0,0,0)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    return btn
-end
-
 -- السرعة
-local SpeedBox = CreateTextBox("السرعة (1-1000)", ScrollFrame)
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Parent = MainFrame
+SpeedBox.Position = UDim2.new(0, 10, 0, 10)
+SpeedBox.Size = UDim2.new(0, 160, 0, 40)
+SpeedBox.PlaceholderText = "السرعة (1-1000)"
+SpeedBox.Text = ""
+SpeedBox.TextScaled = true
+SpeedBox.BackgroundColor3 = buttonColor
+SpeedBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+local UICornerSpeed = Instance.new("UICorner")
+UICornerSpeed.CornerRadius = UDim.new(0, 8)
+UICornerSpeed.Parent = SpeedBox
+
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
-        if s and s >=1 and s <=1000 then
+        if s and s >= 1 and s <= 1000 then
             humanoid.WalkSpeed = s
         else
             SpeedBox.Text = "❌"
@@ -89,11 +52,20 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
 end)
 
 -- القفز اللا نهائي
-local InfJumpButton = CreateButton("قفز لا نهائي", ScrollFrame)
+local InfJumpButton = Instance.new("TextButton")
+InfJumpButton.Parent = MainFrame
+InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
+InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
+InfJumpButton.Text = "قفز لا نهائي"
+InfJumpButton.TextScaled = true
+InfJumpButton.BackgroundColor3 = buttonColor
+InfJumpButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
 local infiniteJumpEnabled = false
 InfJumpButton.MouseButton1Click:Connect(function()
     infiniteJumpEnabled = not infiniteJumpEnabled
 end)
+
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpEnabled then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -101,27 +73,53 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 -- اختراق الجدران
-local ClipButton = CreateButton("اختراق الجدران", ScrollFrame)
+local ClipButton = Instance.new("TextButton")
+ClipButton.Parent = MainFrame
+ClipButton.Position = UDim2.new(0, 10, 0, 110)
+ClipButton.Size = UDim2.new(0, 160, 0, 40)
+ClipButton.Text = "اختراق الجدران"
+ClipButton.TextScaled = true
+ClipButton.BackgroundColor3 = buttonColor
+ClipButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
 local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
 end)
+
 RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CanCollide = not clipping
+                if clipping then
+                    if part.Position.Y >= rootPart.Position.Y then
+                        part.CanCollide = false
+                    else
+                        part.CanCollide = true
+                    end
+                else
+                    part.CanCollide = true
+                end
             end
         end
     end
 end)
 
 -- منع نقص الدم
-local GodModeButton = CreateButton("منع نقص الدم", ScrollFrame)
+local GodModeButton = Instance.new("TextButton")
+GodModeButton.Parent = MainFrame
+GodModeButton.Position = UDim2.new(0, 10, 0, 160)
+GodModeButton.Size = UDim2.new(0, 160, 0, 40)
+GodModeButton.Text = "منع نقص الدم"
+GodModeButton.TextScaled = true
+GodModeButton.BackgroundColor3 = buttonColor
+GodModeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
 local godModeEnabled = false
 GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
 end)
+
 spawn(function()
     while true do
         if godModeEnabled then
@@ -132,7 +130,15 @@ spawn(function()
 end)
 
 -- الطيران
-local FlyButton = CreateButton("طيران", ScrollFrame)
+local FlyButton = Instance.new("TextButton")
+FlyButton.Parent = MainFrame
+FlyButton.Position = UDim2.new(0, 10, 0, 210)
+FlyButton.Size = UDim2.new(0, 160, 0, 40)
+FlyButton.Text = "طيران"
+FlyButton.TextScaled = true
+FlyButton.BackgroundColor3 = buttonColor
+FlyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+
 local flyingEnabled = false
 FlyButton.MouseButton1Click:Connect(function()
     flyingEnabled = not flyingEnabled
