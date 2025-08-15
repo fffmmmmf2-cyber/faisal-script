@@ -48,7 +48,7 @@ local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "السرعة (1-1000)"
+SpeedBox.PlaceholderText = "السرعة (1-100)"
 SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -61,12 +61,12 @@ UICornerSpeed.Parent = SpeedBox
 SpeedBox.FocusLost:Connect(function(enterPressed)
 if enterPressed then
 local s = tonumber(SpeedBox.Text)
-if s and s >= 1 and s <= 1000 then
+if s and s >= 1 and s <= 100 then
 if humanoid and humanoid.Parent then
 humanoid.WalkSpeed = s
 end
 else
-SpeedBox.Text = "خطأ"
+SpeedBox.Text = "❌"
 end
 end
 end)
@@ -105,7 +105,7 @@ ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-ClipButton.TextColor3 = 1000Color3.fromRGB(255, 255, 255)
+ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerClip = Instance.new("UICorner")
 UICornerClip.CornerRadius = UDim.new(0, 8)
