@@ -1,6 +1,7 @@
 -- خدمات
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
@@ -9,14 +10,23 @@ local rootPart = char:WaitForChild("HumanoidRootPart")
 -- واجهة
 local screenGui = Instance.new("ScreenGui", game.CoreGui)
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0,300,0,400)
+frame.Size = UDim2.new(0, 300, 0, 400)
 frame.Position = UDim2.new(0,50,0,50)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.BorderSizePixel = 0
 
+-- زر الإخفاء فوق كل شيء
+local toggleBtn = Instance.new("TextButton", frame)
+toggleBtn.Size = UDim2.new(1,0,0,30)
+toggleBtn.Position = UDim2.new(0,0,0,0)
+toggleBtn.Text = "⬆ إخفاء/إظهار"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- ScrollFrame لعرض اللاعبين
 local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1,-10,1,-10)
-scroll.Position = UDim2.new(0,5,0,5)
+scroll.Size = UDim2.new(1,-10,1,-40)
+scroll.Position = UDim2.new(0,5,0,35)
 scroll.BackgroundTransparency = 1
 scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.ScrollBarThickness = 6
@@ -25,7 +35,7 @@ local UIListLayout = Instance.new("UIListLayout", scroll)
 UIListLayout.Padding = UDim.new(0,5)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- تحديث القائمة كل ثانية
+-- دالة تحديث القائمة
 local function updateList()
     scroll:ClearAllChildren()
     local yOffset = 0
@@ -56,7 +66,7 @@ local function updateList()
 
             goToBtn.MouseButton1Click:Connect(function()
                 if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    rootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+                    rootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
                 end
             end)
 
@@ -70,7 +80,7 @@ local function updateList()
 
             bringBtn.MouseButton1Click:Connect(function()
                 if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    p.Character.HumanoidRootPart.CFrame = rootPart.CFrame
+                    p.Character.HumanoidRootPart.CFrame = rootPart.CFrame + Vector3.new(0,3,0)
                 end
             end)
 
@@ -78,7 +88,20 @@ local function updateList()
         end
     end
 
-    scroll.CanvasSize = UDim2.new(0,0,yOffset/scroll.AbsoluteSize.Y,0)
+    scroll.CanvasSize = UDim2.new(0,0,0,yOffset)
 end
 
 RunService.RenderStepped:Connect(updateList)
+
+-- زر إخفاء/إظهار
+local hidden = false
+toggleBtn.MouseButton1Click:Connect(function()
+    hidden = not hidden
+    local goal = {}
+    if hidden then
+        goal.Size = UDim2.new(0,0,0,0)
+    else
+        goal.Size = UDim2.new(0,300,0,400)
+    end
+    TweenService:Create(frame, TweenInfo.new(0.3), goal):Play()
+end)
