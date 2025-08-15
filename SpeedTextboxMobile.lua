@@ -26,8 +26,8 @@ UICornerBtn.Parent = ToggleButton
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 260)
-MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
+MainFrame.Size = UDim2.new(0, 180, 0, 300) -- زودت الارتفاع عشان الخانة الجديدة
+MainFrame.Position = UDim2.new(0.5, -90, 0.3, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -48,7 +48,7 @@ local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "السرعة (1-999)"
+SpeedBox.PlaceholderText = "السرعة (1-1000)"
 SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -61,7 +61,7 @@ UICornerSpeed.Parent = SpeedBox
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
-        if s and s >= 1 and s <= 999 then
+        if s and s >= 1 and s <= 1000 then
             if humanoid and humanoid.Parent then
                 humanoid.WalkSpeed = s
             end
@@ -120,17 +120,10 @@ end)
 -- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
     if clipping and workspace and char then
-        local rayOrigin = rootPart.Position
-        local rayDirection = Vector3.new(0, -5, 0)
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterDescendantsInstances = {char}
-        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                -- افحص إذا البارت تحت اللاعب مباشرة
-                local rayResult = workspace:Raycast(rayOrigin, Vector3.new(0, -5, 0), raycastParams)
-                if rayResult and rayResult.Instance == part then
+                local relativeHeight = part.Position.Y - rootPart.Position.Y
+                if relativeHeight < -5 then
                     part.CanCollide = true
                 else
                     part.CanCollide = false
@@ -160,7 +153,6 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
@@ -169,6 +161,20 @@ spawn(function()
         wait(0.10)
     end
 end)
+
+-- 5️⃣ خانة جديدة فارغة تحت كل شيء
+local NewButton = Instance.new("TextButton")
+NewButton.Parent = MainFrame
+NewButton.Position = UDim2.new(0, 10, 0, 210) -- تحت آخر خانة
+NewButton.Size = UDim2.new(0, 160, 0, 40)
+NewButton.Text = ""
+NewButton.TextScaled = true
+NewButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+NewButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local UICornerNew = Instance.new("UICorner")
+UICornerNew.CornerRadius = UDim.new(0, 8)
+UICornerNew.Parent = NewButton
 
 -- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
