@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران كامل
+-- 3️⃣ اختراق الجدران ذكي
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -117,40 +117,20 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
-local lastStandingPart = nil -- آخر جزء وقف عليه
+-- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
-    if clipping then
+    if clipping and workspace and char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                -- الأرضية الأساسية تبقى صلبة
-                if part.Name ~= "Respawn" then
-                    part.CanCollide = false
-                else
+                local relativeHeight = part.Position.Y - rootPart.Position.Y
+                -- إذا الجزء منخفض جدًا بالنسبة للاعب نخليه صلب
+                if relativeHeight < -5 then
                     part.CanCollide = true
+                else
+                    part.CanCollide = false
                 end
             end
         end
-    end
-
-    -- تحديث آخر جزء واقف عليه
-    local ray = Ray.new(rootPart.Position, Vector3.new(0, -3, 0))
-    local hitPart, hitPos = workspace:FindPartOnRay(ray, char)
-    if hitPart and hitPart.Name ~= "Respawn" then
-        lastStandingPart = hitPart
-    end
-
-    -- إذا اللاعب بدأ يطيح
-    if rootPart.Velocity.Y < -0.1 and lastStandingPart then
-        spawn(function()
-            wait(1) -- ثانية أو ثانية ونصف
-            if humanoid and rootPart.Position.Y < lastStandingPart.Position.Y - 5 then
-                -- إرجاع اللاعب للبارت
-                rootPart.CFrame = CFrame.new(lastStandingPart.Position + Vector3.new(0, lastStandingPart.Size.Y/2 + 3, 0))
-                -- جعل البارت غير قابل للاختراق
-                lastStandingPart.CanCollide = true
-                lastStandingPart = nil
-            end
-        end)
     end
 end)
 
@@ -174,6 +154,7 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
+-- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
@@ -188,6 +169,17 @@ player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
+
+    if infiniteJumpEnabled then
+        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if clipping then
+        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if godModeEnabled then
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+end)    rootPart = newChar:WaitForChild("HumanoidRootPart")
 
     if infiniteJumpEnabled then
         InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
