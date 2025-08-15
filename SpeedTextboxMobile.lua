@@ -26,8 +26,8 @@ UICornerBtn.Parent = ToggleButton
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 260)
-MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
+MainFrame.Size = UDim2.new(0, 180, 0, 360)
+MainFrame.Position = UDim2.new(0.5, -90, 0.3, -180)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -43,9 +43,18 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.BackgroundColor3 = visible and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
+-- ScrollFrame لإضافة مساحة أكبر
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Parent = MainFrame
+ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+ScrollFrame.ScrollBarThickness = 8
+ScrollFrame.BackgroundTransparency = 1
+
 -- 1️⃣ السرعة
 local SpeedBox = Instance.new("TextBox")
-SpeedBox.Parent = MainFrame
+SpeedBox.Parent = ScrollFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
 SpeedBox.PlaceholderText = "السرعة (1-1000)"
@@ -71,9 +80,9 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللامحدود
+-- 2️⃣ القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
-InfJumpButton.Parent = MainFrame
+InfJumpButton.Parent = ScrollFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
 InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
 InfJumpButton.Text = "قفز لا نهائي"
@@ -97,14 +106,14 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران (زر موجود بدون رسالة)
+-- 3️⃣ اختراق الجدران ذكي
 local ClipButton = Instance.new("TextButton")
-ClipButton.Parent = MainFrame
+ClipButton.Parent = ScrollFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
-ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+ClipButton.BackgroundColor3 = Color3.fromRGB(128, 128, 128) -- رمادي مثل السرعة
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerClip = Instance.new("UICorner")
@@ -114,9 +123,9 @@ UICornerClip.Parent = ClipButton
 local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
-    ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
+-- تحديث CanCollide ذكي ومتطور
 RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
@@ -137,7 +146,7 @@ end)
 
 -- 4️⃣ منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
-GodModeButton.Parent = MainFrame
+GodModeButton.Parent = ScrollFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
@@ -174,35 +183,23 @@ player.CharacterAdded:Connect(function(newChar)
         InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
     end
     if clipping then
-        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        ClipButton.BackgroundColor3 = Color3.fromRGB(128, 128, 128)
     end
     if godModeEnabled then
         GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
     end
 end)
 
--- 5️⃣ الطيران (آخر شيء مع زر رمادي)
+-- 5️⃣ الطيران (آخر شيء)
 local FlyButton = Instance.new("TextButton")
-FlyButton.Parent = MainFrame
+FlyButton.Parent = ScrollFrame
 FlyButton.Position = UDim2.new(0, 10, 0, 210)
 FlyButton.Size = UDim2.new(0, 160, 0, 40)
 FlyButton.Text = "طيران"
 FlyButton.TextScaled = true
-FlyButton.BackgroundColor3 = Color3.fromRGB(120, 120, 120) -- لون رمادي
+FlyButton.BackgroundColor3 = Color3.fromRGB(128, 128, 128)
 FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local UICornerFly = Instance.new("UICorner")
-UICornerFly.CornerRadius = UDim.new(0, 8)
-UICornerFly.Parent = FlyButton
-
-local flying = false
 FlyButton.MouseButton1Click:Connect(function()
-    flying = not flying
-    if flying then
-        -- هنا يمكن دمج سكربت الطيران اللي تبيه
-        FlyButton.Text = "طيران مفعل"
-    else
-        FlyButton.Text = "طيران"
-        -- إيقاف الطيران أو إزالة تأثيره
-    end
+    loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
 end)
