@@ -1,10 +1,9 @@
-local player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
--- التكست بوكس لكتابة اسم اللاعب
 local NameBox = Instance.new("TextBox")
 NameBox.Parent = ScreenGui
 NameBox.Position = UDim2.new(0.4, 0, 0.4, 0)
@@ -14,7 +13,6 @@ NameBox.TextScaled = true
 NameBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
 NameBox.TextColor3 = Color3.fromRGB(0,0,0)
 
--- زر التفعيل
 local JailButton = Instance.new("TextButton")
 JailButton.Parent = ScreenGui
 JailButton.Position = UDim2.new(0.4, 0, 0.5, 0)
@@ -31,29 +29,45 @@ local function createJail(targetPlayer)
         jail.Name = "Jail_"..targetPlayer.Name
         jail.Parent = workspace
 
-        local size = Vector3.new(6, 6, 6) -- حجم المكعب
-        local offset = Vector3.new(0, size.Y/2, 0)
-
+        local size = Vector3.new(6, 6, 6)
         local parts = {}
-        local positions = {
-            Vector3.new(0,0,0), -- الوسط
-            Vector3.new(size.X/2,0,0),
-            Vector3.new(-size.X/2,0,0),
-            Vector3.new(0,0,size.Z/2),
-            Vector3.new(0,0,-size.Z/2),
+
+        -- كل الجوانب (6 أجزاء لتكوين مكعب مغلق)
+        local offsets = {
+            Vector3.new(0, size.Y/2, 0), -- السقف
+            Vector3.new(0, -size.Y/2, 0), -- الأرضية
+            Vector3.new(size.X/2, 0, 0), -- يمين
+            Vector3.new(-size.X/2, 0, 0), -- يسار
+            Vector3.new(0, 0, size.Z/2), -- أمام
+            Vector3.new(0, 0, -size.Z/2), -- خلف
         }
 
-        for i, pos in pairs(positions) do
+        for i, offset in pairs(offsets) do
             local part = Instance.new("Part")
+            part.Size = size
             part.Anchored = true
             part.CanCollide = true
-            part.Size = size
-            part.Position = root.Position + pos
-            part.Transparency = 0.5
             part.Color = Color3.fromRGB(255,255,255)
+            part.Transparency = 0.5
+            part.Position = root.Position + offset
             part.Parent = jail
             table.insert(parts, part)
         end
+
+        -- تابع يحرك المكعب مع اللاعب لو تحرك شوي
+        spawn(function()
+            while jail.Parent do
+                if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    for i, offset in pairs(offsets) do
+                        parts[i].Position = targetPlayer.Character.HumanoidRootPart.Position + offset
+                    end
+                else
+                    jail:Destroy()
+                    break
+                end
+                wait(0.1)
+            end
+        end)
     end
 end
 
