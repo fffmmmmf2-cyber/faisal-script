@@ -103,7 +103,7 @@ ClipButton.Position = UDim2.new(0, 10, 0, 110)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
-ClipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- افتراضي أحمر
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerClip = Instance.new("UICorner")
@@ -113,6 +113,7 @@ UICornerClip.Parent = ClipButton
 local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
+    ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
     for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Feet" then
             part.CanCollide = not clipping
@@ -120,14 +121,14 @@ ClipButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- 4️⃣ منع نقص الدم (دم دائم 100 بدون تجميد اللاعب)
+-- 4️⃣ منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
-GodModeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- افتراضي أحمر
 GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local UICornerGod = Instance.new("UICorner")
@@ -138,10 +139,10 @@ local godModeEnabled = false
 
 GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
-    GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
+    GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- إعادة الدم كل 0.10 ثانية بدون تجميد اللاعب
+-- إعادة الدم كل 0.10 ثانية
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
