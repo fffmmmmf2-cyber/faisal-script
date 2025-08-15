@@ -48,7 +48,7 @@ local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
 SpeedBox.Position = UDim2.new(0, 10, 0, 10)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
-SpeedBox.PlaceholderText = "السرعة (1-500)"
+SpeedBox.PlaceholderText = "السرعة (1-999)"
 SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -61,7 +61,7 @@ UICornerSpeed.Parent = SpeedBox
 SpeedBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local s = tonumber(SpeedBox.Text)
-        if s and s >= 1 and s <= 500 then
+        if s and s >= 1 and s <= 999 then
             if humanoid and humanoid.Parent then
                 humanoid.WalkSpeed = s
             end
