@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران ذكي
+-- 3️⃣ اختراق الجدران ذكي (يمشي على أي جزء، يمنع السقوط)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -120,11 +120,13 @@ end)
 -- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
     if clipping and workspace and char then
+        local onFloor = humanoid.FloorMaterial ~= Enum.Material.Air
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
-                local relativeHeight = part.Position.Y - rootPart.Position.Y
-                -- إذا الجزء منخفض جدًا بالنسبة للاعب نخليه صلب
-                if relativeHeight < -5 then
+                -- إذا اللاعب على الجزء أو جزء تحت الساق مباشرة (FloorMaterial) نخليه صلب
+                local partY = part.Position.Y + part.Size.Y/2
+                local rootY = rootPart.Position.Y - rootPart.Size.Y/2
+                if onFloor or partY < rootY then
                     part.CanCollide = true
                 else
                     part.CanCollide = false
