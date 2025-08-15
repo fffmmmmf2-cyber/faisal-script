@@ -120,7 +120,7 @@ ClipButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- 4️⃣ منع نقص الدم (يرجع الدم 100 كل 0.10 ثانية)
+-- 4️⃣ منع نقص الدم (دم دائم 100 بدون تجميد اللاعب)
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
 GodModeButton.Position = UDim2.new(0, 10, 0, 160)
@@ -141,12 +141,11 @@ GodModeButton.MouseButton1Click:Connect(function()
     GodModeButton.BackgroundColor3 = godModeEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(60, 60, 60)
 end)
 
--- إعادة الدم كل 0.10 ثانية
+-- إعادة الدم كل 0.10 ثانية بدون تجميد اللاعب
 spawn(function()
     while true do
         if godModeEnabled and humanoid then
             humanoid.Health = 100
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
         end
         wait(0.10)
     end
