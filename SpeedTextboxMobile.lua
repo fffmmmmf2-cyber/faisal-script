@@ -1,88 +1,63 @@
+-- سكربت واحد يتحكم بالـ GUI والطرد
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
-
-local NameBox = Instance.new("TextBox")
-NameBox.Parent = ScreenGui
-NameBox.Position = UDim2.new(0.4, 0, 0.4, 0)
-NameBox.Size = UDim2.new(0, 200, 0, 40)
-NameBox.PlaceholderText = "اكتب اسم اللاعب هنا"
-NameBox.TextScaled = true
-NameBox.BackgroundColor3 = Color3.fromRGB(255,255,255)
-NameBox.TextColor3 = Color3.fromRGB(0,0,0)
-
-local JailButton = Instance.new("TextButton")
-JailButton.Parent = ScreenGui
-JailButton.Position = UDim2.new(0.4, 0, 0.5, 0)
-JailButton.Size = UDim2.new(0, 200, 0, 40)
-JailButton.Text = "سجن اللاعب"
-JailButton.TextScaled = true
-JailButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
-JailButton.TextColor3 = Color3.fromRGB(0,0,0)
-
-local function createJail(targetPlayer)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local root = targetPlayer.Character.HumanoidRootPart
-        local jail = Instance.new("Model")
-        jail.Name = "Jail_"..targetPlayer.Name
-        jail.Parent = workspace
-
-        local size = Vector3.new(8, 8, 8) -- المكعب أكبر شوي
-        local parts = {}
-
-        local offsets = {
-            Vector3.new(0, size.Y/2, 0), -- السقف
-            Vector3.new(0, -size.Y/2, 0), -- الأرضية
-            Vector3.new(size.X/2, 0, 0), -- يمين
-            Vector3.new(-size.X/2, 0, 0), -- يسار
-            Vector3.new(0, 0, size.Z/2), -- أمام
-            Vector3.new(0, 0, -size.Z/2), -- خلف
-        }
-
-        for i, offset in pairs(offsets) do
-            local part = Instance.new("Part")
-            part.Size = size
-            part.Anchored = true
-            part.CanCollide = true
-            part.Color = Color3.fromRGB(255,255,255)
-            part.Transparency = 0.8 -- شفافية أعلى
-            part.Position = root.Position + offset
-            part.Parent = jail
-            table.insert(parts, part)
-        end
-
-        -- تجميد اللاعب
-        local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = 0
-            humanoid.JumpPower = 0
-        end
-
-        -- تتبع اللاعب
-        spawn(function()
-            while jail.Parent do
-                if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    for i, offset in pairs(offsets) do
-                        parts[i].Position = targetPlayer.Character.HumanoidRootPart.Position + offset
-                    end
-                else
-                    jail:Destroy()
-                    break
-                end
-                wait(0.1)
-            end
-        end)
-    end
+-- إنشاء RemoteEvent للطرد إذا ما موجود
+local KickEvent = ReplicatedStorage:FindFirstChild("KickEvent")
+if not KickEvent then
+    KickEvent = Instance.new("RemoteEvent")
+    KickEvent.Name = "KickEvent"
+    KickEvent.Parent = ReplicatedStorage
 end
 
-JailButton.MouseButton1Click:Connect(function()
-    local name = NameBox.Text
-    if name ~= "" then
-        local target = Players:FindFirstChild(name)
-        if target then
-            createJail(target)
-        end
+-- عند استلام طلب الطرد
+KickEvent.OnServerEvent:Connect(function(playerWhoSent, targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer and targetPlayer ~= playerWhoSent then
+        targetPlayer:Kick("انقلع")
     end
+end)
+
+-- إنشاء GUI لكل لاعب عند دخول اللعبة
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        local playerGui = player:WaitForChild("PlayerGui")
+
+        local ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Parent = playerGui
+
+        local MainFrame = Instance.new("Frame")
+        MainFrame.Size = UDim2.new(0, 200, 0, 100)
+        MainFrame.Position = UDim2.new(0.5, -100, 0.5, -50)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        MainFrame.Parent = ScreenGui
+
+        local UICorner = Instance.new("UICorner")
+        UICorner.CornerRadius = UDim.new(0,10)
+        UICorner.Parent = MainFrame
+
+        local TextBox = Instance.new("TextBox")
+        TextBox.Size = UDim2.new(0, 180, 0, 30)
+        TextBox.Position = UDim2.new(0,10,0,10)
+        TextBox.PlaceholderText = "اكتب اسم اللاعب"
+        TextBox.TextScaled = true
+        TextBox.Parent = MainFrame
+
+        local KickButton = Instance.new("TextButton")
+        KickButton.Size = UDim2.new(0, 180, 0, 40)
+        KickButton.Position = UDim2.new(0,10,0,50)
+        KickButton.Text = "طرد"
+        KickButton.TextScaled = true
+        KickButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
+        KickButton.TextColor3 = Color3.fromRGB(255,255,255)
+        KickButton.Parent = MainFrame
+
+        KickButton.MouseButton1Click:Connect(function()
+            local targetName = TextBox.Text
+            if targetName ~= "" then
+                KickEvent:FireServer(targetName)
+            end
+        end)
+    end)
 end)
