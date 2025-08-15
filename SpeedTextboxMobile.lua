@@ -25,6 +25,17 @@ UICornerMain.Parent = MainFrame
 -- كل الأزرار بيضاء دائمًا
 local buttonColor = Color3.fromRGB(255,255,255)
 
+-- دالة إضافة صوت ضغط لكل زر
+local function addClickSound(button)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://12222125" -- صوت كليك جاهز
+    sound.Volume = 1
+    sound.Parent = button
+    button.MouseButton1Click:Connect(function()
+        sound:Play()
+    end)
+end
+
 -- السرعة
 local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
@@ -51,6 +62,9 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
+-- إضافة صوت للسرعة
+addClickSound(SpeedBox)
+
 -- القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
@@ -72,6 +86,9 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
+-- صوت للقفز اللا نهائي
+addClickSound(InfJumpButton)
+
 -- اختراق الجدران
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
@@ -86,6 +103,9 @@ local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
 end)
+
+-- صوت لاختراق الجدران
+addClickSound(ClipButton)
 
 RunService.Heartbeat:Connect(function()
     if char then
@@ -120,6 +140,9 @@ GodModeButton.MouseButton1Click:Connect(function()
     godModeEnabled = not godModeEnabled
 end)
 
+-- صوت منع نقص الدم
+addClickSound(GodModeButton)
+
 spawn(function()
     while true do
         if godModeEnabled then
@@ -146,6 +169,9 @@ FlyButton.MouseButton1Click:Connect(function()
         loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
     end
 end)
+
+-- صوت الطيران
+addClickSound(FlyButton)
 
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
