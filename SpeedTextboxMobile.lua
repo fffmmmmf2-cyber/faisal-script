@@ -18,12 +18,10 @@ ToggleButton.Text = ""
 ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 ToggleButton.Active = true
 ToggleButton.Draggable = true
-
 local UICornerBtn = Instance.new("UICorner")
 UICornerBtn.CornerRadius = UDim.new(0, 25)
 UICornerBtn.Parent = ToggleButton
 
--- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
 MainFrame.Size = UDim2.new(0, 180, 0, 260)
@@ -31,7 +29,6 @@ MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
 MainFrame.Draggable = true
-
 local UICornerMain = Instance.new("UICorner")
 UICornerMain.CornerRadius = UDim.new(0, 12)
 UICornerMain.Parent = MainFrame
@@ -53,7 +50,6 @@ SpeedBox.Text = ""
 SpeedBox.TextScaled = true
 SpeedBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-
 local UICornerSpeed = Instance.new("UICorner")
 UICornerSpeed.CornerRadius = UDim.new(0, 8)
 UICornerSpeed.Parent = SpeedBox
@@ -80,7 +76,6 @@ InfJumpButton.Text = "قفز لا نهائي"
 InfJumpButton.TextScaled = true
 InfJumpButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 InfJumpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
 local UICornerJump = Instance.new("UICorner")
 UICornerJump.CornerRadius = UDim.new(0, 8)
 UICornerJump.Parent = InfJumpButton
@@ -90,7 +85,6 @@ InfJumpButton.MouseButton1Click:Connect(function()
     infiniteJumpEnabled = not infiniteJumpEnabled
     InfJumpButton.BackgroundColor3 = infiniteJumpEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
-
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpEnabled and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -106,7 +100,6 @@ ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
 local UICornerClip = Instance.new("UICorner")
 UICornerClip.CornerRadius = UDim.new(0, 8)
 UICornerClip.Parent = ClipButton
@@ -117,16 +110,17 @@ ClipButton.MouseButton1Click:Connect(function()
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- تحديث CanCollide ذكي: يختراق كل شيء أمام اللاعب، يحافظ على الأرض تحته
+-- تحديث CanCollide ذكي
 RunService.Heartbeat:Connect(function()
     if clipping and workspace and char then
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 local relativeHeight = part.Position.Y - rootPart.Position.Y
-                if relativeHeight < -0.5 then -- أي شيء تحت اللاعب صلب
+                local underPlayer = relativeHeight < -0.5 -- الأرض تحت اللاعب
+                if underPlayer then
                     part.CanCollide = true
                 else
-                    part.CanCollide = false -- أي شيء قدام أو حول اللاعب يخترقه
+                    part.CanCollide = false
                 end
             end
         end
@@ -142,7 +136,6 @@ GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
 GodModeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 GodModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
 local UICornerGod = Instance.new("UICorner")
 UICornerGod.CornerRadius = UDim.new(0, 8)
 UICornerGod.Parent = GodModeButton
