@@ -29,10 +29,9 @@ local function createJail(targetPlayer)
         jail.Name = "Jail_"..targetPlayer.Name
         jail.Parent = workspace
 
-        local size = Vector3.new(6, 6, 6)
+        local size = Vector3.new(8, 8, 8) -- المكعب أكبر شوي
         local parts = {}
 
-        -- كل الجوانب (6 أجزاء لتكوين مكعب مغلق)
         local offsets = {
             Vector3.new(0, size.Y/2, 0), -- السقف
             Vector3.new(0, -size.Y/2, 0), -- الأرضية
@@ -48,13 +47,20 @@ local function createJail(targetPlayer)
             part.Anchored = true
             part.CanCollide = true
             part.Color = Color3.fromRGB(255,255,255)
-            part.Transparency = 0.5
+            part.Transparency = 0.8 -- شفافية أعلى
             part.Position = root.Position + offset
             part.Parent = jail
             table.insert(parts, part)
         end
 
-        -- تابع يحرك المكعب مع اللاعب لو تحرك شوي
+        -- تجميد اللاعب
+        local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+        end
+
+        -- تتبع اللاعب
         spawn(function()
             while jail.Parent do
                 if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
