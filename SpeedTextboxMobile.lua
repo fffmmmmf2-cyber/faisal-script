@@ -101,7 +101,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- اختراق الجدران (الآن أي شيء تحتك يلمسك، البقية غير قابلة للمس)
+-- اختراق الجدران سلس للـParkour
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -121,7 +121,8 @@ RunService.Heartbeat:Connect(function()
         for _, part in pairs(workspace:GetDescendants()) do
             if part:IsA("BasePart") then
                 if clipping then
-                    if part.Position.Y < rootPart.Position.Y - 0.5 then
+                    -- كل البارتات فوق أو على مستوى القدمين تصير CanCollide false
+                    if part.Position.Y > rootPart.Position.Y + 0.1 then
                         part.CanCollide = false
                     else
                         part.CanCollide = true
