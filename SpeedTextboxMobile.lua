@@ -26,7 +26,7 @@ UICornerBtn.Parent = ToggleButton
 -- المربع القابل للسحب
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 180, 0, 350) -- اطول لين يكفي كل الخانات
+MainFrame.Size = UDim2.new(0, 180, 0, 260)
 MainFrame.Position = UDim2.new(0.5, -90, 0.3, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 MainFrame.Active = true
@@ -71,7 +71,7 @@ SpeedBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- 2️⃣ القفز اللا نهائي
+-- 2️⃣ القفز اللامحدود
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
 InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 3️⃣ اختراق الجدران ذكي مع رسالة
+-- 3️⃣ اختراق الجدران (زر موجود بدون رسالة)
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
 ClipButton.Position = UDim2.new(0, 10, 0, 110)
@@ -107,15 +107,6 @@ ClipButton.TextScaled = true
 ClipButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 ClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-local ClipInfo = Instance.new("TextLabel")
-ClipInfo.Parent = MainFrame
-ClipInfo.Position = UDim2.new(0, 10, 0, 150)
-ClipInfo.Size = UDim2.new(0, 160, 0, 20)
-ClipInfo.Text = "لا يمكنك اختراق كل شيء"
-ClipInfo.TextColor3 = Color3.fromRGB(255, 255, 0)
-ClipInfo.TextScaled = true
-ClipInfo.BackgroundTransparency = 1
-
 local UICornerClip = Instance.new("UICorner")
 UICornerClip.CornerRadius = UDim.new(0, 8)
 UICornerClip.Parent = ClipButton
@@ -124,15 +115,8 @@ local clipping = false
 ClipButton.MouseButton1Click:Connect(function()
     clipping = not clipping
     ClipButton.BackgroundColor3 = clipping and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-    -- إظهار الرسالة كAchievement عند التفعيل
-    if clipping then
-        ClipInfo.Visible = true
-        wait(2)
-        ClipInfo.Visible = false
-    end
 end)
 
--- تحديث CanCollide ذكي ومتطور
 RunService.Heartbeat:Connect(function()
     if char then
         for _, part in pairs(workspace:GetDescendants()) do
@@ -154,7 +138,7 @@ end)
 -- 4️⃣ منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
-GodModeButton.Position = UDim2.new(0, 10, 0, 180)
+GodModeButton.Position = UDim2.new(0, 10, 0, 160)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
@@ -180,36 +164,45 @@ spawn(function()
     end
 end)
 
--- 5️⃣ الطيران مع سكربت آشلي
-local FlyButton = Instance.new("TextButton")
-FlyButton.Parent = MainFrame
-FlyButton.Position = UDim2.new(0, 10, 0, 230)
-FlyButton.Size = UDim2.new(0, 160, 0, 40)
-FlyButton.Text = "طيران"
-FlyButton.TextScaled = true
-FlyButton.BackgroundColor3 = Color3.fromRGB(120, 120, 120) -- رمادي
-FlyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-
-local flyEnabled = false
-FlyButton.MouseButton1Click:Connect(function()
-    flyEnabled = not flyEnabled
-    if flyEnabled then
-        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Flyv2-30617"))()
-    else
-        -- إيقاف الطيران عند الضغط مرة ثانية
-        local char = game.Players.LocalPlayer.Character
-        if char then
-            local bv = char:FindFirstChildWhichIsA("BodyVelocity", true)
-            local bg = char:FindFirstChildWhichIsA("BodyGyro", true)
-            if bv then bv:Destroy() end
-            if bg then bg:Destroy() end
-            game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
-        end
-    end
-end)
-
+-- تحديث المرجع عند تولد اللاعب
 player.CharacterAdded:Connect(function(newChar)
     char = newChar
     humanoid = newChar:WaitForChild("Humanoid")
     rootPart = newChar:WaitForChild("HumanoidRootPart")
+
+    if infiniteJumpEnabled then
+        InfJumpButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if clipping then
+        ClipButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+    if godModeEnabled then
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+end)
+
+-- 5️⃣ الطيران (آخر شيء مع زر رمادي)
+local FlyButton = Instance.new("TextButton")
+FlyButton.Parent = MainFrame
+FlyButton.Position = UDim2.new(0, 10, 0, 210)
+FlyButton.Size = UDim2.new(0, 160, 0, 40)
+FlyButton.Text = "طيران"
+FlyButton.TextScaled = true
+FlyButton.BackgroundColor3 = Color3.fromRGB(120, 120, 120) -- لون رمادي
+FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local UICornerFly = Instance.new("UICorner")
+UICornerFly.CornerRadius = UDim.new(0, 8)
+UICornerFly.Parent = FlyButton
+
+local flying = false
+FlyButton.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        -- هنا يمكن دمج سكربت الطيران اللي تبيه
+        FlyButton.Text = "طيران مفعل"
+    else
+        FlyButton.Text = "طيران"
+        -- إيقاف الطيران أو إزالة تأثيره
+    end
 end)
