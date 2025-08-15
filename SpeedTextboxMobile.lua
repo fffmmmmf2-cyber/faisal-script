@@ -22,13 +22,32 @@ local UICornerMain = Instance.new("UICorner")
 UICornerMain.CornerRadius = UDim.new(0, 12)
 UICornerMain.Parent = MainFrame
 
+-- زر إخفاء/إظهار
+local HideButton = Instance.new("TextButton")
+HideButton.Parent = MainFrame
+HideButton.Size = UDim2.new(0, 40, 0, 25)
+HideButton.Position = UDim2.new(1, -45, 0, 5)
+HideButton.Text = "✖"
+HideButton.TextScaled = true
+HideButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+HideButton.TextColor3 = Color3.fromRGB(255,255,255)
+local UICornerHide = Instance.new("UICorner")
+UICornerHide.CornerRadius = UDim.new(0,5)
+UICornerHide.Parent = HideButton
+
+local mainVisible = true
+HideButton.MouseButton1Click:Connect(function()
+    mainVisible = not mainVisible
+    MainFrame.Visible = mainVisible
+end)
+
 -- كل الأزرار بيضاء دائمًا
 local buttonColor = Color3.fromRGB(255,255,255)
 
 -- السرعة
 local SpeedBox = Instance.new("TextBox")
 SpeedBox.Parent = MainFrame
-SpeedBox.Position = UDim2.new(0, 10, 0, 10)
+SpeedBox.Position = UDim2.new(0, 10, 0, 40)
 SpeedBox.Size = UDim2.new(0, 160, 0, 40)
 SpeedBox.PlaceholderText = "السرعة (1-1000)"
 SpeedBox.Text = ""
@@ -54,7 +73,7 @@ end)
 -- القفز اللا نهائي
 local InfJumpButton = Instance.new("TextButton")
 InfJumpButton.Parent = MainFrame
-InfJumpButton.Position = UDim2.new(0, 10, 0, 60)
+InfJumpButton.Position = UDim2.new(0, 10, 0, 90)
 InfJumpButton.Size = UDim2.new(0, 160, 0, 40)
 InfJumpButton.Text = "قفز لا نهائي"
 InfJumpButton.TextScaled = true
@@ -75,7 +94,7 @@ end)
 -- اختراق الجدران
 local ClipButton = Instance.new("TextButton")
 ClipButton.Parent = MainFrame
-ClipButton.Position = UDim2.new(0, 10, 0, 110)
+ClipButton.Position = UDim2.new(0, 10, 0, 140)
 ClipButton.Size = UDim2.new(0, 160, 0, 40)
 ClipButton.Text = "اختراق الجدران"
 ClipButton.TextScaled = true
@@ -108,7 +127,7 @@ end)
 -- منع نقص الدم
 local GodModeButton = Instance.new("TextButton")
 GodModeButton.Parent = MainFrame
-GodModeButton.Position = UDim2.new(0, 10, 0, 160)
+GodModeButton.Position = UDim2.new(0, 10, 0, 190)
 GodModeButton.Size = UDim2.new(0, 160, 0, 40)
 GodModeButton.Text = "منع نقص الدم"
 GodModeButton.TextScaled = true
@@ -132,7 +151,7 @@ end)
 -- الطيران
 local FlyButton = Instance.new("TextButton")
 FlyButton.Parent = MainFrame
-FlyButton.Position = UDim2.new(0, 10, 0, 210)
+FlyButton.Position = UDim2.new(0, 10, 0, 240)
 FlyButton.Size = UDim2.new(0, 160, 0, 40)
 FlyButton.Text = "طيران"
 FlyButton.TextScaled = true
