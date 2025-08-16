@@ -1,53 +1,42 @@
 local workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
 
--- دالة لتثبيت وحماية PetMover بشكل كامل
-local function lockPetMover(petMover)
-    if not petMover:IsA("BasePart") then return end
-
-    -- ضبط الخصائص الأساسية
-    petMover.Anchored = true
-    petMover.Locked = true
-    petMover.CanCollide = true
-    petMover.Massless = true
-
-    -- إعادة جميع الخصائص الأساسية فور أي محاولة تغيير
-    local function enforceProperties()
-        petMover.Anchored = true
-        petMover.Locked = true
-        petMover.CanCollide = true
-        petMover.Massless = true
-    end
-
-    -- مراقبة أي تغيير على الخصائص
-    local properties = {"CFrame", "Position", "Anchored", "Size", "Orientation", "Velocity", "RotVelocity"}
-    for _, prop in pairs(properties) do
-        petMover:GetPropertyChangedSignal(prop):Connect(function()
-            if prop == "CFrame" or prop == "Position" then
-                petMover.CFrame = petMover.CFrame -- إعادة الموقع
-            elseif prop == "Velocity" then
-                petMover.Velocity = Vector3.new(0,0,0)
-            elseif prop == "RotVelocity" then
-                petMover.RotVelocity = Vector3.new(0,0,0)
-            else
-                enforceProperties()
-            end
-        end)
-    end
+-- دالة لإنشاء نص فوق البارت
+local function createBillboard(part, text)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = part
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 2, 0) -- فوق البارت
+    billboard.AlwaysOnTop = true
+    billboard.Name = "PetMoverLabel"
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1,1,1)
+    label.TextScaled = true
+    label.Text = text
+    label.Parent = billboard
+    
+    billboard.Parent = part
 end
 
--- تثبيت أي PetMover موجودين
-for _, model in pairs(workspace:GetChildren()) do
-    if model:IsA("Model") then
-        local petMover = model:FindFirstChild("PetMover")
-        if petMover then
-            lockPetMover(petMover)
+-- فحص جميع PetMover وإنشاء نص
+for _, part in pairs(workspace:GetDescendants()) do
+    if part:IsA("BasePart") and part.Name == "PetMover" then
+        local text = ""
+        if part.Parent:IsA("Model") then
+            text = "تابع لموديل: "..part.Parent.Name
+        else
+            text = "بارت لحاله"
         end
+
+        -- إزالة أي نص سابق
+        if part:FindFirstChild("PetMoverLabel") then
+            part.PetMoverLabel:Destroy()
+        end
+
+        createBillboard(part, text)
     end
 end
-
--- مراقبة أي PetMover جديد يضاف ويثبت فوراً
-workspace.DescendantAdded:Connect(function(desc)
-    if desc.Name == "PetMover" and desc:IsA("BasePart") then
-        lockPetMover(desc)
-    end
-end)
