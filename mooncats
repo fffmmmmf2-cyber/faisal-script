@@ -1,298 +1,270 @@
---!strict
--- Pet Script Viewer (Studio Plugin) - FULL
--- يشغل فقط داخل Roblox Studio كبلجن. يقرأ Script.Source ويعرضه.
+-- Pet Script Viewer (LocalScript)
+-- ضع هذا الملف داخل StarterPlayer > StarterPlayerScripts أو داخل StarterGui ثم شغّل اللعب (Play, F5)
 
--- =======================
--- 1) تهيئة البلجن وواجهة Dock
--- =======================
-local toolbar = plugin:CreateToolbar("Pet Tools")
-local button = toolbar:CreateButton("PetViewer", "Open Pet Script Viewer", "rbxassetid://4458901886")
-button.ClickableWhenViewportHidden = true
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
+local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
-local info = DockWidgetPluginGuiInfo.new(
-	Enum.InitialDockState.Left, -- dock
-	true,  -- initial enabled
-	false, -- override previous size
-	480,   -- min width
-	520,   -- min height
-	320,   -- initial width
-	520    -- initial height
-)
+local player = Players.LocalPlayer
+if not player then
+    warn("[PetViewer] هذا السكربت يجب أن يكون LocalScript ويعمل أثناء Play (F5).")
+    return
+end
 
-local dock = plugin:CreateDockWidgetPluginGui("PetScriptViewerDock", info)
-dock.Title = "Pet Script Viewer (Studio)"
+local playerGui = player:WaitForChild("PlayerGui")
 
--- امسح كل شيء قديم
-for _, c in ipairs(dock:GetChildren()) do c:Destroy() end
+-- امسح أي نسخة قديمة من الواجهة
+do
+    local old = playerGui:FindFirstChild("PetScriptViewer")
+    if old then old:Destroy() end
+end
 
--- خلفية
+-- ========== بناء الواجهة ==========
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PetScriptViewer"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = playerGui
+
 local Background = Instance.new("Frame")
-Background.Size = UDim2.fromScale(1, 1)
-Background.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
-Background.BorderSizePixel = 0
-Background.Parent = dock
+Background.Size = UDim2.fromScale(1,1)
+Background.Position = UDim2.fromScale(0,0)
+Background.BackgroundColor3 = Color3.fromRGB(18,18,18)
+Background.BackgroundTransparency = 0.12
+Background.Parent = ScreenGui
 
--- رأس
+-- Header
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 44)
-Header.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-Header.BorderSizePixel = 0
+Header.Size = UDim2.new(1,0,0,44)
+Header.Position = UDim2.new(0,0,0,0)
+Header.BackgroundColor3 = Color3.fromRGB(28,28,28)
 Header.Parent = Background
 
-local Title = Instance.new("TextLabel")
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(1, -20, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Font = Enum.Font.SourceSansSemibold
-Title.TextSize = 20
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.TextColor3 = Color3.fromRGB(255,255,255)
-Title.Text = "Pet Script Viewer — Studio"
-Title.Parent = Header
+local HeaderLabel = Instance.new("TextLabel")
+HeaderLabel.Size = UDim2.new(1,-20,1,0)
+HeaderLabel.Position = UDim2.new(0,10,0,0)
+HeaderLabel.BackgroundTransparency = 1
+HeaderLabel.Font = Enum.Font.SourceSansSemibold
+HeaderLabel.TextSize = 18
+HeaderLabel.TextColor3 = Color3.fromRGB(255,255,255)
+HeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
+HeaderLabel.Text = "Pet Script Viewer — عرض السكربتات التي تحتوي Pet"
+HeaderLabel.Parent = Header
 
--- تقسيم أفقي: يسار قائمة، يمين معاينة
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(1, 0, 1, -44)
-Main.Position = UDim2.new(0, 0, 0, 44)
-Main.BackgroundTransparency = 1
-Main.Parent = Background
+-- ScrollFrame للقائمة
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1,0,1,-44)
+Scroll.Position = UDim2.new(0,0,0,44)
+Scroll.CanvasSize = UDim2.new(0,0,0,0)
+Scroll.ScrollBarThickness = 10
+Scroll.BackgroundTransparency = 1
+Scroll.Parent = Background
 
-local ListPanel = Instance.new("Frame")
-ListPanel.Size = UDim2.new(0.45, -6, 1, -10)
-ListPanel.Position = UDim2.new(0, 6, 0, 5)
-ListPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-ListPanel.Parent = Main
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Scroll
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0,6)
 
-local lpCorner = Instance.new("UICorner")
-lpCorner.CornerRadius = UDim.new(0, 8)
-lpCorner.Parent = ListPanel
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y + 20)
+end)
 
-local PreviewPanel = Instance.new("Frame")
-PreviewPanel.Size = UDim2.new(0.55, -6, 1, -10)
-PreviewPanel.Position = UDim2.new(0.45, 6, 0, 5)
-PreviewPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PreviewPanel.Parent = Main
+-- Preview frame (يظهر عندما تضغط على سكربت)
+local Preview = Instance.new("Frame")
+Preview.Size = UDim2.new(0.92,0,0.9,0)
+Preview.Position = UDim2.new(0.04,0,0.05,0)
+Preview.BackgroundColor3 = Color3.fromRGB(26,26,26)
+Preview.Visible = false
+Preview.Parent = Background
 
-local ppCorner = Instance.new("UICorner")
-ppCorner.CornerRadius = UDim.new(0, 8)
-ppCorner.Parent = PreviewPanel
+local PrevHeader = Instance.new("Frame")
+PrevHeader.Size = UDim2.new(1,0,0,44)
+PrevHeader.BackgroundColor3 = Color3.fromRGB(36,36,36)
+PrevHeader.Parent = Preview
 
--- عنوان المعاينة + زر فتح السكربت في الاستوديو
-local PreviewHeader = Instance.new("Frame")
-PreviewHeader.Size = UDim2.new(1, 0, 0, 40)
-PreviewHeader.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-PreviewHeader.BorderSizePixel = 0
-PreviewHeader.Parent = PreviewPanel
+local PrevTitle = Instance.new("TextLabel")
+PrevTitle.Size = UDim2.new(1,-120,1,0)
+PrevTitle.Position = UDim2.new(0,10,0,0)
+PrevTitle.BackgroundTransparency = 1
+PrevTitle.Font = Enum.Font.SourceSansSemibold
+PrevTitle.TextSize = 18
+PrevTitle.TextColor3 = Color3.fromRGB(255,255,255)
+PrevTitle.TextXAlignment = Enum.TextXAlignment.Left
+PrevTitle.Text = "Preview"
+PrevTitle.Parent = PrevHeader
 
-local PreviewTitle = Instance.new("TextLabel")
-PreviewTitle.BackgroundTransparency = 1
-PreviewTitle.Size = UDim2.new(1, -130, 1, 0)
-PreviewTitle.Position = UDim2.new(0, 10, 0, 0)
-PreviewTitle.Font = Enum.Font.SourceSansSemibold
-PreviewTitle.TextSize = 18
-PreviewTitle.TextXAlignment = Enum.TextXAlignment.Left
-PreviewTitle.TextColor3 = Color3.fromRGB(255,255,255)
-PreviewTitle.Text = "Preview"
-PreviewTitle.Parent = PreviewHeader
+local BackBtn = Instance.new("TextButton")
+BackBtn.Size = UDim2.new(0,100,0,32)
+BackBtn.Position = UDim2.new(1,-110,0.5,-16)
+BackBtn.Text = "رجوع"
+BackBtn.Font = Enum.Font.SourceSansSemibold
+BackBtn.TextSize = 16
+BackBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+BackBtn.TextColor3 = Color3.fromRGB(255,255,255)
+BackBtn.Parent = PrevHeader
 
-local OpenInStudio = Instance.new("TextButton")
-OpenInStudio.Size = UDim2.fromOffset(120, 26)
-OpenInStudio.Position = UDim2.new(1, -130, 0.5, -13)
-OpenInStudio.Text = "Open Script"
-OpenInStudio.Font = Enum.Font.SourceSansSemibold
-OpenInStudio.TextSize = 16
-OpenInStudio.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-OpenInStudio.TextColor3 = Color3.fromRGB(255, 255, 255)
-OpenInStudio.Parent = PreviewHeader
+BackBtn.MouseButton1Click:Connect(function()
+    Preview.Visible = false
+end)
 
-local OpenCorner = Instance.new("UICorner")
-OpenCorner.CornerRadius = UDim.new(0, 6)
-OpenCorner.Parent = OpenInStudio
-
--- سكرول + تكست للمعاينة
 local CodeScroll = Instance.new("ScrollingFrame")
-CodeScroll.Size = UDim2.new(1, -12, 1, -52)
-CodeScroll.Position = UDim2.new(0, 6, 0, 46)
+CodeScroll.Size = UDim2.new(1,-20,1,-60)
+CodeScroll.Position = UDim2.new(0,10,0,50)
 CodeScroll.BackgroundTransparency = 1
 CodeScroll.ScrollBarThickness = 8
-CodeScroll.CanvasSize = UDim2.new()
-CodeScroll.Parent = PreviewPanel
+CodeScroll.Parent = Preview
 
-local CodeText = Instance.new("TextBox")
-CodeText.BackgroundTransparency = 1
-CodeText.Size = UDim2.new(1, -10, 0, 400)
-CodeText.Position = UDim2.new(0, 5, 0, 0)
-CodeText.TextXAlignment = Enum.TextXAlignment.Left
-CodeText.TextYAlignment = Enum.TextYAlignment.Top
-CodeText.TextWrapped = false
-CodeText.ClearTextOnFocus = false
-CodeText.MultiLine = true
-CodeText.Font = Enum.Font.Code
-CodeText.TextColor3 = Color3.fromRGB(230, 230, 230)
-CodeText.TextSize = 16
-CodeText.TextEditable = false -- منع الكتابة
-CodeText.Parent = CodeScroll
+local CodeBox = Instance.new("TextBox")
+CodeBox.Size = UDim2.new(1,-10,0,400)
+CodeBox.Position = UDim2.new(0,5,0,0)
+CodeBox.BackgroundTransparency = 1
+CodeBox.TextXAlignment = Enum.TextXAlignment.Left
+CodeBox.TextYAlignment = Enum.TextYAlignment.Top
+CodeBox.ClearTextOnFocus = false
+CodeBox.MultiLine = true
+CodeBox.Font = Enum.Font.Code
+CodeBox.TextSize = 16
+CodeBox.TextColor3 = Color3.fromRGB(230,230,230)
+CodeBox.TextEditable = false
+CodeBox.Parent = CodeScroll
 
-local SelectedObject: LuaSourceContainer? = nil
-
-local function resizeCodeHeight()
-	local text = CodeText.Text or ""
-	local lines = 1
-	for _ in string.gmatch(text, "\n") do
-		lines += 1
-	end
-	local lineHeight = CodeText.TextSize + 6
-	local h = math.max(lines * lineHeight + 10, 200)
-	CodeText.Size = UDim2.new(1, -10, 0, h)
-	CodeScroll.CanvasSize = UDim2.new(0, 0, 0, h + 20)
+local function resizeCode()
+    local txt = CodeBox.Text or ""
+    local lines = 1
+    for _ in string.gmatch(txt, "\n") do lines = lines + 1 end
+    local lineH = CodeBox.TextSize + 6
+    local h = math.max(lines * lineH + 10, 200)
+    CodeBox.Size = UDim2.new(1,-10,0,h)
+    CodeScroll.CanvasSize = UDim2.new(0,0,0,h + 20)
 end
-CodeText:GetPropertyChangedSignal("Text"):Connect(resizeCodeHeight)
+CodeBox:GetPropertyChangedSignal("Text"):Connect(resizeCode)
 
-OpenInStudio.MouseButton1Click:Connect(function()
-	if SelectedObject and SelectedObject.Parent then
-		-- اختَر العنصر في الاكسبلورر وافتحه
-		game.Selection:Set({SelectedObject})
-		-- Studio سيفتح التبويب تلقائيًا عند التحديد في أغلب الحالات
-	end
-end)
-
--- =======================
--- 2) قائمة النتائج (يسار)
--- =======================
-local SearchHeader = Instance.new("TextLabel")
-SearchHeader.BackgroundTransparency = 1
-SearchHeader.Size = UDim2.new(1, -12, 0, 30)
-SearchHeader.Position = UDim2.new(0, 6, 0, 6)
-SearchHeader.Font = Enum.Font.SourceSansSemibold
-SearchHeader.TextSize = 18
-SearchHeader.TextXAlignment = Enum.TextXAlignment.Left
-SearchHeader.TextColor3 = Color3.fromRGB(255,255,255)
-SearchHeader.Text = "Scripts containing 'Pet' (name or source)"
-SearchHeader.Parent = ListPanel
-
-local ListScroll = Instance.new("ScrollingFrame")
-ListScroll.Size = UDim2.new(1, -12, 1, -46)
-ListScroll.Position = UDim2.new(0, 6, 0, 40)
-ListScroll.BackgroundTransparency = 1
-ListScroll.ScrollBarThickness = 8
-ListScroll.CanvasSize = UDim2.new()
-ListScroll.Parent = ListPanel
-
-local Layout = Instance.new("UIListLayout")
-Layout.SortOrder = Enum.SortOrder.LayoutOrder
-Layout.Padding = UDim.new(0, 6)
-Layout.Parent = ListScroll
-
-Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	ListScroll.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 20)
-end)
-
-local function safeGetSource(obj: Instance): (string?, boolean)
-	local ok, src = pcall(function()
-		return (obj :: any).Source
-	end)
-	if ok and typeof(src) == "string" and #src > 0 then
-		return src, true
-	end
-	return nil, false
+-- ======= دوال مساعدة =======
+local function safeGetSource(obj)
+    local ok, src = pcall(function()
+        return (obj :: any).Source
+    end)
+    if ok and type(src) == "string" and #src > 0 then
+        return src, true
+    end
+    return nil, false
 end
 
-local function looksLikePet(s: string?): boolean
-	return s ~= nil and (string.find(s, "[Pp][Ee][Tt]") ~= nil)
+local function looksLikePet(s)
+    return s and string.find(s, "[Pp][Ee][Tt]")
 end
 
-local function addRow(obj: LuaSourceContainer, readable: boolean)
-	local row = Instance.new("TextButton")
-	row.Size = UDim2.new(1, 0, 0, 34)
-	row.Text = obj:GetFullName()
-	row.TextScaled = true
-	row.TextColor3 = Color3.fromRGB(255,255,255)
-	row.AutoButtonColor = true
-	row.Parent = ListScroll
+-- الحاويات التي نفحصها (العميل يمكنه الوصول اليها عادة)
+local containers = {
+    workspace,
+    ReplicatedStorage,
+    player:WaitForChild("PlayerScripts"),
+    StarterPlayer:WaitForChild("StarterPlayerScripts"),
+    StarterGui
+}
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1.2
-	stroke.Transparency = 0.3
-	stroke.Color = Color3.fromRGB(255,255,255)
-	stroke.Parent = row
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 6)
-	corner.Parent = row
-
-	-- أزرق لو نقدر نقرأ، أحمر لو لا
-	if readable then
-		row.BackgroundColor3 = Color3.fromRGB(20, 120, 255)
-	else
-		row.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-	end
-
-	row.MouseButton1Click:Connect(function()
-		SelectedObject = obj
-		PreviewTitle.Text = obj:GetFullName()
-		local src, can = safeGetSource(obj)
-		if can and src then
-			CodeText.Text = src
-		else
-			CodeText.Text = "-- لا يمكن عرض الكود لهذا السكربت."
-		end
-		resizeCodeHeight()
-	end)
+-- تنظيف قائمة النتائج
+local function clearList()
+    for _, child in ipairs(Scroll:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
 end
 
-local function scan()
-	-- نظّف القائمة
-	for _, c in ipairs(ListScroll:GetChildren()) do
-		if c:IsA("GuiObject") then c:Destroy() end
-	end
+-- بناء القائمة
+local function buildList()
+    clearList()
+    local found = {}
 
-	-- ابحث في كل اللعبة (Studio يسمح بالوصول)
-	local descendants = game:GetDescendants()
-	table.sort(descendants, function(a, b)
-		return a:GetFullName():lower() < b:GetFullName():lower()
-	end)
+    for _, container in ipairs(containers) do
+        local ok, descendants = pcall(function() return container:GetDescendants() end)
+        if ok and descendants then
+            for _, obj in ipairs(descendants) do
+                if obj:IsA("ModuleScript") or obj:IsA("LocalScript") or obj:IsA("Script") then
+                    local isP = looksLikePet(obj.Name)
+                    if not isP then
+                        local src = select(1, safeGetSource(obj))
+                        if src and looksLikePet(src) then isP = true end
+                    end
+                    if isP then table.insert(found, obj) end
+                end
+            end
+        end
+    end
 
-	local foundCount = 0
-	for _, obj in ipairs(descendants) do
-		if obj:IsA("ModuleScript") or obj:IsA("LocalScript") or obj:IsA("Script") then
-			local isPet = looksLikePet(obj.Name)
-			local readNow = false
+    table.sort(found, function(a,b) return a:GetFullName():lower() < b:GetFullName():lower() end)
 
-			if not isPet then
-				local src = select(1, safeGetSource(obj))
-				if src and looksLikePet(src) then
-					isPet = true
-					readNow = true
-				end
-			else
-				-- إن كان الاسم يطابق، نحاول معرفة قابلية القراءة لتلوين الزر بدقة
-				local _, can = safeGetSource(obj)
-				readNow = can
-			end
+    if #found == 0 then
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1,-20,0,40)
+        lbl.Position = UDim2.new(0,10,0,0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "لا توجد سكربتات تحتوي 'Pet' ضمن الوصول الحالي."
+        lbl.TextColor3 = Color3.fromRGB(255,255,255)
+        lbl.TextScaled = true
+        lbl.Parent = Scroll
+        return
+    end
 
-			if isPet then
-				foundCount += 1
-				addRow(obj :: LuaSourceContainer, readNow)
-			end
-		end
-	end
+    for i, obj in ipairs(found) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,-20,0,36)
+        btn.LayoutOrder = i
+        btn.Text = obj:GetFullName()
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.TextScaled = true
+        btn.AutoButtonColor = true
+        btn.Parent = Scroll
 
-	if foundCount == 0 then
-		local empty = Instance.new("TextLabel")
-		empty.Size = UDim2.new(1, 0, 0, 40)
-		empty.BackgroundTransparency = 1
-		empty.Text = "لا توجد سكربتات تحتوي 'Pet'."
-		empty.TextColor3 = Color3.fromRGB(255,255,255)
-		empty.TextScaled = true
-		empty.Parent = ListScroll
-	end
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 1
+        stroke.Transparency = 0.3
+        stroke.Color = Color3.fromRGB(0,0,0)
+        stroke.Parent = btn
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0,6)
+        corner.Parent = btn
+
+        -- تلوين: أزرق لو نقدر نقرأ، أحمر لو ما نقدر
+        local src, readable = safeGetSource(obj)
+        if readable and src then
+            btn.BackgroundColor3 = Color3.fromRGB(20,120,255) -- أزرق
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(220,60,60)  -- أحمر
+        end
+
+        btn.MouseButton1Click:Connect(function()
+            Preview.Visible = true
+            if readable and src then
+                CodeBox.Text = src
+            else
+                CodeBox.Text = "-- هذا السكربت محمي ولا يمكن قراءة الكود من جهة العميل (Client)."
+            end
+            resizeCode()
+        end)
+    end
 end
 
-button.Click:Connect(function()
-	dock.Enabled = true
-	scan()
-end)
+-- بناء القائمة أول مرة
+buildList()
 
--- افتح تلقائي أول مرة
-dock.Enabled = true
-scan()
+-- حدث تحديث تلقائي عند إضافة/حذف descendants داخل الحاويات (حتى لو أضفت سكربت جديد أثناء Play)
+for _, container in ipairs(containers) do
+    pcall(function()
+        container.DescendantAdded:Connect(function()
+            task.wait(0.08)
+            buildList()
+        end)
+        container.DescendantRemoving:Connect(function()
+            task.wait(0.08)
+            buildList()
+        end)
+    end)
+end
+
+-- طباعة مساعدة في الـ Output
+print("[PetViewer] جاهز. افتح Output (F9) لو فيه أي أخطاء.")
