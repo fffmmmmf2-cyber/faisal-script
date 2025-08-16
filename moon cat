@@ -1,45 +1,35 @@
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
 
-for _, part in pairs(workspace:GetDescendants()) do
-    if part:IsA("BasePart") then
-        local partName = part.Name
-        
-        -- شرط البارت يبدأ بـ "Part" وبعدين رقم أو يحتوي "pet"
-        if string.match(partName, "^Part%d+$") or string.find(partName:lower(), "pet") then
-            -- إنشاء BillboardGui لكل بارت
-            local billboard = Instance.new("BillboardGui")
-            billboard.Adornee = part
-            billboard.Size = UDim2.new(0, 100, 0, 30) -- حجم صغير
-            billboard.StudsOffset = Vector3.new(0, 2, 0) -- فوق البارت شوية
-            billboard.AlwaysOnTop = true
-            billboard.Parent = Player:WaitForChild("PlayerGui")
+-- دالة لإظهار إشعار روبلوكس الرسمي
+local function showSystemNotification(title, text, duration)
+    StarterGui:SetCore("SendNotification", {
+        Title = title;
+        Text = text;
+        Duration = duration; -- المدة بالثواني
+    })
+end
 
-            -- إنشاء TextLabel داخل الـ BillboardGui
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1,0,1,0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.TextColor3 = Color3.new(1,1,1) -- أبيض
-            textLabel.TextScaled = false
-            textLabel.Font = Enum.Font.SourceSans
-            textLabel.TextSize = 14 -- حجم صغير
-            textLabel.Text = partName -- يظهر الاسم
-            textLabel.Parent = billboard
+-- دالة لحذف بارتات PetMover وإظهار الإشعار
+local function removePetMovers()
+    local count = 0
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "PetMover" then
+            part:Destroy()
+            count = count + 1
         end
     end
-end-- جلب كل البارتات في الـ Workspace
-for _, part in pairs(workspace:GetDescendants()) do
-    if part:IsA("BasePart") then
-        local partName = part.Name
-        
-        -- تحديد البارتات اللي اسمها "Part" متبوعة برقم
-        if string.match(partName, "^Part%d+$") then
-            part.BrickColor = BrickColor.new("Bright blue") -- لون أزرق
-        end
-        
-        -- تحديد البارتات اللي اسمها يحتوي كلمة "pet" أو "Pet"
-        if string.find(partName:lower(), "pet") then
-            part.BrickColor = BrickColor.new("Bright red") -- لون أحمر
-        end
+    if count > 0 then
+        showSystemNotification("تم الحذف", "تم حذف "..count.." بارت/بارتات PetMover", 3)
     end
+end
+
+-- تشغيل أول مرة
+removePetMovers()
+
+-- تحديث مستمر لأي بارت جديد ينضاف
+while true do
+    task.wait(1)
+    removePetMovers()
 end
