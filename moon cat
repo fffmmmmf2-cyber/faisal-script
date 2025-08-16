@@ -19,13 +19,15 @@ statusLabel.Parent = screenGui
 -- اسم البارت الجديد لصاحب المزرعة
 local ownerPetAreaName = Player.Name .. "_PetArea"
 
--- دالة لحذف كل PetArea ويبقي واحد
-local function cleanPetAreas()
+-- دالة لحذف كل PetArea ويبقي واحد ويضبط حجمه
+local function cleanAndResizePetAreas()
     local firstFound = false
     for _, part in pairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and part.Name == "PetArea" then
             if not firstFound then
                 part.Name = ownerPetAreaName
+                part.Size = Vector3.new(7,7,7) -- ضبط الحجم
+                part.Anchored = true
                 firstFound = true
             else
                 part:Destroy()
@@ -34,38 +36,72 @@ local function cleanPetAreas()
     end
 end
 
+-- دالة لنقل PetMover داخل PetArea
+local function movePetMoversInside()
+    local petArea = workspace:FindFirstChild(ownerPetAreaName)
+    if not petArea then return end
+
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local petMover = model:FindFirstChild("PetMover")
+            if petMover then
+                -- إذا الموديل ليس لديه PrimaryPart
+                if model.PrimaryPart == nil then
+                    model.PrimaryPart = petMover
+                end
+                -- وضع البارت داخل حدود PetArea بشكل عشوائي داخل الحجم
+                local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5) -- ترك مساحة صغيرة للبارت
+                local randomPos = Vector3.new(
+                    math.random(-halfSize.X*100, halfSize.X*100)/100,
+                    math.random(-halfSize.Y*100, halfSize.Y*100)/100,
+                    math.random(-halfSize.Z*100, halfSize.Z*100)/100
+                )
+                model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
+                -- تثبيت جميع أجزاء الموديل
+                for _, part in pairs(model:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Anchored = true
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- دالة للتحقق إذا اللاعب داخل البارت
 local function updateStatus()
     local inside = false
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == ownerPetAreaName then
-            local partSize = part.Size
-            local partCFrame = part.CFrame
-            local minBound = (partCFrame.Position - partSize/2)
-            local maxBound = (partCFrame.Position + partSize/2)
-            local pos = Player.Character.HumanoidRootPart.Position
-            if (pos.X >= minBound.X and pos.X <= maxBound.X) and
-               (pos.Y >= minBound.Y and pos.Y <= maxBound.Y) and
-               (pos.Z >= minBound.Z and pos.Z <= maxBound.Z) then
-                inside = true
-                break
-            end
+    local petArea = workspace:FindFirstChild(ownerPetAreaName)
+    if petArea then
+        local partSize = petArea.Size
+        local partCFrame = petArea.CFrame
+        local minBound = (partCFrame.Position - partSize/2)
+        local maxBound = (partCFrame.Position + partSize/2)
+        local pos = Player.Character.HumanoidRootPart.Position
+        if (pos.X >= minBound.X and pos.X <= maxBound.X) and
+           (pos.Y >= minBound.Y and pos.Y <= maxBound.Y) and
+           (pos.Z >= minBound.Z and pos.Z <= maxBound.Z) then
+            inside = true
         end
     end
     if inside then
         statusLabel.Text = "أنت داخل البارت"
-        statusLabel.TextColor3 = Color3.new(0,1,0) -- أخضر
+        statusLabel.TextColor3 = Color3.new(0,1,0)
     else
         statusLabel.Text = "أنت خارج البارت"
-        statusLabel.TextColor3 = Color3.new(1,0,0) -- أحمر
+        statusLabel.TextColor3 = Color3.new(1,0,0)
     end
 end
 
--- تنظيف البارتات أول مرة
-cleanPetAreas()
+-- تشغيل أول مرة
+cleanAndResizePetAreas()
+movePetMoversInside()
+updateStatus()
 
--- تحديث مستمر لكل 0.3 ثانية
+-- تحديث مستمر
 while true do
-    updateStatus()
-    task.wait(0.1)
+    cleanAndResizePetAreas() -- يحافظ على حجم PetArea
+    movePetMoversInside()    -- يحافظ على PetMover داخل البارت
+    updateStatus()           -- يظهر حالة اللاعب
+    task.wait(0.3)
 end
