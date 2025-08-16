@@ -1,49 +1,80 @@
--- PetMover Updated to Follow "Center" Part
-local RunService = game:GetService("RunService")
+-- Pet Script Finder GUI
 local Players = game:GetService("Players")
-local ActivePetsData = {} -- لتخزين بتات اللاعبين محليًا
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- تسجيل بت جديد
-local function RegisterPet(playerName, uuid, pet)
-    if not ActivePetsData[playerName] then
-        ActivePetsData[playerName] = {}
-    end
-    ActivePetsData[playerName][uuid] = {Asset = pet}
-end
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- تحديث موقع البتات باتجاه البارت "Center"
-local function UpdatePetPositions(deltaTime)
-    for playerName, pets in pairs(ActivePetsData) do
-        local player = Players:FindFirstChild(playerName)
-        if player then
-            local farm = workspace:FindFirstChild(playerName .. "_Farm")
-            if farm then
-                local centerPart = farm:FindFirstChild("Center")
-                if centerPart then
-                    for uuid, petData in pairs(pets) do
-                        local pet = petData.Asset
-                        if pet then
-                            local direction = (centerPart.Position - pet.Position)
-                            if direction.Magnitude > 0.1 then
-                                -- يتحرك تدريجيًا باتجاه الـ Center بسرعة 5 studs/ثانية
-                                pet.Position = pet.Position + direction.Unit * math.min(direction.Magnitude, deltaTime * 5)
-                            end
-                        end
+-- إنشاء GUI كامل الشاشة
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PetScriptFinder"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = playerGui
+
+local Background = Instance.new("Frame")
+Background.Size = UDim2.fromScale(1,1)
+Background.Position = UDim2.fromScale(0,0)
+Background.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Background.BackgroundTransparency = 0.2
+Background.Parent = ScreenGui
+
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.fromScale(1,1)
+Scroll.Position = UDim2.fromScale(0,0)
+Scroll.CanvasSize = UDim2.new(0,0,0,0)
+Scroll.ScrollBarThickness = 10
+Scroll.BackgroundTransparency = 1
+Scroll.Parent = Background
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Scroll
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0,5)
+
+-- وظيفة لتحديث CanvasSize تلقائيًا
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    Scroll.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
+end)
+
+-- البحث في كل السكربتات
+local function FindPetScripts()
+    local containers = {workspace, ReplicatedStorage, player.PlayerScripts, game:GetService("ServerScriptService")}
+    local foundScripts = {}
+
+    for _, container in pairs(containers) do
+        for _, obj in pairs(container:GetDescendants()) do
+            if obj:IsA("ModuleScript") or obj:IsA("Script") or obj:IsA("LocalScript") then
+                local isPet = false
+                if string.find(obj.Name, "[Pp][Ee][Tt]") then
+                    isPet = true
+                else
+                    local success, content = pcall(function() return obj.Source end)
+                    if success and content and string.find(content, "[Pp][Ee][Tt]") then
+                        isPet = true
                     end
+                end
+
+                if isPet then
+                    table.insert(foundScripts, obj:GetFullName())
                 end
             end
         end
     end
+
+    -- ترتيب السكربتات أبجديًا
+    table.sort(foundScripts)
+
+    -- عرضها داخل السكرول
+    for _, name in pairs(foundScripts) do
+        local TextLabel = Instance.new("TextLabel")
+        TextLabel.Size = UDim2.new(1,0,0,30)
+        TextLabel.Text = name
+        TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
+        TextLabel.BackgroundColor3 = Color3.fromRGB(40,40,40)
+        TextLabel.BackgroundTransparency = 0.1
+        TextLabel.TextScaled = true
+        TextLabel.Parent = Scroll
+    end
 end
 
--- تحديث كل إطار
-RunService.RenderStepped:Connect(function(deltaTime)
-    UpdatePetPositions(deltaTime)
-end)
-
--- مثال لكيفية تسجيل البت عنده
--- RegisterPet("Player1", "PetUUID123", workspace:FindFirstChild("PetMover"))
-
-return {
-    RegisterPet = RegisterPet
-}
+FindPetScripts()
