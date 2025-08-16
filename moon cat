@@ -1,54 +1,51 @@
 local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
-local workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- إيجاد بارت PetArea
-local petArea = workspace:FindFirstChild("PetArea")
-if not petArea then
-    warn("لا يوجد بارت باسم PetArea في Workspace")
-    return
-end
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = Player:WaitForChild("PlayerGui")
 
--- دالة لإظهار إشعار روبلوكس الرسمي
-local function showSystemNotification(title, text, duration)
-    StarterGui:SetCore("SendNotification", {
-        Title = title;
-        Text = text;
-        Duration = duration,
-    })
-end
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(0, 250, 0, 50)
+statusLabel.Position = UDim2.new(0.5, -125, 0, 10) -- أعلى منتصف الشاشة
+statusLabel.AnchorPoint = Vector2.new(0.5, 0)
+statusLabel.BackgroundTransparency = 0.5
+statusLabel.BackgroundColor3 = Color3.new(0,0,0)
+statusLabel.TextColor3 = Color3.new(1,1,1)
+statusLabel.TextScaled = true
+statusLabel.Parent = screenGui
 
--- دالة لنقل الموديلات
-local function movePets()
-    local count = 0
-    for _, model in pairs(workspace:GetChildren()) do
-        if model:IsA("Model") then
-            local petMover = model:FindFirstChild("PetMover")
-            if petMover and model.PrimaryPart == nil then
-                model.PrimaryPart = petMover -- نجعل PetMover هو الجزء الأساسي
-            end
-            if model.PrimaryPart and petMover then
-                model:SetPrimaryPartCFrame(petArea.CFrame) -- نقل الموديل كامل
-                -- تثبيت كل البارتات في الموديل
-                for _, part in pairs(model:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Anchored = true
-                    end
-                end
-                count = count + 1
+-- دالة للتحقق إذا اللاعب داخل أي PetArea
+local function updateStatus()
+    local inside = false
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "PetArea" then
+            local partSize = part.Size
+            local partCFrame = part.CFrame
+            local minBound = (partCFrame.Position - partSize/2)
+            local maxBound = (partCFrame.Position + partSize/2)
+            local pos = HumanoidRootPart.Position
+            if (pos.X >= minBound.X and pos.X <= maxBound.X) and
+               (pos.Y >= minBound.Y and pos.Y <= maxBound.Y) and
+               (pos.Z >= minBound.Z and pos.Z <= maxBound.Z) then
+                inside = true
+                break
             end
         end
     end
-    if count > 0 then
-        showSystemNotification("تم النقل", "تم نقل "..count.." حيوان/حيوانات إلى PetArea", 3)
+    if inside then
+        statusLabel.Text = "أنت داخل البارت"
+        statusLabel.TextColor3 = Color3.new(0,1,0) -- أخضر
+    else
+        statusLabel.Text = "أنت خارج البارت"
+        statusLabel.TextColor3 = Color3.new(1,0,0) -- أحمر
     end
 end
 
--- تشغيل أول مرة
-movePets()
-
--- تحديث مستمر لأي موديل جديد ينضاف
+-- تحديث كل 0.3 ثانية
 while true do
-    task.wait(1)
-    movePets()
+    updateStatus()
+    task.wait(0.3)
 end
