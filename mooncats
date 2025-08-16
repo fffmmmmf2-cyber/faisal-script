@@ -1,37 +1,44 @@
--- LocalScript: farm_petarea_display.lua
+-- LocalScript: complete_farm_petarea.lua
+local TweenService = game:GetService("TweenService")
 local player = game.Players.LocalPlayer
 
--- إنشاء ScreenGui
+-- إعدادات
+local FARM_NAME = "Farm"
+local PET_AREA_NAME = "PetArea"
+local TARGET_POSITION = Vector3.new(8.55, 2.75, 76.767)
+local TARGET_SIZE = Vector3.new(13, 6, 8)
+local TARGET_TRANSPARENCY = 0.8
+
+-- إنشاء GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "FarmPetAreaDisplay"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- TextLabel لعرض المعلومات
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(0, 400, 0, 70)
-textLabel.Position = UDim2.new(0.5, -200, 0.5, -35) -- في الوسط
+textLabel.Position = UDim2.new(0.5, -200, 0.5, -35)
 textLabel.BackgroundTransparency = 1
-textLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- أحمر
+textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextScaled = true
 textLabel.TextWrapped = true
 textLabel.Parent = gui
 
--- دالة لحساب عدد PetArea في الـ Workspace
+-- دالة لحساب عدد PetArea
 local function getPetAreaCount()
     local count = 0
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == "PetArea" then
+        if part:IsA("BasePart") and part.Name == PET_AREA_NAME then
             count = count + 1
         end
     end
     return count
 end
 
--- دالة للحصول على اسم المزرعة الحالية
+-- دالة للحصول على اسم المزرعة
 local function getFarmName()
-    local farm = workspace:FindFirstChild("Farm") -- لو عندك أكثر من Farm، يمكن تحتاج تعديل
+    local farm = workspace:FindFirstChild(FARM_NAME)
     if farm then
         return farm.Name
     else
@@ -39,10 +46,28 @@ local function getFarmName()
     end
 end
 
--- تحديث النص كل 5 ثواني
+-- دالة لتغيير موقع وحجم وشفافية PetArea
+local function updatePetArea()
+    local farm = workspace:FindFirstChild(FARM_NAME)
+    if not farm then return end
+
+    local petArea = farm:FindFirstChild(PET_AREA_NAME)
+    if not petArea or not petArea:IsA("BasePart") then return end
+
+    petArea.Transparency = TARGET_TRANSPARENCY
+    petArea.CanCollide = false
+
+    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(petArea, tweenInfo, {
+        CFrame = CFrame.new(TARGET_POSITION),
+        Size = TARGET_SIZE
+    })
+    tween:Play()
+end
+
+-- تحديث GUI كل 5 ثواني
 while true do
-    local farmName = getFarmName()
-    local petCount = getPetAreaCount()
-    textLabel.Text = "أنت في: " .. farmName .. "\nالعدد(" .. petCount .. ")"
+    updatePetArea()
+    textLabel.Text = "أنت في: " .. getFarmName() .. "\nالعدد(" .. getPetAreaCount() .. ")"
     wait(5)
 end
