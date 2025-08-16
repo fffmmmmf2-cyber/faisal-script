@@ -1,11 +1,10 @@
--- إنشاء ScreenGui كامل
+-- ScreenGui
 local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PetScriptViewer"
-ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- ScrollFrame للقائمة الرئيسية
+-- ScrollFrame للقائمة
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.fromScale(1,1)
 ScrollFrame.Position = UDim2.fromScale(0,0)
@@ -15,19 +14,17 @@ ScrollFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.Parent = ScreenGui
 
--- Layout للقائمة
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Padding = UDim.new(0,5)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollFrame
 
--- نافذة عرض الكود
+-- نافذة عرض السكربت
 local ScriptFrame = Instance.new("Frame")
 ScriptFrame.Size = UDim2.fromScale(0.8,0.8)
 ScriptFrame.Position = UDim2.fromScale(0.1,0.1)
 ScriptFrame.Visible = false
 ScriptFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-ScriptFrame.BorderSizePixel = 0
 ScriptFrame.Parent = ScreenGui
 
 local ScriptText = Instance.new("TextBox")
@@ -44,24 +41,6 @@ ScriptText.Font = Enum.Font.Code
 ScriptText.TextSize = 14
 ScriptText.TextEditable = false
 ScriptText.Parent = ScriptFrame
-
--- زر نسخ الكود
-local CopyButton = Instance.new("TextButton")
-CopyButton.Size = UDim2.fromOffset(100,40)
-CopyButton.Position = UDim2.fromScale(1,0) - UDim2.fromOffset(100,0)
-CopyButton.AnchorPoint = Vector2.new(1,0)
-CopyButton.Text = "نسخ الكود"
-CopyButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
-CopyButton.TextColor3 = Color3.fromRGB(255,255,255)
-CopyButton.Parent = ScriptFrame
-
-CopyButton.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard(ScriptText.Text)
-    else
-        warn("نسخ الكود غير مدعوم على هذا الجهاز")
-    end
-end)
 
 -- زر رجوع
 local BackButton = Instance.new("TextButton")
@@ -102,7 +81,7 @@ local function AddScriptButton(scriptObj)
     end)
 end
 
--- البحث في كل السكربتات
+-- البحث عن جميع السكربتات التي تحتوي على كلمة "pet"
 local SearchFolders = {workspace, game:GetService("ServerScriptService")}
 for _, folder in pairs(SearchFolders) do
     for _, obj in pairs(folder:GetDescendants()) do
