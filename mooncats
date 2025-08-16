@@ -1,21 +1,24 @@
--- نفس الإعدادات مثل قبل
+-- إعدادات أساسية
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- إنشاء ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PetScriptViewer"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = playerGui
 
+-- الخلفية
 local Background = Instance.new("Frame")
 Background.Size = UDim2.fromScale(1,1)
 Background.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Background.BackgroundTransparency = 0.2
 Background.Parent = ScreenGui
 
+-- Scroll Frame للسكربتات
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Size = UDim2.fromScale(1,1)
 Scroll.Position = UDim2.fromScale(0,0)
@@ -32,6 +35,7 @@ UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     Scroll.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
 end)
 
+-- Frame لعرض محتوى السكربت
 local ScriptFrame = Instance.new("Frame")
 ScriptFrame.Size = UDim2.fromScale(0.9,0.9)
 ScriptFrame.Position = UDim2.fromScale(0.05,0.05)
@@ -39,13 +43,14 @@ ScriptFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 ScriptFrame.Visible = false
 ScriptFrame.Parent = Background
 
+-- زر الرجوع
 local CloseButton = Instance.new("TextButton")
 CloseButton.Size = UDim2.fromOffset(100,40)
 CloseButton.Position = UDim2.fromScale(0,0)
 CloseButton.Text = "رجوع"
 CloseButton.Parent = ScriptFrame
 
--- خلي النص غير قابل للتعديل
+-- صندوق النص للسكربت، غير قابل للتعديل
 local ScriptText = Instance.new("TextBox")
 ScriptText.Size = UDim2.fromScale(1,1)
 ScriptText.Position = UDim2.fromOffset(0,40)
@@ -58,15 +63,21 @@ ScriptText.TextColor3 = Color3.fromRGB(255,255,255)
 ScriptText.BackgroundTransparency = 1
 ScriptText.TextScaled = false
 ScriptText.TextSize = 14
-ScriptText.TextEditable = false -- منع الكتابة
+ScriptText.TextEditable = false -- يمنع الكتابة
 ScriptText.Parent = ScriptFrame
 
 CloseButton.MouseButton1Click:Connect(function()
     ScriptFrame.Visible = false
 end)
 
+-- دالة البحث عن السكربتات اللي فيها كلمة Pet
 local function FindPetScripts()
-    local containers = {workspace, ReplicatedStorage, player.PlayerScripts, game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")}
+    local containers = {
+        workspace,
+        ReplicatedStorage,
+        player:WaitForChild("PlayerScripts"),
+        game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
+    }
     local foundScripts = {}
 
     for _, container in pairs(containers) do
@@ -76,7 +87,6 @@ local function FindPetScripts()
                 if string.find(obj.Name, "[Pp][Ee][Tt]") then
                     isPet = true
                 else
-                    -- حاول قراءة الكود بس بأمان
                     local success, content = pcall(function() return obj.Source end)
                     if success and content and string.find(content, "[Pp][Ee][Tt]") then
                         isPet = true
@@ -92,6 +102,7 @@ local function FindPetScripts()
 
     table.sort(foundScripts, function(a,b) return a.Name:lower() < b.Name:lower() end)
 
+    -- عرض السكربتات في ScrollFrame
     for _, obj in pairs(foundScripts) do
         local TextLabel = Instance.new("TextButton")
         TextLabel.Size = UDim2.new(1,0,0,30)
@@ -104,14 +115,15 @@ local function FindPetScripts()
 
         TextLabel.MouseButton1Click:Connect(function()
             local success, code = pcall(function() return obj.Source end)
-            if success then
-                ScriptText.Text = code or "-- لا يمكن عرض الكود"
+            if success and code then
+                ScriptText.Text = code
             else
-                ScriptText.Text = "-- لا يمكن عرض الكود من هنا"
+                ScriptText.Text = "-- هذا السكربت محمي ولا يمكن عرض الكود"
             end
             ScriptFrame.Visible = true
         end)
     end
 end
 
+-- تنفيذ البحث عند تشغيل السكربت
 FindPetScripts()
