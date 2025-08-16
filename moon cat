@@ -1,42 +1,70 @@
-local workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
 
--- دالة لإنشاء نص فوق البارت
-local function createBillboard(part, text)
-    local billboard = Instance.new("BillboardGui")
-    billboard.Adornee = part
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 2, 0) -- فوق البارت
-    billboard.AlwaysOnTop = true
-    billboard.Name = "PetMoverLabel"
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,0,1,0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1,1,1)
-    label.TextScaled = true
-    label.Text = text
-    label.Parent = billboard
-    
-    billboard.Parent = part
+-- اسم بارت PetArea الخاص بك
+local ownerPetAreaName = Player.Name .. "_PetArea"
+
+-- التأكد من وجود PetArea
+local petArea = workspace:FindFirstChild(ownerPetAreaName)
+if not petArea then
+    petArea = Instance.new("Part")
+    petArea.Name = ownerPetAreaName
+    petArea.Size = Vector3.new(7,7,7)
+    petArea.Anchored = true
+    petArea.Position = Vector3.new(0,5,0)
+    petArea.Parent = workspace
 end
 
--- فحص جميع PetMover وإنشاء نص
-for _, part in pairs(workspace:GetDescendants()) do
-    if part:IsA("BasePart") and part.Name == "PetMover" then
-        local text = ""
-        if part.Parent:IsA("Model") then
-            text = "تابع لموديل: "..part.Parent.Name
-        else
-            text = "بارت لحاله"
-        end
+-- دالة لحماية وتحريك PetMover
+local function forceMovePetMover(model)
+    local petMover = model:FindFirstChild("PetMover")
+    if not petMover then return end
 
-        -- إزالة أي نص سابق
-        if part:FindFirstChild("PetMoverLabel") then
-            part.PetMoverLabel:Destroy()
-        end
-
-        createBillboard(part, text)
+    -- تحديد PrimaryPart
+    if model.PrimaryPart == nil then
+        model.PrimaryPart = petMover
     end
+
+    -- تعطيل أي Anchored يمنع الحركة
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = false
+        end
+    end
+
+    -- تحريك عشوائي داخل PetArea
+    local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5)
+    local randomPos = Vector3.new(
+        math.random(-halfSize.X*100, halfSize.X*100)/100,
+        math.random(-halfSize.Y*100, halfSize.Y*100)/100,
+        math.random(-halfSize.Z*100, halfSize.Z*100)/100
+    )
+
+    -- تحريك الموديل بالقوة باستخدام CFrame
+    model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
+end
+
+-- تحريك أي موديلات موجودة عند بدء السكربت
+for _, model in pairs(workspace:GetChildren()) do
+    if model:IsA("Model") then
+        forceMovePetMover(model)
+    end
+end
+
+-- مراقبة أي موديلات جديدة وتحريكها فورًا
+workspace.ChildAdded:Connect(function(child)
+    if child:IsA("Model") then
+        forceMovePetMover(child)
+    end
+end)
+
+-- تحديث كل ثانية لتحريك الحيوانات عشوائيًا
+while true do
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") then
+            forceMovePetMover(model)
+        end
+    end
+    task.wait(1)
 end
