@@ -1,8 +1,8 @@
 local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
 local StarterGui = game:GetService("StarterGui")
+local workspace = game:GetService("Workspace")
 
--- إيجاد البارت PetArea اللي بننقل له البارتات
+-- إيجاد بارت PetArea
 local petArea = workspace:FindFirstChild("PetArea")
 if not petArea then
     warn("لا يوجد بارت باسم PetArea في Workspace")
@@ -14,30 +14,41 @@ local function showSystemNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title;
         Text = text;
-        Duration = duration;
+        Duration = duration,
     })
 end
 
--- دالة لنقل بارتات PetMover إلى PetArea وتثبيتها
-local function movePetMovers()
+-- دالة لنقل الموديلات
+local function movePets()
     local count = 0
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == "PetMover" then
-            part.CFrame = petArea.CFrame -- نقل البارت لمركز PetArea
-            part.Anchored = true -- تثبيت البارت
-            count = count + 1
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") then
+            local petMover = model:FindFirstChild("PetMover")
+            if petMover and model.PrimaryPart == nil then
+                model.PrimaryPart = petMover -- نجعل PetMover هو الجزء الأساسي
+            end
+            if model.PrimaryPart and petMover then
+                model:SetPrimaryPartCFrame(petArea.CFrame) -- نقل الموديل كامل
+                -- تثبيت كل البارتات في الموديل
+                for _, part in pairs(model:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Anchored = true
+                    end
+                end
+                count = count + 1
+            end
         end
     end
     if count > 0 then
-        showSystemNotification("تم النقل", "تم نقل "..count.." بارت/بارتات PetMover إلى PetArea", 3)
+        showSystemNotification("تم النقل", "تم نقل "..count.." حيوان/حيوانات إلى PetArea", 3)
     end
 end
 
 -- تشغيل أول مرة
-movePetMovers()
+movePets()
 
--- تحديث مستمر لأي بارت جديد ينضاف
+-- تحديث مستمر لأي موديل جديد ينضاف
 while true do
     task.wait(1)
-    movePetMovers()
+    movePets()
 end
