@@ -1,75 +1,74 @@
 local player = game.Players.LocalPlayer
-local WAIT_TIME = 2 -- تحديث كل ثانيتين
 
 -- إعدادات
-local FARM_FOLDER_NAME = "Farm" -- اسم فولدر المزرعة
-local ANIMAL_NAMES = {"Moon Cat"} -- اضف هنا أسماء الحيوانات الأخرى حسب اللعبة
+local FARM_NAME = "Farm"       -- اسم فولدر المزرعة
+local ANIMAL_NAMES = {"Moon Cat"} -- أضف أسماء الحيوانات الأخرى حسب اللعبة
+local MARK_SIZE = Vector3.new(4, 1, 4) -- حجم العلامة
+local MARK_HEIGHT = 5 -- ارتفاع العلامة فوق الحيوان
 
--- إنشاء GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "AnimalCountDisplay"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 350, 0, 150)
-textLabel.Position = UDim2.new(0.5, -175, 0.5, -75)
-textLabel.BackgroundTransparency = 0.5
-textLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
-textLabel.TextColor3 = Color3.fromRGB(255,0,0)
-textLabel.Font = Enum.Font.SourceSansBold
-textLabel.TextScaled = true
-textLabel.TextWrapped = true
-textLabel.Parent = gui
-
--- دالة لاكتشاف المزرعة الحالية حسب موقع اللاعب
+-- الحصول على المزرعة الخاصة باللاعب
 local function getPlayerFarm()
-    local char = player.Character
-    if not char then return nil end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-
     for _, folder in pairs(workspace:GetChildren()) do
-        if folder:IsA("Folder") and folder.Name == FARM_FOLDER_NAME then
-            for _, part in pairs(folder:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    -- إذا كان اللاعب قريب من أي جزء داخل المزرعة
-                    if (part.Position - hrp.Position).Magnitude < 50 then -- نصف القطر 50 يمكن تغييره حسب حجم المزرعة
-                        return folder
-                    end
-                end
-            end
+        if folder:IsA("Folder") and folder.Name == FARM_NAME then
+            return folder
         end
     end
     return nil
 end
 
--- دالة لحساب كل الحيوانات داخل المزرعة
-local function countAnimals(farm)
-    local counts = {}
-    if not farm then return counts end
+-- إنشاء علامة فوق الحيوان
+local function createMarker(parent)
+    local marker = Instance.new("Part")
+    marker.Size = MARK_SIZE
+    marker.Anchored = true
+    marker.CanCollide = false
+    marker.Material = Enum.Material.Neon
+    marker.BrickColor = BrickColor.new("Bright red")
+    marker.Transparency = 0.5
+    marker.Parent = workspace
+    return marker
+end
+
+-- متابعة الحيوانات ووضع العلامة
+local function markAnimals()
+    local farm = getPlayerFarm()
+    if not farm then return end
+
+    -- إزالة أي علامات سابقة
+    for _, oldMarker in pairs(workspace:GetChildren()) do
+        if oldMarker.Name == "AnimalMarker" then
+            oldMarker:Destroy()
+        end
+    end
 
     for _, obj in pairs(farm:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("BasePart") then
-            local name = obj.Name
-            counts[name] = (counts[name] or 0) + 1
+            if table.find(ANIMAL_NAMES, obj.Name) then
+                local marker = createMarker(obj)
+                marker.Name = "AnimalMarker"
+
+                -- تحديث موقع العلامة كل 0.1 ثانية
+                spawn(function()
+                    while marker.Parent do
+                        local pos
+                        if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
+                            pos = obj.HumanoidRootPart.Position + Vector3.new(0, MARK_HEIGHT, 0)
+                        elseif obj:IsA("BasePart") then
+                            pos = obj.Position + Vector3.new(0, MARK_HEIGHT, 0)
+                        end
+                        if pos then
+                            marker.Position = pos
+                        end
+                        wait(0.1)
+                    end
+                end)
+            end
         end
     end
-    return counts
 end
 
--- تحديث GUI
+-- تكرار كل 2 ثانية لتحديث الحيوانات الجديدة
 while true do
-    local farm = getPlayerFarm()
-    if farm then
-        local counts = countAnimals(farm)
-        local text = "مزرعتك: " .. farm.Name .. "\n"
-        for name, amount in pairs(counts) do
-            text = text .. name .. ": " .. amount .. "\n"
-        end
-        textLabel.Text = text
-    else
-        textLabel.Text = "لم يتم العثور على مزرعتك"
-    end
-    wait(WAIT_TIME)
+    markAnimals()
+    wait(2)
 end
