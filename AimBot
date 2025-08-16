@@ -1,10 +1,12 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Variables
 local targetPartName = "HumanoidRootPart"
@@ -16,7 +18,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 200, 0, 100)
+MainFrame.Size = UDim2.new(0,200,0,100)
 MainFrame.Position = UDim2.new(0.3,0,0.3,0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 MainFrame.Active = true
@@ -54,7 +56,7 @@ TrackToggle.MouseButton1Click:Connect(function()
     TrackToggle.BackgroundColor3 = trackingEnabled and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
 end)
 
--- زر رينبو حقيقي
+-- زر رينبو متدرج الألوان
 local RainbowButton = Instance.new("TextButton")
 RainbowButton.Size = UDim2.new(0,50,0,30)
 RainbowButton.Position = UDim2.new(0,10,0,10)
@@ -66,7 +68,6 @@ RainbowButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- تدرج ألوان للزر
 spawn(function()
     local hue = 0
     while true do
@@ -83,7 +84,7 @@ local function getClosestPlayer()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(PartSelected) then
             local part = player.Character[PartSelected]
-            local distance = (part.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            local distance = (part.Position - RootPart.Position).Magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
                 closest = player
@@ -98,7 +99,7 @@ local function isVisible(part)
     local origin = Camera.CFrame.Position
     local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
     local ray = Ray.new(origin,direction)
-    local hit = workspace:FindPartOnRayWithIgnoreList(ray,{LocalPlayer.Character})
+    local hit = workspace:FindPartOnRayWithIgnoreList(ray,{Character})
     return hit and hit:IsDescendantOf(part.Parent)
 end
 
@@ -122,8 +123,14 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- Camera: فقط النظر نحو الجزء (بدون تحريك الكاميرا)
+            -- Camera: النظر نحو الجزء
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+
+            -- جسمك يتجه نحو الهدف
+            local lookCFrame = CFrame.new(RootPart.Position, Vector3.new(part.Position.X, RootPart.Position.Y, part.Position.Z))
+            RootPart.CFrame = CFrame.new(RootPart.Position) * CFrame.Angles(0, lookCFrame.Y - RootPart.CFrame.Y,0)
+            -- تبسيط التدوير: فقط حول المحور Y
+            RootPart.CFrame = CFrame.new(RootPart.Position, Vector3.new(part.Position.X, RootPart.Position.Y, part.Position.Z))
         end
     end
 end)
