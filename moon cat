@@ -1,5 +1,35 @@
-for i, part in pairs(workspace:GetChildren()) do
-    if part:IsA("BasePart") and part.Name == "PetArea" then
-        part.Transparency = 0 -- يخلي البارت واضح فقط
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+-- إنشاء واجهة المستخدم
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = Player:WaitForChild("PlayerGui")
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 200, 0, 50) -- حجم النص
+textLabel.Position = UDim2.new(0.5, -100, 0, 10) -- منتصف الشاشة تقريبًا أعلى
+textLabel.AnchorPoint = Vector2.new(0.5, 0) -- يثبت النص بالنسبة للنقطة الوسطى
+textLabel.BackgroundTransparency = 1 -- بدون خلفية
+textLabel.TextColor3 = Color3.new(1, 1, 1) -- أبيض
+textLabel.TextScaled = true
+textLabel.Parent = screenGui
+
+-- دالة لحساب البارتات وتحديث النص
+local function updatePetAreaCount()
+    local count = 0
+    for _, part in pairs(workspace:GetChildren()) do
+        if part:IsA("BasePart") and part.Name == "PetArea" then
+            count = count + 1
+        end
     end
+    textLabel.Text = 'عدد البارتات: ' .. count
+end
+
+-- تحديث أول مرة
+updatePetAreaCount()
+
+-- لو تحب، ممكن تحديث كل ثانية لو يضيفوا بارت جديد
+while true do
+    wait(1)
+    updatePetAreaCount()
 end
