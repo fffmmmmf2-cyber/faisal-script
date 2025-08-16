@@ -1,23 +1,36 @@
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 
 -- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- إنشاء ScrollFrame
+-- إنشاء ScrollFrame مخفي أولًا
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(0, 300, 0, 400)
 scrollFrame.Position = UDim2.new(0, 50, 0, 50)
 scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+scrollFrame.Visible = false -- مخفي
 scrollFrame.Parent = screenGui
 
 local uiListLayout = Instance.new("UIListLayout")
 uiListLayout.Parent = scrollFrame
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- زر خفي لتفعيل ScrollFrame
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Text = "" -- مخفي
+toggleButton.Parent = screenGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    scrollFrame.Visible = not scrollFrame.Visible
+end)
 
 -- دالة تظهر السكربتات داخل ScrollFrame
 local function showScripts(part)
@@ -42,7 +55,6 @@ local function showScripts(part)
         end
     end
 
-    -- تحديث CanvasSize
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
 
@@ -60,7 +72,7 @@ local function showName(obj)
         text.Text = obj.Name
         text.TextColor3 = Color3.new(1,1,1)
         text.TextScaled = false
-        text.TextSize = 14 -- اسماء صغيرة
+        text.TextSize = 14
         text.Parent = billboard
 
         billboard.Parent = obj
@@ -77,10 +89,15 @@ Workspace.DescendantAdded:Connect(function(obj)
     showName(obj)
 end)
 
--- كشف الضغط على أي بارت
-mouse.Button1Down:Connect(function()
-    local target = mouse.Target
+-- كشف الضغط للجوال فقط
+UserInputService.TouchStarted:Connect(function(touch, processed)
+    if processed then return end
+    local target = workspace:FindPartOnRayWithIgnoreList(
+        workspace.CurrentCamera:ScreenPointToRay(touch.Position.X, touch.Position.Y),
+        {player.Character}
+    )
     if target and target:IsA("BasePart") then
         showScripts(target)
+        scrollFrame.Visible = true -- يظهر ScrollFrame تلقائي عند الضغط
     end
 end)
