@@ -1,6 +1,8 @@
 -- خدمات
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 -- إنشاء واجهة المستخدم
 local screenGui = Instance.new("ScreenGui")
@@ -9,12 +11,46 @@ screenGui.Parent = Player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.8, 0, 0.3, 0) -- يمين الشاشة
+frame.Position = UDim2.new(0.8, 0, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
 
--- زر إخفاء/إظهار
+-- زر السحب
+local dragToggle = false
+local dragInput, mousePos, framePos
+
+local function update(input)
+    local delta = input.Position - mousePos
+    frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragToggle = true
+        mousePos = input.Position
+        framePos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragToggle = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if dragToggle and dragInput then
+        update(dragInput)
+    end
+end)
+
+-- زر إخفاء/إظهار القائمة
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 20, 0, 20)
 toggleBtn.Position = UDim2.new(1, -25, 0, 5)
