@@ -1,133 +1,49 @@
+-- PetMover Updated to Follow "Center" Part
+local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local UserInputService = game:GetService("UserInputService")
-local player = Players.LocalPlayer
-local mouse = player:GetMouse()
+local ActivePetsData = {} -- لتخزين بتات اللاعبين محليًا
 
-local clickCounts = {}
-local clickTimeLimit = 0.5 -- نصف ثانية بين كل ضغطة
-local lastClickTime = {}
-
--- إنشاء ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- فريم يغطي كل الشاشة (مخفي أولًا)
-local bigFrame = Instance.new("Frame")
-bigFrame.Size = UDim2.new(0.9,0,0.9,0)
-bigFrame.Position = UDim2.new(0.05,0,0.05,0)
-bigFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-bigFrame.Visible = false
-bigFrame.BorderSizePixel = 0
-bigFrame.Parent = screenGui
-
--- زر X لإغلاق الفريم
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0,30,0,30)
-closeButton.Position = UDim2.new(1,-35,0,5)
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.new(1,1,1)
-closeButton.BackgroundColor3 = Color3.fromRGB(100,0,0)
-closeButton.Parent = bigFrame
-
-closeButton.MouseButton1Click:Connect(function()
-    bigFrame.Visible = false
-end)
-
--- ScrollFrame داخل الفريم الكبير
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(0.95,0,0.9,0)
-scrollFrame.Position = UDim2.new(0.025,0,0.05,0)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-scrollFrame.Parent = bigFrame
-
-local uiListLayout = Instance.new("UIListLayout")
-uiListLayout.Parent = scrollFrame
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- دالة لعرض السكربتات داخل ScrollFrame
-local function showScripts(part)
-    for _, child in pairs(scrollFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
+-- تسجيل بت جديد
+local function RegisterPet(playerName, uuid, pet)
+    if not ActivePetsData[playerName] then
+        ActivePetsData[playerName] = {}
     end
-
-    for _, obj in pairs(part:GetDescendants()) do
-        if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-            local label = Instance.new("TextButton")
-            label.Size = UDim2.new(1,0,0,25)
-            label.BackgroundTransparency = 0.5
-            label.BackgroundColor3 = Color3.fromRGB(50,50,50)
-            label.TextColor3 = Color3.new(1,1,1)
-            label.Text = obj.Name
-            label.TextScaled = false
-            label.TextSize = 14
-            label.AutoButtonColor = true
-
-            -- عند الضغط على اسم السكربت ينسخ الاسم
-            label.MouseButton1Click:Connect(function()
-                setclipboard(obj.Name)
-            end)
-
-            label.Parent = scrollFrame
-        end
-    end
-
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
+    ActivePetsData[playerName][uuid] = {Asset = pet}
 end
 
--- دالة تسوي اسم فوق كل بارت (ما على جسد اللاعب)
-local function showName(obj)
-    if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.Adornee = obj
-        billboard.AlwaysOnTop = true
-
-        local text = Instance.new("TextLabel")
-        text.Size = UDim2.new(1,0,1,0)
-        text.BackgroundTransparency = 1
-        text.Text = obj.Name
-        text.TextColor3 = Color3.new(1,1,1)
-        text.TextScaled = false
-        text.TextSize = 14
-        text.Parent = billboard
-
-        billboard.Parent = obj
-    end
-end
-
--- تطبيق على كل البارتات الموجودة أولًا
-for _, obj in pairs(Workspace:GetDescendants()) do
-    showName(obj)
-end
-
--- مراقبة أي بارت جديد يضاف لاحقًا
-Workspace.DescendantAdded:Connect(function(obj)
-    showName(obj)
-end)
-
--- كشف الضغط للجوال فقط
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.Touch then
-        local target = mouse.Target
-        if target and target:IsA("BasePart") then
-            local now = tick()
-            local lastTime = lastClickTime[target] or 0
-            if now - lastTime > clickTimeLimit then
-                clickCounts[target] = 0
-            end
-            clickCounts[target] = (clickCounts[target] or 0) + 1
-            lastClickTime[target] = now
-
-            if clickCounts[target] >= 3 then
-                clickCounts[target] = 0
-                showScripts(target)
-                bigFrame.Visible = true
+-- تحديث موقع البتات باتجاه البارت "Center"
+local function UpdatePetPositions(deltaTime)
+    for playerName, pets in pairs(ActivePetsData) do
+        local player = Players:FindFirstChild(playerName)
+        if player then
+            local farm = workspace:FindFirstChild(playerName .. "_Farm")
+            if farm then
+                local centerPart = farm:FindFirstChild("Center")
+                if centerPart then
+                    for uuid, petData in pairs(pets) do
+                        local pet = petData.Asset
+                        if pet then
+                            local direction = (centerPart.Position - pet.Position)
+                            if direction.Magnitude > 0.1 then
+                                -- يتحرك تدريجيًا باتجاه الـ Center بسرعة 5 studs/ثانية
+                                pet.Position = pet.Position + direction.Unit * math.min(direction.Magnitude, deltaTime * 5)
+                            end
+                        end
+                    end
+                end
             end
         end
     end
+end
+
+-- تحديث كل إطار
+RunService.RenderStepped:Connect(function(deltaTime)
+    UpdatePetPositions(deltaTime)
 end)
+
+-- مثال لكيفية تسجيل البت عنده
+-- RegisterPet("Player1", "PetUUID123", workspace:FindFirstChild("PetMover"))
+
+return {
+    RegisterPet = RegisterPet
+}
