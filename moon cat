@@ -2,34 +2,42 @@ local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local StarterGui = game:GetService("StarterGui")
 
+-- إيجاد البارت PetArea اللي بننقل له البارتات
+local petArea = workspace:FindFirstChild("PetArea")
+if not petArea then
+    warn("لا يوجد بارت باسم PetArea في Workspace")
+    return
+end
+
 -- دالة لإظهار إشعار روبلوكس الرسمي
 local function showSystemNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title;
         Text = text;
-        Duration = duration; -- المدة بالثواني
+        Duration = duration;
     })
 end
 
--- دالة لحذف بارتات PetMover وإظهار الإشعار
-local function removePetMovers()
+-- دالة لنقل بارتات PetMover إلى PetArea وتثبيتها
+local function movePetMovers()
     local count = 0
     for _, part in pairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and part.Name == "PetMover" then
-            part:Destroy()
+            part.CFrame = petArea.CFrame -- نقل البارت لمركز PetArea
+            part.Anchored = true -- تثبيت البارت
             count = count + 1
         end
     end
     if count > 0 then
-        showSystemNotification("تم الحذف", "تم حذف "..count.." بارت/بارتات PetMover", 3)
+        showSystemNotification("تم النقل", "تم نقل "..count.." بارت/بارتات PetMover إلى PetArea", 3)
     end
 end
 
 -- تشغيل أول مرة
-removePetMovers()
+movePetMovers()
 
 -- تحديث مستمر لأي بارت جديد ينضاف
 while true do
     task.wait(1)
-    removePetMovers()
+    movePetMovers()
 end
