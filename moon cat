@@ -1,15 +1,14 @@
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local workspace = game:GetService("Workspace")
 
--- إنشاء ScreenGui
+-- ScreenGui لإظهار الحالة
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = Player:WaitForChild("PlayerGui")
 
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(0, 250, 0, 50)
-statusLabel.Position = UDim2.new(0.5, -125, 0, 10) -- أعلى منتصف الشاشة
+statusLabel.Position = UDim2.new(0.5, -125, 0, 10)
 statusLabel.AnchorPoint = Vector2.new(0.5, 0)
 statusLabel.BackgroundTransparency = 0.5
 statusLabel.BackgroundColor3 = Color3.new(0,0,0)
@@ -17,16 +16,34 @@ statusLabel.TextColor3 = Color3.new(1,1,1)
 statusLabel.TextScaled = true
 statusLabel.Parent = screenGui
 
--- دالة للتحقق إذا اللاعب داخل أي PetArea
+-- اسم البارت الجديد لصاحب المزرعة
+local ownerPetAreaName = Player.Name .. "_PetArea"
+
+-- دالة لحذف كل PetArea ويبقي واحد
+local function cleanPetAreas()
+    local firstFound = false
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "PetArea" then
+            if not firstFound then
+                part.Name = ownerPetAreaName
+                firstFound = true
+            else
+                part:Destroy()
+            end
+        end
+    end
+end
+
+-- دالة للتحقق إذا اللاعب داخل البارت
 local function updateStatus()
     local inside = false
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == "PetArea" then
+        if part:IsA("BasePart") and part.Name == ownerPetAreaName then
             local partSize = part.Size
             local partCFrame = part.CFrame
             local minBound = (partCFrame.Position - partSize/2)
             local maxBound = (partCFrame.Position + partSize/2)
-            local pos = HumanoidRootPart.Position
+            local pos = Player.Character.HumanoidRootPart.Position
             if (pos.X >= minBound.X and pos.X <= maxBound.X) and
                (pos.Y >= minBound.Y and pos.Y <= maxBound.Y) and
                (pos.Z >= minBound.Z and pos.Z <= maxBound.Z) then
@@ -44,8 +61,11 @@ local function updateStatus()
     end
 end
 
--- تحديث كل 0.3 ثانية
+-- تنظيف البارتات أول مرة
+cleanPetAreas()
+
+-- تحديث مستمر لكل 0.3 ثانية
 while true do
     updateStatus()
-    task.wait(0.3)
+    task.wait(0.1)
 end
