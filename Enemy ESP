@@ -2,7 +2,7 @@
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 -- إنشاء واجهة المستخدم
 local screenGui = Instance.new("ScreenGui")
@@ -11,56 +11,37 @@ screenGui.Parent = Player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.8, 0, 0.3, 0)
+frame.Position = UDim2.new(0.5, -100, 0.5, -60) -- بداية في الوسط
 frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
+frame.Active = true
+frame.Draggable = true -- يخلي الفريم قابل للسحب
 
--- زر السحب
-local dragToggle = false
-local dragInput, mousePos, framePos
-
-local function update(input)
-    local delta = input.Position - mousePos
-    frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-end
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragToggle = true
-        mousePos = input.Position
-        framePos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragToggle = false
-            end
-        end)
-    end
-end)
-
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if dragToggle and dragInput then
-        update(dragInput)
-    end
-end)
-
--- زر إخفاء/إظهار القائمة
+-- زر إخفاء/إظهار صغير رينبو
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 20, 0, 20)
-toggleBtn.Position = UDim2.new(1, -25, 0, 5)
-toggleBtn.Text = "-"
+toggleBtn.Size = UDim2.new(0, 15, 0, 15)
+toggleBtn.Position = UDim2.new(0.5, -7, 0, -20)
+toggleBtn.Text = "+"
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+toggleBtn.BorderSizePixel = 1
 toggleBtn.Parent = frame
 
+local frameVisible = true
 toggleBtn.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
+    frameVisible = not frameVisible
+    frame.Visible = frameVisible
+end)
+
+-- عمل تأثير رينبو للزر
+spawn(function()
+    while true do
+        for i=0,1,0.01 do
+            toggleBtn.BackgroundColor3 = Color3.fromHSV(i,1,1)
+            wait(0.05)
+        end
+    end
 end)
 
 -- الخانة 1: Enemy ESP
