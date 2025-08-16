@@ -1,42 +1,66 @@
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- دالة تحذف أي بارت اسمه "Base Home"
-local function removeBaseHome(parent)
-    for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == "Base Home" then
-            obj:Destroy()
+local removeNames = {"base home"} -- كل الحروف صغيرة للمقارنة
+
+-- دالة تحذف أي بارت مطابق للاسم
+local function removePart(obj)
+    if obj:IsA("BasePart") then
+        for _, name in pairs(removeNames) do
+            if obj.Name:lower() == name then
+                obj:Destroy()
+                break
+            end
         end
     end
 end
 
--- دالة تسوي اسم فوق كل بارت (ما تطبقه على جسم اللاعب)
-local function showNames(parent)
-    for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
-            -- إنشاء BillboardGui
-            local billboard = Instance.new("BillboardGui")
-            billboard.Size = UDim2.new(0, 100, 0, 50)
-            billboard.Adornee = obj
-            billboard.AlwaysOnTop = true
+-- دالة تسوي اسم فوق كل بارت
+local function showName(obj)
+    if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
+        -- BillboardGui لاسم البارت
+        local billboard = Instance.new("BillboardGui")
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.Adornee = obj
+        billboard.AlwaysOnTop = true
 
-            -- إنشاء TextLabel
-            local text = Instance.new("TextLabel")
-            text.Size = UDim2.new(1,0,1,0)
-            text.BackgroundTransparency = 1
-            text.Text = obj.Name
-            text.TextColor3 = Color3.new(1,1,1)
-            text.TextScaled = true
-            text.Parent = billboard
+        local text = Instance.new("TextLabel")
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.Text = obj.Name
+        text.TextColor3 = Color3.new(1,1,1)
+        text.TextScaled = true
+        text.Parent = billboard
 
-            billboard.Parent = obj
-        end
+        billboard.Parent = obj
     end
 end
 
--- تنفيذ الحذف أولًا
-removeBaseHome(Workspace)
+-- دالة تضيف إطار حول البارت
+local function addOutline(obj)
+    if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
+        local box = Instance.new("BoxHandleAdornment")
+        box.Adornee = obj
+        box.AlwaysOnTop = true
+        box.ZIndex = 10
+        box.Size = obj.Size
+        box.Transparency = 0
+        box.Color3 = Color3.new(1, 0, 0) -- أحمر واضح
+        box.Parent = obj
+    end
+end
 
--- عرض أسماء كل البارتات الباقية ما عدا جسم اللاعب
-showNames(Workspace)
+-- تطبيق على كل البارتات الموجودة أولًا
+for _, obj in pairs(Workspace:GetDescendants()) do
+    removePart(obj)
+    showName(obj)
+    addOutline(obj)
+end
+
+-- مراقبة أي بارت جديد يضاف لاحقًا
+Workspace.DescendantAdded:Connect(function(obj)
+    removePart(obj)
+    showName(obj)
+    addOutline(obj)
+end)
