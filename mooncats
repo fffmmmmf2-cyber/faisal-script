@@ -1,16 +1,22 @@
--- LocalScript
--- إعدادات البارت
-local PART_POSITION = Vector3.new(32.8, 2.75, -115.8)
-local PART_SIZE = Vector3.new(12, 6, 83)
-local PART_COLOR = BrickColor.new("Bright red")
+-- سكربت ثاني يتحكم بموقع الحيوانات في النص
+local workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
--- إنشاء البارت
-local petArea = Instance.new("Part")
-petArea.Name = "PetArea"      -- الاسم المحدد
-petArea.Size = PART_SIZE
-petArea.Position = PART_POSITION
-petArea.Anchored = true
-petArea.CanCollide = false
-petArea.Material = Enum.Material.Neon
-petArea.BrickColor = PART_COLOR
-petArea.Parent = workspace
+-- اسم البارت الرئيسي
+local petArea = workspace:WaitForChild("PetArea") 
+
+-- كل فترة يتحرك الحيوانات للنص
+RunService.Heartbeat:Connect(function()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("PrimaryPart") then
+            -- نتأكد انه حيوان عن طريق وجود Attribute
+            local owner = obj:GetAttribute("OWNER")
+            if owner then
+                -- نحسب منتصف البارت
+                local center = petArea.Position + Vector3.new(petArea.Size.X/2, 0, petArea.Size.Z/2)
+                -- نخلي الحيوان يتحرك للنص بدون تغيير Y الحالي
+                obj:SetPrimaryPartCFrame(CFrame.new(center.X, obj.PrimaryPart.Position.Y, center.Z))
+            end
+        end
+    end
+end)
