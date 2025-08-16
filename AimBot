@@ -1,31 +1,37 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
---// Variables
-local targetPartName = "HumanoidRootPart" -- افتراضي
+-- Variables
+local targetPartName = "HumanoidRootPart"
 local trackingEnabled = false
 
---// GUI (مختصر لإنه نفس السابق)
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
-local MainFrame = Instance.new("Frame", ScreenGui)
+local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 200, 0, 100)
-MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainFrame.Position = UDim2.new(0.3,0,0.3,0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
 
-local PartDropdown = Instance.new("TextButton", MainFrame)
+-- Dropdown اختيار الجزء
+local PartDropdown = Instance.new("TextButton")
 PartDropdown.Size = UDim2.new(0,180,0,30)
 PartDropdown.Position = UDim2.new(0,10,0,10)
 PartDropdown.Text = "اختر الجزء"
 PartDropdown.BackgroundColor3 = Color3.fromRGB(255,0,0)
+PartDropdown.TextColor3 = Color3.new(1,1,1)
+PartDropdown.Parent = MainFrame
+
 local PartOptions = {"Head","HumanoidRootPart","UpperTorso","LowerTorso"}
 local PartSelected = "HumanoidRootPart"
 
@@ -34,28 +40,43 @@ PartDropdown.MouseButton1Click:Connect(function()
     PartDropdown.Text = PartSelected
 end)
 
-local TrackToggle = Instance.new("TextButton", MainFrame)
+-- Toggle تتبع الكاميرا
+local TrackToggle = Instance.new("TextButton")
 TrackToggle.Size = UDim2.new(0,180,0,30)
 TrackToggle.Position = UDim2.new(0,10,0,50)
 TrackToggle.Text = "تتبع الكاميرا"
 TrackToggle.BackgroundColor3 = Color3.fromRGB(255,0,0)
+TrackToggle.TextColor3 = Color3.new(1,1,1)
+TrackToggle.Parent = MainFrame
 
 TrackToggle.MouseButton1Click:Connect(function()
     trackingEnabled = not trackingEnabled
     TrackToggle.BackgroundColor3 = trackingEnabled and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
 end)
 
-local RainbowButton = Instance.new("TextButton", ScreenGui)
+-- زر رينبو حقيقي
+local RainbowButton = Instance.new("TextButton")
 RainbowButton.Size = UDim2.new(0,50,0,30)
 RainbowButton.Position = UDim2.new(0,10,0,10)
-RainbowButton.Text = "🌈"
-RainbowButton.BackgroundColor3 = Color3.fromRGB(255,0,255)
+RainbowButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
+RainbowButton.Text = ""
+RainbowButton.Parent = ScreenGui
 
 RainbowButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- Function: Get closest player
+-- تدرج ألوان للزر
+spawn(function()
+    local hue = 0
+    while true do
+        hue = (hue + 1) % 360
+        RainbowButton.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
+        wait(0.03)
+    end
+end)
+
+-- Get closest player
 local function getClosestPlayer()
     local closest = nil
     local shortestDistance = math.huge
@@ -72,7 +93,7 @@ local function getClosestPlayer()
     return closest
 end
 
--- Function: Check visibility
+-- Check visibility
 local function isVisible(part)
     local origin = Camera.CFrame.Position
     local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
@@ -88,7 +109,7 @@ RunService.RenderStepped:Connect(function()
         if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(PartSelected) then
             local part = targetPlayer.Character[PartSelected]
 
-            -- Set color
+            -- Set part color
             for _, p in pairs(targetPlayer.Character:GetDescendants()) do
                 if p:IsA("BasePart") then
                     if isVisible(part) then
@@ -101,10 +122,10 @@ RunService.RenderStepped:Connect(function()
                 end
             end
 
-            -- Follow part with camera without moving local player
-            if isVisible(part) then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
-            end
+            -- Camera follow player (strong fix)
+            local camDist = 10 -- ابعد بمقدار 10 studs
+            local camPos = part.Position - part.CFrame.LookVector * camDist + Vector3.new(0,2,0) -- رفع قليل عن الرأس
+            Camera.CFrame = CFrame.new(camPos, part.Position)
         end
     end
 end)
