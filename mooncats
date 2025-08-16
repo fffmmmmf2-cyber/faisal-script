@@ -1,73 +1,46 @@
--- LocalScript: complete_farm_petarea.lua
-local TweenService = game:GetService("TweenService")
 local player = game.Players.LocalPlayer
 
 -- إعدادات
-local FARM_NAME = "Farm"
-local PET_AREA_NAME = "PetArea"
-local TARGET_POSITION = Vector3.new(8.55, 2.75, 76.767)
-local TARGET_SIZE = Vector3.new(13, 6, 8)
-local TARGET_TRANSPARENCY = 0.8
+local FARM_NAME = "Farm"          -- اسم الفولدر للمزارع
+local PET_AREA_NAME = "PetArea"   -- اسم البارت داخل المزرعة
+local TARGET_TRANSPARENCY = 0.9   -- الشفافية إذا تأكد أنها مزرعتك
 
--- إنشاء GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "FarmPetAreaDisplay"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 400, 0, 70)
-textLabel.Position = UDim2.new(0.5, -200, 0.5, -35)
-textLabel.BackgroundTransparency = 1
-textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-textLabel.Font = Enum.Font.SourceSansBold
-textLabel.TextScaled = true
-textLabel.TextWrapped = true
-textLabel.Parent = gui
-
--- دالة لحساب عدد PetArea
-local function getPetAreaCount()
-    local count = 0
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == PET_AREA_NAME then
-            count = count + 1
+-- دالة لاكتشاف المزرعة التي أنت فيها
+local function getCurrentFarm()
+    for _, folder in pairs(workspace:GetChildren()) do
+        if folder:IsA("Folder") and folder.Name == FARM_NAME then
+            -- هنا ممكن تضيف شرط حسب موقع اللاعب لاحقًا
+            return folder
         end
     end
-    return count
+    return nil
 end
 
--- دالة للحصول على اسم المزرعة
-local function getFarmName()
-    local farm = workspace:FindFirstChild(FARM_NAME)
-    if farm then
-        return farm.Name
-    else
-        return "لا يوجد مزرعة"
-    end
-end
-
--- دالة لتغيير موقع وحجم وشفافية PetArea
-local function updatePetArea()
-    local farm = workspace:FindFirstChild(FARM_NAME)
-    if not farm then return end
-
+-- التحقق من المزرعة وPetArea
+local farm = getCurrentFarm()
+if farm then
     local petArea = farm:FindFirstChild(PET_AREA_NAME)
-    if not petArea or not petArea:IsA("BasePart") then return end
+    if petArea and petArea:IsA("BasePart") then
+        print("تم العثور على مزرعتك: " .. farm.Name)
+        print("عدد PetArea داخل المزرعة: 1")
 
-    petArea.Transparency = TARGET_TRANSPARENCY
-    petArea.CanCollide = false
+        -- تغيير شفافية PetArea
+        petArea.Transparency = TARGET_TRANSPARENCY
+        petArea.CanCollide = false
 
-    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(petArea, tweenInfo, {
-        CFrame = CFrame.new(TARGET_POSITION),
-        Size = TARGET_SIZE
-    })
-    tween:Play()
-end
+        -- إضافة علامة/مؤشر في اللعبة للمزرعة الخاصة بك
+        local indicator = Instance.new("Part")
+        indicator.Size = Vector3.new(2, 2, 2)
+        indicator.Anchored = true
+        indicator.CanCollide = false
+        indicator.Material = Enum.Material.Neon
+        indicator.BrickColor = BrickColor.new("Bright green")
+        indicator.Position = petArea.Position + Vector3.new(0, 5, 0) -- فوق PetArea
+        indicator.Parent = workspace
 
--- تحديث GUI كل 5 ثواني
-while true do
-    updatePetArea()
-    textLabel.Text = "أنت في: " .. getFarmName() .. "\nالعدد(" .. getPetAreaCount() .. ")"
-    wait(5)
+    else
+        warn("لم يتم العثور على PetArea داخل المزرعة.")
+    end
+else
+    warn("لم يتم العثور على مزرعة باسم: " .. FARM_NAME)
 end
