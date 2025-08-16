@@ -159,7 +159,7 @@ end)
 -- ===========================================
 local lastSafeCFrame = nil -- آخر مكان آمن على الأرض
 local fallTime = 0         -- الوقت اللي اللاعب فيه بالهواء
-local maxFallTime = 2.5    -- الحد الأقصى للسقوط قبل الرجوع
+local maxFallTime = 2    -- الحد الأقصى للسقوط قبل الرجوع
 
 RunService.Heartbeat:Connect(function(delta)
     if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
