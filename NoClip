@@ -1,0 +1,139 @@
+-- Safe NoClip script
+-- يفعّل نوكليب على الشخصية ويمنع السقوط تحت الخريطة
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+-- بيئة عامة (يدعم executors وبيئات Roblox العادية)
+local env = (_G or {})
+if type(getgenv) == "function" then
+    env = getgenv()
+end
+
+-- حالة نوكليب
+env._SafeNoClip = env._SafeNoClip or {}
+local state = env._SafeNoClip
+state.enabled = true -- يبدأ مفعل تلقائياً، غيّرها false لو تبغى يبدأ مطفّياً
+
+-- وظيفة تبديل
+env.ToggleNoClip = function()
+    state.enabled = not state.enabled
+    return state.enabled
+end
+
+-- تهيئة: تابع لإعادة تفعيل التصادم عند الإيقاف
+local function setCharacterCollision(char, value)
+    if not char then return end
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = value
+        end
+    end
+end
+
+-- raycast لاحتساب ارتفاع الأرض تحت اللاعب
+local function getGroundY(originPosition, ignoreList)
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = ignoreList or {}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.IgnoreWater = true
+    local result = Workspace:Raycast(originPosition, Vector3.new(0, -1000, 0), params)
+    if result and result.Position then
+        return result.Position.Y
+    end
+    return nil
+end
+
+-- loop نوكليب آمن
+local noclipConn
+noclipConn = RunService.RenderStepped:Connect(function()
+    if not state.enabled then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not hrp then return end
+
+    -- تعطيل التصادم لكل أجزاء الشخصية
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+
+    -- حماية من السقوط تحت الأرض: نوجد أعلى نقطة أرض مباشرة تحت اللاعب
+    if humanoid then
+        local ignore = {char}
+        local groundY = getGroundY(hrp.Position + Vector3.new(0, 1, 0), ignore)
+        if groundY then
+            -- نحدد الارتفاع المرغوب (HipHeight يساعد تقريبا)
+            local hip = humanoid.HipHeight or 2
+            local desiredY = groundY + hip + 0.5
+            -- لو HRP تحت الأرض بشكل كبير، نرفعه برفق
+            if hrp.Position.Y < desiredY - 0.3 then
+                local cf = hrp.CFrame
+                -- نحافظ على اتجاه اللاعب ونضعه على الارتفاع المناسب
+                hrp.CFrame = CFrame.new(hrp.Position.X, desiredY, hrp.Position.Z) * CFrame.new(0,0,0)
+            end
+        end
+    end
+end)
+
+-- دالة لإيقاف النوكلِيب وتنظيف الوضع
+env.DisableSafeNoClip = function()
+    state.enabled = false
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    if player and player.Character then
+        setCharacterCollision(player.Character, true)
+    end
+end
+
+-- دالة لإعادة تشغيل اللوب لو تم إيقافه سابقاً (مفيدة لو شغلت Disable ثم تبي تشغله من جديد)
+env.EnableSafeNoClip = function()
+    if not noclipConn then
+        noclipConn = RunService.RenderStepped:Connect(function()
+            if not state.enabled then return end
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if not hrp then return end
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+            if humanoid then
+                local groundY = getGroundY(hrp.Position + Vector3.new(0,1,0), {char})
+                if groundY then
+                    local hip = humanoid.HipHeight or 2
+                    local desiredY = groundY + hip + 0.5
+                    if hrp.Position.Y < desiredY - 0.3 then
+                        hrp.CFrame = CFrame.new(hrp.Position.X, desiredY, hrp.Position.Z)
+                    end
+                end
+            end
+        end)
+    end
+    state.enabled = true
+end
+
+-- تفعيل افتراضي لو لم يكن مُفعلاً سابقاً
+if state.enabled then
+    -- تأكد أن الاتصال شغال
+    if not noclipConn then
+        env.EnableSafeNoClip()
+    end
+end
+
+-- ملاحظة: يمكنك التحكم من الخارج عبر:
+-- getgenv().ToggleNoClip()  -- أو _G.ToggleNoClip()
+-- getgenv().DisableSafeNoClip()
+-- getgenv().EnableSafeNoClip()
+
+print("[SafeNoClip] loaded - Toggle via getgenv().ToggleNoClip() or _G.ToggleNoClip()")
