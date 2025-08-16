@@ -1,4 +1,4 @@
--- LocalScript: GUI متحرك + زر مستقل + Toggle + RedEnemy + NoClip
+-- LocalScript: GUI متحرك + زر مستقل + Toggle + RedEnemy على كل اللاعبين + NoClip
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -22,9 +22,7 @@ mainFrame.Parent = screenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
 
--- ==========================
 -- زر صغير مستقل لإخفاء/إظهار الإطار
--- ==========================
 local toggleFrameBtn = Instance.new("TextButton")
 toggleFrameBtn.Size = UDim2.new(0,25,0,25)
 toggleFrameBtn.Position = UDim2.new(0.9,0,0.25,0)
@@ -136,20 +134,23 @@ local redEnabled = false
 local noclipEnabled = false
 
 -- ==========================
--- الخانة الأولى: اللون الأحمر على فريق "Criminal"
+-- الخانة الأولى: اللون الأحمر على كل اللاعبين
 -- ==========================
-createButton("تفعيل الأحمر Criminal", 40, Color3.fromRGB(255,0,0), mainFrame, function(button)
+createButton("تفعيل الأحمر الكل", 40, Color3.fromRGB(255,0,0), mainFrame, function(button)
     redEnabled = not redEnabled
     if redEnabled then
         button.BackgroundColor3 = Color3.fromRGB(0,255,0)
+        -- تطبيق التأثير على كل اللاعبين فورًا
         for _, p in pairs(Players:GetPlayers()) do
-            if p.Team and p.Team.Name == "Criminal" then
-                applyEnemyEffect(p)
-            end
+            applyEnemyEffect(p)
         end
-        Players.PlayerAdded:Connect(function(newPlayer)
-            if newPlayer.Team and newPlayer.Team.Name == "Criminal" then
-                applyEnemyEffect(newPlayer)
+        -- تحديث تلقائي كل 3 ثواني للتأكد من كل اللاعبين الجدد
+        spawn(function()
+            while redEnabled do
+                wait(3)
+                for _, p in pairs(Players:GetPlayers()) do
+                    applyEnemyEffect(p)
+                end
             end
         end)
     else
