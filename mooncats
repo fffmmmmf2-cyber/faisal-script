@@ -1,15 +1,16 @@
 -- LocalScript
 -- إعدادات البارت
-local PART_POSITION = Vector3.new(8.55, 2.75, 76.767)
-local PART_SIZE = Vector3.new(6, 6, 6)
+local PART_POSITION = Vector3.new(8.8, 2.75, -104.8)
+local PART_SIZE = Vector3.new(12, 6, 61)
 local PART_COLOR = BrickColor.new("Bright red")
 
 -- إنشاء البارت
-local marker = Instance.new("Part")
-marker.Size = PART_SIZE
-marker.Position = PART_POSITION
-marker.Anchored = true
-marker.CanCollide = false
-marker.Material = Enum.Material.Neon
-marker.BrickColor = PART_COLOR
-marker.Parent = workspace
+local petArea = Instance.new("Part")
+petArea.Name = "PetArea"      -- الاسم المحدد
+petArea.Size = PART_SIZE
+petArea.Position = PART_POSITION
+petArea.Anchored = true
+petArea.CanCollide = false
+petArea.Material = Enum.Material.Neon
+petArea.BrickColor = PART_COLOR
+petArea.Parent = workspace
