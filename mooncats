@@ -1,22 +1,18 @@
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
+-- تعريف الموديل
+local model = workspace:WaitForChild("Seed Stands")
 
-local ActivePetsService = require(game.ReplicatedStorage.Modules.PetServices.ActivePetsService)
-local petAreaPart = Workspace:WaitForChild("PetArea") -- البارت اللي تبي الحيوانات تتجمع فيه
-local offsetY = 3 -- ارتفاع عن الأرض عشان الحيوانات ما تغوص
+-- دالة لتوليد ألوان رينبو
+local function getRainbowColor(time)
+    local hue = (time % 1) -- نضمن القيمة بين 0 و1
+    return Color3.fromHSV(hue, 1, 1)
+end
 
-RunService.RenderStepped:Connect(function()
-    -- لكل اللاعبين في اللعبة
-    for _, player in pairs(Players:GetPlayers()) do
-        local clientPets = ActivePetsService:GetClientPetState(player.Name)
-        for _, petData in clientPets do
-            if petData.Asset then
-                local pet = petData.Asset
-                -- تثبيت الموقع في منتصف البارت
-                local targetCFrame = CFrame.new(petAreaPart.Position.X, petAreaPart.Position.Y + offsetY, petAreaPart.Position.Z)
-                pet:PivotTo(targetCFrame)
-            end
+-- تحديث الألوان باستمرار
+while true do
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Color = getRainbowColor(tick() + part.Position.Magnitude/10)
         end
     end
-end)
+    wait(0.1) -- تحديث كل 0.1 ثانية
+end
