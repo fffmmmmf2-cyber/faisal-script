@@ -1,46 +1,75 @@
 local player = game.Players.LocalPlayer
+local WAIT_TIME = 2 -- تحديث كل ثانيتين
 
 -- إعدادات
-local FARM_NAME = "Farm"          -- اسم الفولدر للمزارع
-local PET_AREA_NAME = "PetArea"   -- اسم البارت داخل المزرعة
-local TARGET_TRANSPARENCY = 0.9   -- الشفافية إذا تأكد أنها مزرعتك
+local FARM_FOLDER_NAME = "Farm" -- اسم فولدر المزرعة
+local ANIMAL_NAMES = {"Moon Cat"} -- اضف هنا أسماء الحيوانات الأخرى حسب اللعبة
 
--- دالة لاكتشاف المزرعة التي أنت فيها
-local function getCurrentFarm()
+-- إنشاء GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "AnimalCountDisplay"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 350, 0, 150)
+textLabel.Position = UDim2.new(0.5, -175, 0.5, -75)
+textLabel.BackgroundTransparency = 0.5
+textLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
+textLabel.TextColor3 = Color3.fromRGB(255,0,0)
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextScaled = true
+textLabel.TextWrapped = true
+textLabel.Parent = gui
+
+-- دالة لاكتشاف المزرعة الحالية حسب موقع اللاعب
+local function getPlayerFarm()
+    local char = player.Character
+    if not char then return nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+
     for _, folder in pairs(workspace:GetChildren()) do
-        if folder:IsA("Folder") and folder.Name == FARM_NAME then
-            -- هنا ممكن تضيف شرط حسب موقع اللاعب لاحقًا
-            return folder
+        if folder:IsA("Folder") and folder.Name == FARM_FOLDER_NAME then
+            for _, part in pairs(folder:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    -- إذا كان اللاعب قريب من أي جزء داخل المزرعة
+                    if (part.Position - hrp.Position).Magnitude < 50 then -- نصف القطر 50 يمكن تغييره حسب حجم المزرعة
+                        return folder
+                    end
+                end
+            end
         end
     end
     return nil
 end
 
--- التحقق من المزرعة وPetArea
-local farm = getCurrentFarm()
-if farm then
-    local petArea = farm:FindFirstChild(PET_AREA_NAME)
-    if petArea and petArea:IsA("BasePart") then
-        print("تم العثور على مزرعتك: " .. farm.Name)
-        print("عدد PetArea داخل المزرعة: 1")
+-- دالة لحساب كل الحيوانات داخل المزرعة
+local function countAnimals(farm)
+    local counts = {}
+    if not farm then return counts end
 
-        -- تغيير شفافية PetArea
-        petArea.Transparency = TARGET_TRANSPARENCY
-        petArea.CanCollide = false
-
-        -- إضافة علامة/مؤشر في اللعبة للمزرعة الخاصة بك
-        local indicator = Instance.new("Part")
-        indicator.Size = Vector3.new(2, 2, 2)
-        indicator.Anchored = true
-        indicator.CanCollide = false
-        indicator.Material = Enum.Material.Neon
-        indicator.BrickColor = BrickColor.new("Bright green")
-        indicator.Position = petArea.Position + Vector3.new(0, 5, 0) -- فوق PetArea
-        indicator.Parent = workspace
-
-    else
-        warn("لم يتم العثور على PetArea داخل المزرعة.")
+    for _, obj in pairs(farm:GetDescendants()) do
+        if obj:IsA("Model") or obj:IsA("BasePart") then
+            local name = obj.Name
+            counts[name] = (counts[name] or 0) + 1
+        end
     end
-else
-    warn("لم يتم العثور على مزرعة باسم: " .. FARM_NAME)
+    return counts
+end
+
+-- تحديث GUI
+while true do
+    local farm = getPlayerFarm()
+    if farm then
+        local counts = countAnimals(farm)
+        local text = "مزرعتك: " .. farm.Name .. "\n"
+        for name, amount in pairs(counts) do
+            text = text .. name .. ": " .. amount .. "\n"
+        end
+        textLabel.Text = text
+    else
+        textLabel.Text = "لم يتم العثور على مزرعتك"
+    end
+    wait(WAIT_TIME)
 end
