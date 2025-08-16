@@ -1,129 +1,285 @@
--- إعدادات أساسية
+-- Pet Script Viewer (Client)
+
+-- خدمات
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- إنشاء ScreenGui
+-- احذف أي واجهة قديمة بنفس الاسم لتحديث الواجهة
+do
+    local old = playerGui:FindFirstChild("PetScriptViewer")
+    if old then old:Destroy() end
+end
+
+-- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PetScriptViewer"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = playerGui
 
--- الخلفية
+-- خلفية تغطي الشاشة
 local Background = Instance.new("Frame")
-Background.Size = UDim2.fromScale(1,1)
-Background.BackgroundColor3 = Color3.fromRGB(20,20,20)
+Background.Size = UDim2.fromScale(1, 1)
+Background.Position = UDim2.fromScale(0, 0)
+Background.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Background.BackgroundTransparency = 0.2
+Background.Active = true
+Background.Selectable = false
+Background.ZIndex = 1
 Background.Parent = ScreenGui
 
--- Scroll Frame للسكربتات
+-- رأس بسيط للقائمة
+local HeaderBar = Instance.new("Frame")
+HeaderBar.Size = UDim2.new(1, 0, 0, 44)
+HeaderBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+HeaderBar.BorderSizePixel = 0
+HeaderBar.ZIndex = 2
+HeaderBar.Parent = Background
+
+local HeaderTitle = Instance.new("TextLabel")
+HeaderTitle.BackgroundTransparency = 1
+HeaderTitle.Size = UDim2.new(1, -20, 1, 0)
+HeaderTitle.Position = UDim2.new(0, 10, 0, 0)
+HeaderTitle.Font = Enum.Font.SourceSansSemibold
+HeaderTitle.TextSize = 20
+HeaderTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+HeaderTitle.Text = "Pet Script Viewer — يعرض السكربتات التي تحتوي على كلمة Pet"
+HeaderTitle.ZIndex = 3
+HeaderTitle.Parent = HeaderBar
+
+-- سكرول فريم للقائمة
 local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.fromScale(1,1)
-Scroll.Position = UDim2.fromScale(0,0)
+Scroll.Size = UDim2.fromScale(1, 1)
+Scroll.Position = UDim2.fromOffset(0, 44)
 Scroll.BackgroundTransparency = 1
 Scroll.ScrollBarThickness = 10
+Scroll.CanvasSize = UDim2.new()
+Scroll.ZIndex = 2
 Scroll.Parent = Background
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = Scroll
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.Padding = UDim.new(0, 6)
+UIListLayout.Parent = Scroll
 
 UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Scroll.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
+    Scroll.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
 end)
 
--- Frame لعرض محتوى السكربت
+-- فريم عرض الكود (يظهر فوق مع إبقاء القائمة)
 local ScriptFrame = Instance.new("Frame")
-ScriptFrame.Size = UDim2.fromScale(0.9,0.9)
-ScriptFrame.Position = UDim2.fromScale(0.05,0.05)
-ScriptFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+ScriptFrame.Size = UDim2.fromScale(0.92, 0.9)
+ScriptFrame.Position = UDim2.fromScale(0.04, 0.05)
+ScriptFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ScriptFrame.Visible = false
+ScriptFrame.Active = true
+ScriptFrame.Selectable = false
+ScriptFrame.ZIndex = 5
 ScriptFrame.Parent = Background
 
--- زر الرجوع
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.fromOffset(100,40)
-CloseButton.Position = UDim2.fromScale(0,0)
-CloseButton.Text = "رجوع"
-CloseButton.Parent = ScriptFrame
+local ScriptCorner = Instance.new("UICorner")
+ScriptCorner.CornerRadius = UDim.new(0, 8)
+ScriptCorner.Parent = ScriptFrame
 
--- صندوق النص للسكربت، غير قابل للتعديل
-local ScriptText = Instance.new("TextBox")
-ScriptText.Size = UDim2.fromScale(1,1)
-ScriptText.Position = UDim2.fromOffset(0,40)
-ScriptText.TextXAlignment = Enum.TextXAlignment.Left
-ScriptText.TextYAlignment = Enum.TextYAlignment.Top
-ScriptText.TextWrapped = true
-ScriptText.ClearTextOnFocus = false
-ScriptText.MultiLine = true
-ScriptText.TextColor3 = Color3.fromRGB(255,255,255)
-ScriptText.BackgroundTransparency = 1
-ScriptText.TextScaled = false
-ScriptText.TextSize = 14
-ScriptText.TextEditable = false -- يمنع الكتابة
-ScriptText.Parent = ScriptFrame
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 44)
+Header.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Header.BorderSizePixel = 0
+Header.ZIndex = 6
+Header.Parent = ScriptFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -110, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansSemibold
+Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "Preview"
+Title.ZIndex = 7
+Title.Parent = Header
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.fromOffset(100, 32)
+CloseButton.Position = UDim2.new(1, -110, 0.5, -16)
+CloseButton.Text = "رجوع"
+CloseButton.Font = Enum.Font.SourceSansSemibold
+CloseButton.TextSize = 18
+CloseButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.ZIndex = 7
+CloseButton.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
+
+-- منطقة النص (سكرول + تكست بوكس)
+local CodeScroll = Instance.new("ScrollingFrame")
+CodeScroll.Size = UDim2.new(1, -20, 1, -60)
+CodeScroll.Position = UDim2.new(0, 10, 0, 50)
+CodeScroll.BackgroundTransparency = 1
+CodeScroll.ScrollBarThickness = 8
+CodeScroll.CanvasSize = UDim2.new()
+CodeScroll.ZIndex = 6
+CodeScroll.Parent = ScriptFrame
+
+local CodeText = Instance.new("TextBox")
+CodeText.BackgroundTransparency = 1
+CodeText.Size = UDim2.new(1, -10, 0, 400)
+CodeText.Position = UDim2.new(0, 5, 0, 0)
+CodeText.TextXAlignment = Enum.TextXAlignment.Left
+CodeText.TextYAlignment = Enum.TextYAlignment.Top
+CodeText.TextWrapped = false
+CodeText.ClearTextOnFocus = false
+CodeText.MultiLine = true
+CodeText.Font = Enum.Font.Code
+CodeText.TextColor3 = Color3.fromRGB(230, 230, 230)
+CodeText.TextSize = 16
+CodeText.TextEditable = false  -- منع الكتابة
+CodeText.Selectable = false    -- لا يمكن اختياره للتركيز
+CodeText.ZIndex = 7
+CodeText.Parent = CodeScroll
+
+local function resizeCodeHeight()
+    -- تقدير ارتفاع بسيط بناءً على عدد الأسطر
+    local text = CodeText.Text or ""
+    local lines = 1
+    for _ in string.gmatch(text, "\n") do
+        lines += 1
+    end
+    local lineHeight = CodeText.TextSize + 6
+    local h = math.max(lines * lineHeight + 10, 200)
+    CodeText.Size = UDim2.new(1, -10, 0, h)
+    CodeScroll.CanvasSize = UDim2.new(0, 0, 0, h + 20)
+end
+
+CodeText:GetPropertyChangedSignal("Text"):Connect(resizeCodeHeight)
 
 CloseButton.MouseButton1Click:Connect(function()
     ScriptFrame.Visible = false
 end)
 
--- دالة البحث عن السكربتات اللي فيها كلمة Pet
+----------------------------------------------------------------
+-- أدوات آمنة لقراءة السورس (غالباً ما يسمح بسكربتات معيّنة فقط)
+----------------------------------------------------------------
+local function safeGetSource(obj)
+    local ok, src = pcall(function()
+        return obj.Source
+    end)
+    if ok and type(src) == "string" and #src > 0 then
+        return src, true
+    end
+    return nil, false
+end
+
+local function looksLikePet(str)
+    return str and string.find(str, "[Pp][Ee][Tt]")
+end
+
+----------------------------------------------------------------
+-- البحث عن السكربتات داخل الحاويات التي يقدر العميل الوصول لها
+----------------------------------------------------------------
 local function FindPetScripts()
     local containers = {
         workspace,
         ReplicatedStorage,
         player:WaitForChild("PlayerScripts"),
-        game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
+        StarterPlayer:WaitForChild("StarterPlayerScripts"),
     }
-    local foundScripts = {}
 
-    for _, container in pairs(containers) do
-        for _, obj in pairs(container:GetDescendants()) do
-            if obj:IsA("ModuleScript") or obj:IsA("LocalScript") or obj:IsA("Script") then
-                local isPet = false
-                if string.find(obj.Name, "[Pp][Ee][Tt]") then
-                    isPet = true
-                else
-                    local success, content = pcall(function() return obj.Source end)
-                    if success and content and string.find(content, "[Pp][Ee][Tt]") then
-                        isPet = true
+    local found = {}
+
+    for _, container in ipairs(containers) do
+        local ok, descendants = pcall(function()
+            return container:GetDescendants()
+        end)
+        if ok and descendants then
+            for _, obj in ipairs(descendants) do
+                if obj:IsA("ModuleScript") or obj:IsA("LocalScript") or obj:IsA("Script") then
+                    local isPet = looksLikePet(obj.Name)
+                    if not isPet then
+                        local src = select(1, safeGetSource(obj))
+                        if src and looksLikePet(src) then
+                            isPet = true
+                        end
                     end
-                end
-
-                if isPet then
-                    table.insert(foundScripts, obj)
+                    if isPet then
+                        table.insert(found, obj)
+                    end
                 end
             end
         end
     end
 
-    table.sort(foundScripts, function(a,b) return a.Name:lower() < b.Name:lower() end)
+    table.sort(found, function(a, b)
+        return a:GetFullName():lower() < b:GetFullName():lower()
+    end)
 
-    -- عرض السكربتات في ScrollFrame
-    for _, obj in pairs(foundScripts) do
-        local TextLabel = Instance.new("TextButton")
-        TextLabel.Size = UDim2.new(1,0,0,30)
-        TextLabel.Text = obj:GetFullName()
-        TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
-        TextLabel.BackgroundColor3 = Color3.fromRGB(40,40,40)
-        TextLabel.BackgroundTransparency = 0.1
-        TextLabel.TextScaled = true
-        TextLabel.Parent = Scroll
+    if #found == 0 then
+        local empty = Instance.new("TextLabel")
+        empty.Size = UDim2.new(1, -20, 0, 40)
+        empty.Position = UDim2.new(0, 10, 0, 0)
+        empty.BackgroundTransparency = 1
+        empty.Text = "لا يوجد سكربتات تحتوي على 'Pet' ضمن الوصول الحالي للعميل."
+        empty.TextColor3 = Color3.fromRGB(255,255,255)
+        empty.TextScaled = true
+        empty.ZIndex = 3
+        empty.Parent = Scroll
+        return
+    end
 
-        TextLabel.MouseButton1Click:Connect(function()
-            local success, code = pcall(function() return obj.Source end)
-            if success and code then
-                ScriptText.Text = code
+    for i, obj in ipairs(found) do
+        local row = Instance.new("TextButton")
+        row.Size = UDim2.new(1, -10, 0, 36)
+        row.Position = UDim2.new(0, 5, 0, 0)
+        row.LayoutOrder = i
+        row.Text = obj:GetFullName()
+        row.TextColor3 = Color3.fromRGB(255, 255, 255)
+        row.AutoButtonColor = true
+        row.TextScaled = true
+        row.ZIndex = 3
+        row.Parent = Scroll
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = 1.2
+        stroke.Color = Color3.fromRGB(255,255,255)
+        stroke.Transparency = 0.3
+        stroke.Parent = row
+
+        local rowCorner = Instance.new("UICorner")
+        rowCorner.CornerRadius = UDim.new(0, 6)
+        rowCorner.Parent = row
+
+        -- حدّد اللون حسب قابلية القراءة (أزرق = نقدر نقرأ، أحمر = لا)
+        local src, readable = safeGetSource(obj)
+        if readable and src then
+            row.BackgroundColor3 = Color3.fromRGB(20, 120, 255)  -- أزرق
+        else
+            row.BackgroundColor3 = Color3.fromRGB(220, 60, 60)   -- أحمر
+        end
+
+        row.MouseButton1Click:Connect(function()
+            Title.Text = obj:GetFullName()
+            -- جرّب القراءة مرة ثانية عند الفتح
+            local s, canRead = safeGetSource(obj)
+            if canRead and s then
+                CodeText.Text = s
             else
-                ScriptText.Text = "-- هذا السكربت محمي ولا يمكن عرض الكود"
+                CodeText.Text = "-- لا يمكن عرض الكود لهذا السكربت من جهة العميل (Client)."
+                                  .. "\n-- Roblox يمنع قراءة Source لمعظم السكربتات التي ليست ملكاً للعميل."
             end
+            resizeCodeHeight()
             ScriptFrame.Visible = true
         end)
     end
 end
 
--- تنفيذ البحث عند تشغيل السكربت
 FindPetScripts()
