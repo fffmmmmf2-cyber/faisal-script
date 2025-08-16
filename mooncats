@@ -1,25 +1,54 @@
-local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
-local removeNames = {"base home"} -- كل الحروف صغيرة للمقارنة
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- دالة تحذف أي بارت مطابق للاسم
-local function removePart(obj)
-    if obj:IsA("BasePart") then
-        for _, name in pairs(removeNames) do
-            if obj.Name:lower() == name then
-                obj:Destroy()
-                break
-            end
+-- إنشاء ScrollFrame
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0, 300, 0, 400)
+scrollFrame.Position = UDim2.new(0, 50, 0, 50)
+scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+scrollFrame.Parent = screenGui
+
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = scrollFrame
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- دالة تظهر السكربتات داخل ScrollFrame
+local function showScripts(part)
+    -- مسح القديم
+    for _, child in pairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
         end
     end
+
+    -- إيجاد السكربتات داخل البارت
+    for _, obj in pairs(part:GetDescendants()) do
+        if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1,0,0,25)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.new(1,1,1)
+            label.Text = obj.Name
+            label.TextScaled = false
+            label.TextSize = 14
+            label.Parent = scrollFrame
+        end
+    end
+
+    -- تحديث CanvasSize
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
 
--- دالة تسوي اسم فوق كل بارت
+-- دالة تسوي اسم فوق كل بارت (ما على جسد اللاعب)
 local function showName(obj)
     if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
-        -- BillboardGui لاسم البارت
         local billboard = Instance.new("BillboardGui")
         billboard.Size = UDim2.new(0, 100, 0, 50)
         billboard.Adornee = obj
@@ -30,37 +59,28 @@ local function showName(obj)
         text.BackgroundTransparency = 1
         text.Text = obj.Name
         text.TextColor3 = Color3.new(1,1,1)
-        text.TextScaled = true
+        text.TextScaled = false
+        text.TextSize = 14 -- اسماء صغيرة
         text.Parent = billboard
 
         billboard.Parent = obj
     end
 end
 
--- دالة تضيف إطار حول البارت
-local function addOutline(obj)
-    if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
-        local box = Instance.new("BoxHandleAdornment")
-        box.Adornee = obj
-        box.AlwaysOnTop = true
-        box.ZIndex = 10
-        box.Size = obj.Size
-        box.Transparency = 0
-        box.Color3 = Color3.new(1, 0, 0) -- أحمر واضح
-        box.Parent = obj
-    end
-end
-
 -- تطبيق على كل البارتات الموجودة أولًا
 for _, obj in pairs(Workspace:GetDescendants()) do
-    removePart(obj)
     showName(obj)
-    addOutline(obj)
 end
 
 -- مراقبة أي بارت جديد يضاف لاحقًا
 Workspace.DescendantAdded:Connect(function(obj)
-    removePart(obj)
     showName(obj)
-    addOutline(obj)
+end)
+
+-- كشف الضغط على أي بارت
+mouse.Button1Down:Connect(function()
+    local target = mouse.Target
+    if target and target:IsA("BasePart") then
+        showScripts(target)
+    end
 end)
