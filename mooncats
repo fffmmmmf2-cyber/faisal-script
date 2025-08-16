@@ -1,0 +1,35 @@
+-- LocalScript: petarea_counter_red.lua
+local player = game.Players.LocalPlayer
+
+-- إنشاء ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "PetAreaCounterRed"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- إنشاء TextLabel في وسط الشاشة
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 400, 0, 50)
+textLabel.Position = UDim2.new(0.5, -200, 0.5, -25) -- في الوسط
+textLabel.BackgroundTransparency = 1 -- بدون خلفية
+textLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- أحمر
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextScaled = true
+textLabel.Parent = gui
+
+-- دالة لحساب عدد البارتات التي اسمها PetArea
+local function updateCount()
+    local count = 0
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "PetArea" then
+            count = count + 1
+        end
+    end
+    textLabel.Text = "العدد(" .. count .. ")"
+end
+
+-- تحديث كل 5 ثواني
+while true do
+    updateCount()
+    wait(5)
+end
