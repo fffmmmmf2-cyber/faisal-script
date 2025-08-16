@@ -1,118 +1,102 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- GUI كامل الشاشة
+-- ScreenGui كامل
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PetScriptViewer"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = playerGui
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local Background = Instance.new("Frame")
-Background.Size = UDim2.fromScale(1,1)
-Background.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Background.BackgroundTransparency = 0.2
-Background.Parent = ScreenGui
-
--- Scroll Frame للسكربتات
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.fromScale(1,1)
-Scroll.Position = UDim2.fromScale(0,0)
-Scroll.BackgroundTransparency = 1
-Scroll.ScrollBarThickness = 10
-Scroll.Parent = Background
+-- ScrollFrame للقائمة الرئيسية
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.fromScale(1,1)
+ScrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+ScrollFrame.ScrollBarThickness = 12
+ScrollFrame.Parent = ScreenGui
 
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = Scroll
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.Parent = ScrollFrame
 
-UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    Scroll.CanvasSize = UDim2.new(0,0,0,UIListLayout.AbsoluteContentSize.Y)
-end)
-
--- Frame عرض السكربت
+-- نافذة عرض الكود
 local ScriptFrame = Instance.new("Frame")
-ScriptFrame.Size = UDim2.fromScale(0.9,0.9)
-ScriptFrame.Position = UDim2.fromScale(0.05,0.05)
-ScriptFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+ScriptFrame.Size = UDim2.fromScale(0.8,0.8)
+ScriptFrame.Position = UDim2.fromScale(0.1,0.1)
 ScriptFrame.Visible = false
-ScriptFrame.Parent = Background
-
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.fromOffset(100,40)
-CloseButton.Position = UDim2.fromScale(0,0)
-CloseButton.Text = "رجوع"
-CloseButton.Parent = ScriptFrame
+ScriptFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+ScriptFrame.BorderSizePixel = 0
+ScriptFrame.Parent = ScreenGui
 
 local ScriptText = Instance.new("TextBox")
 ScriptText.Size = UDim2.fromScale(1,1)
-ScriptText.Position = UDim2.fromOffset(0,40)
-ScriptText.TextXAlignment = Enum.TextXAlignment.Left
-ScriptText.TextYAlignment = Enum.TextYAlignment.Top
+ScriptText.Position = UDim2.fromOffset(0,0)
 ScriptText.TextWrapped = true
 ScriptText.ClearTextOnFocus = false
 ScriptText.MultiLine = true
-ScriptText.TextColor3 = Color3.fromRGB(255,255,255)
+ScriptText.TextXAlignment = Enum.TextXAlignment.Left
+ScriptText.TextYAlignment = Enum.TextYAlignment.Top
 ScriptText.BackgroundTransparency = 1
-ScriptText.TextScaled = false
+ScriptText.TextColor3 = Color3.fromRGB(255,255,255)
+ScriptText.Font = Enum.Font.Code
 ScriptText.TextSize = 14
+ScriptText.TextEditable = false
 ScriptText.Parent = ScriptFrame
 
-CloseButton.MouseButton1Click:Connect(function()
-    ScriptFrame.Visible = false
+-- زر نسخ الكود
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.fromOffset(100,40)
+CopyButton.Position = UDim2.fromScale(1,0) - UDim2.fromOffset(100,0)
+CopyButton.AnchorPoint = Vector2.new(1,0)
+CopyButton.Text = "نسخ الكود"
+CopyButton.Parent = ScriptFrame
+
+CopyButton.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(ScriptText.Text)
+    else
+        warn("نسخ الكود غير مدعوم على هذا الجهاز")
+    end
 end)
 
--- البحث في السكربتات
-local function FindPetScripts()
-    local containers = {workspace, ReplicatedStorage, player.PlayerScripts, game:GetService("ServerScriptService")}
-    local foundScripts = {}
+-- زر رجوع
+local BackButton = Instance.new("TextButton")
+BackButton.Size = UDim2.fromOffset(100,40)
+BackButton.Position = UDim2.fromOffset(10,10)
+BackButton.Text = "رجوع"
+BackButton.Parent = ScriptFrame
 
-    for _, container in pairs(containers) do
-        for _, obj in pairs(container:GetDescendants()) do
-            if obj:IsA("ModuleScript") or obj:IsA("Script") or obj:IsA("LocalScript") then
-                local isPet = false
-                if string.find(obj.Name, "[Pp][Ee][Tt]") then
-                    isPet = true
-                else
-                    local success, content = pcall(function() return obj.Source end)
-                    if success and content and string.find(content, "[Pp][Ee][Tt]") then
-                        isPet = true
-                    end
-                end
+BackButton.MouseButton1Click:Connect(function()
+    ScriptFrame.Visible = false
+    ScrollFrame.Visible = true
+end)
 
-                if isPet then
-                    table.insert(foundScripts, obj)
-                end
+-- مثال: نعرض كل السكربتات اللي فيها "pet" أو "Pet"
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local function AddScriptButton(scriptObj)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1,0,0,40)
+    Btn.Text = scriptObj.Name
+    Btn.Parent = ScrollFrame
+
+    Btn.MouseButton1Click:Connect(function()
+        local success, code = pcall(function()
+            return scriptObj.Source
+        end)
+        if success then
+            ScriptText.Text = code
+            ScriptFrame.Visible = true
+            ScrollFrame.Visible = false
+        else
+            ScriptText.Text = "-- لا يمكن عرض السكربت"
+            ScriptFrame.Visible = true
+            ScrollFrame.Visible = false
+        end
+    end)
+end
+
+-- البحث في كل السكربتات
+for _, folder in pairs({workspace, ServerScriptService}) do
+    for _, obj in pairs(folder:GetDescendants()) do
+        if obj:IsA("ModuleScript") or obj:IsA("Script") then
+            if string.find(obj.Name:lower(), "pet") then
+                AddScriptButton(obj)
             end
         end
     end
-
-    table.sort(foundScripts, function(a,b) return a.Name:lower() < b.Name:lower() end)
-
-    for _, obj in pairs(foundScripts) do
-        local TextLabel = Instance.new("TextButton")
-        TextLabel.Size = UDim2.new(1,0,0,30)
-        TextLabel.Text = obj:GetFullName()
-        TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
-        TextLabel.BackgroundColor3 = Color3.fromRGB(40,40,40)
-        TextLabel.BackgroundTransparency = 0.1
-        TextLabel.TextScaled = true
-        TextLabel.Parent = Scroll
-
-        TextLabel.MouseButton1Click:Connect(function()
-            local success, code = pcall(function() return obj.Source end)
-            if success then
-                ScriptText.Text = code
-                ScriptFrame.Visible = true
-            else
-                ScriptText.Text = "-- لا يمكن عرض الكود"
-                ScriptFrame.Visible = true
-            end
-        end)
-    end
 end
-
-FindPetScripts()
