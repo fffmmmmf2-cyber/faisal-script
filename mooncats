@@ -1,16 +1,24 @@
--- ScreenGui كامل
+-- إنشاء ScreenGui كامل
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "PetScriptViewer"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
 
 -- ScrollFrame للقائمة الرئيسية
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.fromScale(1,1)
+ScrollFrame.Position = UDim2.fromScale(0,0)
 ScrollFrame.CanvasSize = UDim2.new(0,0,0,0)
 ScrollFrame.ScrollBarThickness = 12
+ScrollFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+ScrollFrame.BorderSizePixel = 0
 ScrollFrame.Parent = ScreenGui
 
+-- Layout للقائمة
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Parent = ScrollFrame
 
 -- نافذة عرض الكود
@@ -43,6 +51,8 @@ CopyButton.Size = UDim2.fromOffset(100,40)
 CopyButton.Position = UDim2.fromScale(1,0) - UDim2.fromOffset(100,0)
 CopyButton.AnchorPoint = Vector2.new(1,0)
 CopyButton.Text = "نسخ الكود"
+CopyButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+CopyButton.TextColor3 = Color3.fromRGB(255,255,255)
 CopyButton.Parent = ScriptFrame
 
 CopyButton.MouseButton1Click:Connect(function()
@@ -58,6 +68,8 @@ local BackButton = Instance.new("TextButton")
 BackButton.Size = UDim2.fromOffset(100,40)
 BackButton.Position = UDim2.fromOffset(10,10)
 BackButton.Text = "رجوع"
+BackButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+BackButton.TextColor3 = Color3.fromRGB(255,255,255)
 BackButton.Parent = ScriptFrame
 
 BackButton.MouseButton1Click:Connect(function()
@@ -65,13 +77,13 @@ BackButton.MouseButton1Click:Connect(function()
     ScrollFrame.Visible = true
 end)
 
--- مثال: نعرض كل السكربتات اللي فيها "pet" أو "Pet"
-local ServerScriptService = game:GetService("ServerScriptService")
-
+-- دالة لإضافة زر لكل سكربت
 local function AddScriptButton(scriptObj)
     local Btn = Instance.new("TextButton")
     Btn.Size = UDim2.new(1,0,0,40)
     Btn.Text = scriptObj.Name
+    Btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
     Btn.Parent = ScrollFrame
 
     Btn.MouseButton1Click:Connect(function()
@@ -91,7 +103,8 @@ local function AddScriptButton(scriptObj)
 end
 
 -- البحث في كل السكربتات
-for _, folder in pairs({workspace, ServerScriptService}) do
+local SearchFolders = {workspace, game:GetService("ServerScriptService")}
+for _, folder in pairs(SearchFolders) do
     for _, obj in pairs(folder:GetDescendants()) do
         if obj:IsA("ModuleScript") or obj:IsA("Script") then
             if string.find(obj.Name:lower(), "pet") then
