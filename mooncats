@@ -1,40 +1,15 @@
 -- LocalScript
-local FARM_NAME = "Farm"
-local MARK_SIZE = Vector3.new(13, 6, 8) -- X=13, Y=6, Z=8
+-- إعدادات البارت
+local PART_POSITION = Vector3.new(8.55, 2.75, 76.767)
+local PART_SIZE = Vector3.new(6, 6, 6)
+local PART_COLOR = BrickColor.new("Bright red")
 
--- إزالة أي علامات قديمة
-for _, old in pairs(workspace:GetChildren()) do
-    if old.Name == "FarmMarker" then
-        old:Destroy()
-    end
-end
-
--- المرور على كل مزرعة ووضع علامة
-for _, farm in pairs(workspace:GetChildren()) do
-    if farm:IsA("Folder") and farm.Name == FARM_NAME then
-        -- إيجاد مركز المزرعة (تقريبياً حسب جميع البارتات)
-        local totalPos = Vector3.new(0,0,0)
-        local count = 0
-        for _, obj in pairs(farm:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                totalPos = totalPos + obj.Position
-                count = count + 1
-            end
-        end
-        if count > 0 then
-            local centerPos = totalPos / count
-
-            -- إنشاء البارت الكبير
-            local marker = Instance.new("Part")
-            marker.Name = "FarmMarker"
-            marker.Size = MARK_SIZE
-            marker.Anchored = true
-            marker.CanCollide = false
-            marker.Material = Enum.Material.Neon
-            marker.BrickColor = BrickColor.new("Bright red")
-            marker.Transparency = 0 -- واضح تمامًا
-            marker.Position = centerPos
-            marker.Parent = workspace
-        end
-    end
-end
+-- إنشاء البارت
+local marker = Instance.new("Part")
+marker.Size = PART_SIZE
+marker.Position = PART_POSITION
+marker.Anchored = true
+marker.CanCollide = false
+marker.Material = Enum.Material.Neon
+marker.BrickColor = PART_COLOR
+marker.Parent = workspace
