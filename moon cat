@@ -1,61 +1,53 @@
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
--- اسم البارت الخاص بك
-local ownerPetAreaName = Player.Name .. "_PetArea"
+-- دالة لتثبيت وحماية PetMover بشكل كامل
+local function lockPetMover(petMover)
+    if not petMover:IsA("BasePart") then return end
 
--- التأكد من وجود البارت الخاص بك
-local petArea = workspace:FindFirstChild(ownerPetAreaName)
-if not petArea then
-    petArea = Instance.new("Part")
-    petArea.Name = ownerPetAreaName
-    petArea.Size = Vector3.new(7,7,7)
-    petArea.Anchored = true
-    petArea.Position = Vector3.new(0,5,0)
-    petArea.Parent = workspace
-end
+    -- ضبط الخصائص الأساسية
+    petMover.Anchored = true
+    petMover.Locked = true
+    petMover.CanCollide = true
+    petMover.Massless = true
 
--- دالة لتحريك PetMover بالقوة داخل البارت
-local function forceMovePetMover(model)
-    local petMover = model:FindFirstChild("PetMover")
-    if not petMover then return end
-
-    -- تفعيل PrimaryPart إذا لم يكن موجود
-    if model.PrimaryPart == nil then
-        model.PrimaryPart = petMover
+    -- إعادة جميع الخصائص الأساسية فور أي محاولة تغيير
+    local function enforceProperties()
+        petMover.Anchored = true
+        petMover.Locked = true
+        petMover.CanCollide = true
+        petMover.Massless = true
     end
 
-    -- تعطيل أي Anchored يمنع الحركة
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = false
-        end
+    -- مراقبة أي تغيير على الخصائص
+    local properties = {"CFrame", "Position", "Anchored", "Size", "Orientation", "Velocity", "RotVelocity"}
+    for _, prop in pairs(properties) do
+        petMover:GetPropertyChangedSignal(prop):Connect(function()
+            if prop == "CFrame" or prop == "Position" then
+                petMover.CFrame = petMover.CFrame -- إعادة الموقع
+            elseif prop == "Velocity" then
+                petMover.Velocity = Vector3.new(0,0,0)
+            elseif prop == "RotVelocity" then
+                petMover.RotVelocity = Vector3.new(0,0,0)
+            else
+                enforceProperties()
+            end
+        end)
     end
-
-    -- تحديد موقع عشوائي داخل البارت
-    local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5)
-    local randomPos = Vector3.new(
-        math.random(-halfSize.X*100, halfSize.X*100)/100,
-        math.random(-halfSize.Y*100, halfSize.Y*100)/100,
-        math.random(-halfSize.Z*100, halfSize.Z*100)/100
-    )
-
-    -- تحريك البارت بالقوة باستخدام CFrame (يتخطى Anchored أو أي قيود)
-    model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
 end
 
--- دالة لتحريك كل PetMover موجودين داخل Workspace بالقوة
-local function moveAllPetMovers()
-    for _, model in pairs(workspace:GetChildren()) do
-        if model:IsA("Model") then
-            forceMovePetMover(model)
+-- تثبيت أي PetMover موجودين
+for _, model in pairs(workspace:GetChildren()) do
+    if model:IsA("Model") then
+        local petMover = model:FindFirstChild("PetMover")
+        if petMover then
+            lockPetMover(petMover)
         end
     end
 end
 
--- تحديث كل ثانية
-while true do
-    moveAllPetMovers()
-    task.wait(1)
-end
+-- مراقبة أي PetMover جديد يضاف ويثبت فوراً
+workspace.DescendantAdded:Connect(function(desc)
+    if desc.Name == "PetMover" and desc:IsA("BasePart") then
+        lockPetMover(desc)
+    end
+end)
