@@ -1,17 +1,65 @@
--- LocalScript: GUI Toggle + RedEnemy + NoClip آمن
+-- LocalScript: GUI متحرك + زر مستقل + Toggle + RedEnemy + NoClip
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
-local RunService = game:GetService("RunService")
 
 -- ==========================
--- إنشاء ScreenGui
+-- إعداد ScreenGui والإطار القابل للتحريك
 -- ==========================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MyMenu"
+screenGui.Name = "EnemyMenu"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0,220,0,150)
+mainFrame.Position = UDim2.new(0.7,0,0.3,0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- ==========================
+-- زر صغير مستقل لإخفاء/إظهار الإطار
+-- ==========================
+local toggleFrameBtn = Instance.new("TextButton")
+toggleFrameBtn.Size = UDim2.new(0,25,0,25)
+toggleFrameBtn.Position = UDim2.new(0.9,0,0.25,0)
+toggleFrameBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
+toggleFrameBtn.Text = "X"
+toggleFrameBtn.TextScaled = true
+toggleFrameBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleFrameBtn.Parent = screenGui
+
+local frameVisible = true
+toggleFrameBtn.Active = true
+toggleFrameBtn.Draggable = true
+
+toggleFrameBtn.MouseButton1Click:Connect(function()
+    frameVisible = not frameVisible
+    mainFrame.Visible = frameVisible
+end)
+
+-- ==========================
+-- دالة إنشاء الزر داخل الإطار
+-- ==========================
+local function createButton(name, positionY, initialColor, parentFrame, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0,200,0,50)
+    button.Position = UDim2.new(0,10,0,positionY)
+    button.BackgroundColor3 = initialColor
+    button.TextColor3 = Color3.fromRGB(255,255,255)
+    button.TextScaled = true
+    button.Text = name
+    button.Parent = parentFrame
+
+    button.MouseButton1Click:Connect(function()
+        callback(button)
+    end)
+end
 
 -- ==========================
 -- دوال اللون الأحمر على اللاعبين
@@ -20,7 +68,6 @@ local function createHealthGui(playerToApply, humanoid)
     local hrp = playerToApply.Character and playerToApply.Character:FindFirstChild("HumanoidRootPart")
     if not hrp or not humanoid then return end
 
-    -- إزالة أي Billboard سابق
     local old = playerToApply.Character:FindFirstChild("EnemyBillboard")
     if old then old:Destroy() end
 
@@ -32,7 +79,6 @@ local function createHealthGui(playerToApply, humanoid)
     billboard.Name = "EnemyBillboard"
     billboard.Parent = playerToApply.Character
 
-    -- اسم اللاعب
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Size = UDim2.new(1,0,0.5,0)
     nameLabel.Position = UDim2.new(0,0,0,0)
@@ -43,7 +89,6 @@ local function createHealthGui(playerToApply, humanoid)
     nameLabel.Font = Enum.Font.SourceSansBold
     nameLabel.Parent = billboard
 
-    -- شريط الدم
     local healthBar = Instance.new("Frame")
     healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
     healthBar.Position = UDim2.new(0,0,0.6,0)
@@ -58,21 +103,14 @@ end
 
 local function applyEnemyEffect(playerToApply)
     if playerToApply == player then return end
-
     local function onCharacter(char)
         if not char then return end
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if not humanoid then return end
 
-        -- إزالة أي Highlight سابق
-        if char:FindFirstChild("EnemyHighlight") then
-            char.EnemyHighlight:Destroy()
-        end
-        if char:FindFirstChild("EnemyBillboard") then
-            char.EnemyBillboard:Destroy()
-        end
+        if char:FindFirstChild("EnemyHighlight") then char.EnemyHighlight:Destroy() end
+        if char:FindFirstChild("EnemyBillboard") then char.EnemyBillboard:Destroy() end
 
-        -- Highlight أحمر Neon
         local highlight = Instance.new("Highlight")
         highlight.Name = "EnemyHighlight"
         highlight.Adornee = char
@@ -82,7 +120,6 @@ local function applyEnemyEffect(playerToApply)
         highlight.OutlineTransparency = 0.7
         highlight.Parent = char
 
-        -- إنشاء اسم وشريط الدم
         createHealthGui(playerToApply, humanoid)
     end
 
@@ -99,48 +136,29 @@ local redEnabled = false
 local noclipEnabled = false
 
 -- ==========================
--- دالة إنشاء الزر
+-- الخانة الأولى: اللون الأحمر على فريق "Criminal"
 -- ==========================
-local function createButton(name, positionY, initialColor, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0,200,0,50)
-    button.Position = UDim2.new(0.5,-100,0,positionY)
-    button.BackgroundColor3 = initialColor
-    button.TextColor3 = Color3.fromRGB(255,255,255)
-    button.TextScaled = true
-    button.Text = name
-    button.Parent = screenGui
-
-    button.MouseButton1Click:Connect(function()
-        callback(button)
-    end)
-end
-
--- ==========================
--- الخانة الأولى: اللون الأحمر على اللاعبين
--- ==========================
-createButton("تفعيل اللون الأحمر", 100, Color3.fromRGB(255,0,0), function(button)
+createButton("تفعيل الأحمر Criminal", 40, Color3.fromRGB(255,0,0), mainFrame, function(button)
     redEnabled = not redEnabled
     if redEnabled then
         button.BackgroundColor3 = Color3.fromRGB(0,255,0)
         for _, p in pairs(Players:GetPlayers()) do
-            applyEnemyEffect(p)
+            if p.Team and p.Team.Name == "Criminal" then
+                applyEnemyEffect(p)
+            end
         end
         Players.PlayerAdded:Connect(function(newPlayer)
-            applyEnemyEffect(newPlayer)
+            if newPlayer.Team and newPlayer.Team.Name == "Criminal" then
+                applyEnemyEffect(newPlayer)
+            end
         end)
     else
         button.BackgroundColor3 = Color3.fromRGB(255,0,0)
-        -- إزالة أي تأثير موجود
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character then
                 local char = p.Character
-                if char:FindFirstChild("EnemyHighlight") then
-                    char.EnemyHighlight:Destroy()
-                end
-                if char:FindFirstChild("EnemyBillboard") then
-                    char.EnemyBillboard:Destroy()
-                end
+                if char:FindFirstChild("EnemyHighlight") then char.EnemyHighlight:Destroy() end
+                if char:FindFirstChild("EnemyBillboard") then char.EnemyBillboard:Destroy() end
             end
         end
     end
@@ -149,7 +167,7 @@ end)
 -- ==========================
 -- الخانة الثانية: NoClip آمن
 -- ==========================
-createButton("تفعيل NoClip", 160, Color3.fromRGB(255,0,0), function(button)
+createButton("تفعيل NoClip", 100, Color3.fromRGB(255,0,0), mainFrame, function(button)
     noclipEnabled = not noclipEnabled
     if noclipEnabled then
         button.BackgroundColor3 = Color3.fromRGB(0,255,0)
