@@ -1,7 +1,6 @@
 -- خدمات
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 -- إنشاء واجهة المستخدم
@@ -9,39 +8,39 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AnimuGUI"
 screenGui.Parent = Player:WaitForChild("PlayerGui")
 
+-- الفريم الرئيسي
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.5, -100, 0.5, -60) -- بداية في الوسط
+frame.Position = UDim2.new(0.5, -100, 0.5, -60) -- في الوسط
 frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
 frame.Active = true
-frame.Draggable = true -- يخلي الفريم قابل للسحب
+frame.Draggable = true
 
--- زر إخفاء/إظهار صغير رينبو
+-- زر الرينبو لإظهار/إخفاء الفريم
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 15, 0, 15)
-toggleBtn.Position = UDim2.new(0.5, -7, 0, -20)
+toggleBtn.Size = UDim2.new(0, 20, 0, 20)
+toggleBtn.Position = UDim2.new(0, 0, 0, 0)
 toggleBtn.Text = "+"
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
-toggleBtn.BorderSizePixel = 1
-toggleBtn.Parent = frame
+toggleBtn.Parent = screenGui
 
-local frameVisible = true
-toggleBtn.MouseButton1Click:Connect(function()
-    frameVisible = not frameVisible
-    frame.Visible = frameVisible
-end)
-
--- عمل تأثير رينبو للزر
+-- تحديث لون الزر بشكل رينبو
 spawn(function()
     while true do
-        for i=0,1,0.01 do
-            toggleBtn.BackgroundColor3 = Color3.fromHSV(i,1,1)
-            wait(0.05)
+        for i = 0, 1, 0.01 do
+            local color = Color3.fromHSV(i, 1, 1)
+            toggleBtn.BackgroundColor3 = color
+            wait(0.03)
         end
     end
+end)
+
+-- وظيفة إخفاء/إظهار الفريم عند الضغط على الزر
+toggleBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
 end)
 
 -- الخانة 1: Enemy ESP
@@ -62,7 +61,7 @@ button2.TextColor3 = Color3.fromRGB(255,255,255)
 button2.BackgroundColor3 = Color3.fromRGB(0,0,255)
 button2.Parent = frame
 
--- تفعيل سكربت الـ Enemy ESP عند الضغط على الخانة 1
+-- سكربت Enemy ESP كامل
 local enemyESPScript = [[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -150,7 +149,7 @@ button1.MouseButton1Click:Connect(function()
     loadstring(enemyESPScript)()
 end)
 
--- تفعيل سكربت الـ NoClip عند الضغط على الخانة 2
+-- سكربت NoClip كامل
 button2.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/NoClip"))()
 end)
