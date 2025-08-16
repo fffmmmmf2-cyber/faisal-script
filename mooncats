@@ -3,54 +3,73 @@ local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
+local clickCounts = {}
+local clickTimeLimit = 0.5 -- نصف ثانية بين كل ضغطة
+local lastClickTime = {}
+
 -- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- إنشاء ScrollFrame مخفي أولًا
+-- فريم يغطي كل الشاشة (مخفي أولًا)
+local bigFrame = Instance.new("Frame")
+bigFrame.Size = UDim2.new(0.9,0,0.9,0)
+bigFrame.Position = UDim2.new(0.05,0,0.05,0)
+bigFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+bigFrame.Visible = false
+bigFrame.BorderSizePixel = 0
+bigFrame.Parent = screenGui
+
+-- زر X لإغلاق الفريم
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0,30,0,30)
+closeButton.Position = UDim2.new(1,-35,0,5)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.BackgroundColor3 = Color3.fromRGB(100,0,0)
+closeButton.Parent = bigFrame
+
+closeButton.MouseButton1Click:Connect(function()
+    bigFrame.Visible = false
+end)
+
+-- ScrollFrame داخل الفريم الكبير
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(0, 300, 0, 400)
-scrollFrame.Position = UDim2.new(0, 50, 0, 50)
+scrollFrame.Size = UDim2.new(0.95,0,0.9,0)
+scrollFrame.Position = UDim2.new(0.025,0,0.05,0)
+scrollFrame.BackgroundTransparency = 1
 scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-scrollFrame.Visible = false -- مخفي
-scrollFrame.Parent = screenGui
+scrollFrame.Parent = bigFrame
 
 local uiListLayout = Instance.new("UIListLayout")
 uiListLayout.Parent = scrollFrame
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- زر خفي لتفعيل ScrollFrame
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.Position = UDim2.new(0, 10, 0, 10)
-toggleButton.BackgroundTransparency = 1
-toggleButton.Text = "" -- مخفي
-toggleButton.Parent = screenGui
-
-toggleButton.MouseButton1Click:Connect(function()
-    scrollFrame.Visible = not scrollFrame.Visible
-end)
-
--- دالة تظهر السكربتات داخل ScrollFrame
+-- دالة لعرض السكربتات داخل ScrollFrame
 local function showScripts(part)
-    -- مسح القديم
     for _, child in pairs(scrollFrame:GetChildren()) do
-        if child:IsA("TextLabel") then
+        if child:IsA("TextButton") then
             child:Destroy()
         end
     end
 
-    -- إيجاد السكربتات داخل البارت
     for _, obj in pairs(part:GetDescendants()) do
         if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-            local label = Instance.new("TextLabel")
+            local label = Instance.new("TextButton")
             label.Size = UDim2.new(1,0,0,25)
-            label.BackgroundTransparency = 1
+            label.BackgroundTransparency = 0.5
+            label.BackgroundColor3 = Color3.fromRGB(50,50,50)
             label.TextColor3 = Color3.new(1,1,1)
             label.Text = obj.Name
             label.TextScaled = false
             label.TextSize = 14
+            label.AutoButtonColor = true
+
+            -- عند الضغط على اسم السكربت ينسخ الاسم
+            label.MouseButton1Click:Connect(function()
+                setclipboard(obj.Name)
+            end)
+
             label.Parent = scrollFrame
         end
     end
@@ -89,7 +108,7 @@ Workspace.DescendantAdded:Connect(function(obj)
     showName(obj)
 end)
 
--- كشف الضغط للجوال فقط
+-- تتبع الضغط للجوال فقط
 UserInputService.TouchStarted:Connect(function(touch, processed)
     if processed then return end
     local target = workspace:FindPartOnRayWithIgnoreList(
@@ -97,7 +116,18 @@ UserInputService.TouchStarted:Connect(function(touch, processed)
         {player.Character}
     )
     if target and target:IsA("BasePart") then
-        showScripts(target)
-        scrollFrame.Visible = true -- يظهر ScrollFrame تلقائي عند الضغط
+        local now = tick()
+        local lastTime = lastClickTime[target] or 0
+        if now - lastTime > clickTimeLimit then
+            clickCounts[target] = 0
+        end
+        clickCounts[target] = (clickCounts[target] or 0) + 1
+        lastClickTime[target] = now
+
+        if clickCounts[target] >= 3 then
+            clickCounts[target] = 0
+            showScripts(target)
+            bigFrame.Visible = true
+        end
     end
 end)
