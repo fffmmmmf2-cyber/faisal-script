@@ -58,7 +58,7 @@ ScriptText.TextColor3 = Color3.fromRGB(255,255,255)
 ScriptText.BackgroundTransparency = 1
 ScriptText.TextScaled = false
 ScriptText.TextSize = 14
-ScriptText.TextEditable = false -- هنا منع الكتابة
+ScriptText.TextEditable = false -- منع الكتابة
 ScriptText.Parent = ScriptFrame
 
 CloseButton.MouseButton1Click:Connect(function()
@@ -66,16 +66,17 @@ CloseButton.MouseButton1Click:Connect(function()
 end)
 
 local function FindPetScripts()
-    local containers = {workspace, ReplicatedStorage, player.PlayerScripts, game:GetService("ServerScriptService")}
+    local containers = {workspace, ReplicatedStorage, player.PlayerScripts, game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")}
     local foundScripts = {}
 
     for _, container in pairs(containers) do
         for _, obj in pairs(container:GetDescendants()) do
-            if obj:IsA("ModuleScript") or obj:IsA("Script") or obj:IsA("LocalScript") then
+            if obj:IsA("ModuleScript") or obj:IsA("LocalScript") or obj:IsA("Script") then
                 local isPet = false
                 if string.find(obj.Name, "[Pp][Ee][Tt]") then
                     isPet = true
                 else
+                    -- حاول قراءة الكود بس بأمان
                     local success, content = pcall(function() return obj.Source end)
                     if success and content and string.find(content, "[Pp][Ee][Tt]") then
                         isPet = true
@@ -104,12 +105,11 @@ local function FindPetScripts()
         TextLabel.MouseButton1Click:Connect(function()
             local success, code = pcall(function() return obj.Source end)
             if success then
-                ScriptText.Text = code
-                ScriptFrame.Visible = true
+                ScriptText.Text = code or "-- لا يمكن عرض الكود"
             else
-                ScriptText.Text = "-- لا يمكن عرض الكود"
-                ScriptFrame.Visible = true
+                ScriptText.Text = "-- لا يمكن عرض الكود من هنا"
             end
+            ScriptFrame.Visible = true
         end)
     end
 end
