@@ -1,22 +1,21 @@
--- سكربت ثاني يتحكم بموقع الحيوانات في النص
-local workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
--- اسم البارت الرئيسي
-local petArea = workspace:WaitForChild("PetArea") 
+local player = Players.LocalPlayer
+local petService = require(game.ReplicatedStorage.Modules.PetServices.ActivePetsService)
 
--- كل فترة يتحرك الحيوانات للنص
-RunService.Heartbeat:Connect(function()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("PrimaryPart") then
-            -- نتأكد انه حيوان عن طريق وجود Attribute
-            local owner = obj:GetAttribute("OWNER")
-            if owner then
-                -- نحسب منتصف البارت
-                local center = petArea.Position + Vector3.new(petArea.Size.X/2, 0, petArea.Size.Z/2)
-                -- نخلي الحيوان يتحرك للنص بدون تغيير Y الحالي
-                obj:SetPrimaryPartCFrame(CFrame.new(center.X, obj.PrimaryPart.Position.Y, center.Z))
-            end
+-- هنا حط اسم البارت اللي يمثل PetArea
+local petAreaPart = Workspace:WaitForChild("PetArea")
+
+-- تحديث موقع الحيوانات كل فترة
+RunService.RenderStepped:Connect(function()
+    local clientPets = petService:GetClientPetState(player.Name)
+    for _, petData in clientPets do
+        if petData.Asset then
+            local pet = petData.Asset
+            local center = petAreaPart.Position
+            pet.CFrame = CFrame.new(center.X, center.Y + 2, center.Z) -- +2 عشان شوي فوق الأرض
         end
     end
 end)
