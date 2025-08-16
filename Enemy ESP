@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- إنشاء واجهة المستخدم
 local screenGui = Instance.new("ScreenGui")
@@ -11,7 +12,7 @@ screenGui.Parent = Player:WaitForChild("PlayerGui")
 -- الفريم الرئيسي
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.5, -100, 0.5, -60) -- في الوسط
+frame.Position = UDim2.new(0.5, -100, 0.5, -60)
 frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 frame.BackgroundTransparency = 0.3
 frame.Parent = screenGui
@@ -31,8 +32,7 @@ toggleBtn.Parent = screenGui
 spawn(function()
     while true do
         for i = 0, 1, 0.01 do
-            local color = Color3.fromHSV(i, 1, 1)
-            toggleBtn.BackgroundColor3 = color
+            toggleBtn.BackgroundColor3 = Color3.fromHSV(i,1,1)
             wait(0.03)
         end
     end
@@ -89,7 +89,7 @@ local function createHealthGui(player, humanoid)
     nameLabel.Parent = billboard
 
     local healthBar = Instance.new("Frame")
-    healthBar.Size = UDim2.new(1,0,0.3,0)
+    healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
     healthBar.Position = UDim2.new(0,0,0.6,0)
     healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
     healthBar.BorderSizePixel = 1
@@ -152,4 +152,31 @@ end)
 -- سكربت NoClip كامل
 button2.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/NoClip"))()
+end)
+
+-- ===========================================
+-- نظام حماية من السقوط (2.5 ثانية)
+-- ===========================================
+local lastSafeCFrame = nil -- آخر مكان آمن على الأرض
+local fallTime = 0         -- الوقت اللي اللاعب فيه بالهواء
+local maxFallTime = 2.5    -- الحد الأقصى للسقوط قبل الرجوع
+
+RunService.Heartbeat:Connect(function(delta)
+    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
+        local hrp = Player.Character.HumanoidRootPart
+        local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+        
+        -- إذا على الأرض
+        if humanoid.FloorMaterial ~= Enum.Material.Air then
+            lastSafeCFrame = hrp.CFrame
+            fallTime = 0
+        else
+            -- اللاعب بالهواء
+            fallTime = fallTime + delta
+            if fallTime >= maxFallTime and lastSafeCFrame then
+                hrp.CFrame = lastSafeCFrame
+                fallTime = 0
+            end
+        end
+    end
 end)
