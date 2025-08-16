@@ -1,0 +1,134 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// Variables
+local targetPartName = "HumanoidRootPart" -- افتراضي
+local trackingEnabled = false
+
+--// GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 200, 0, 100)
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+-- الخانة 1: اختيار الجزء
+local PartDropdown = Instance.new("TextButton")
+PartDropdown.Size = UDim2.new(0, 180, 0, 30)
+PartDropdown.Position = UDim2.new(0, 10, 0, 10)
+PartDropdown.Text = "اختر الجزء"
+PartDropdown.BackgroundColor3 = Color3.fromRGB(255,0,0)
+PartDropdown.TextColor3 = Color3.new(1,1,1)
+PartDropdown.Parent = MainFrame
+
+local PartOptions = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"}
+local PartSelected = "HumanoidRootPart"
+
+PartDropdown.MouseButton1Click:Connect(function()
+    PartSelected = PartOptions[(table.find(PartOptions, PartSelected) % #PartOptions) + 1]
+    PartDropdown.Text = PartSelected
+end)
+
+-- الخانة 2: تفعيل التتبع
+local TrackToggle = Instance.new("TextButton")
+TrackToggle.Size = UDim2.new(0, 180, 0, 30)
+TrackToggle.Position = UDim2.new(0, 10, 0, 50)
+TrackToggle.Text = "تتبع الكاميرا"
+TrackToggle.BackgroundColor3 = Color3.fromRGB(255,0,0)
+TrackToggle.TextColor3 = Color3.new(1,1,1)
+TrackToggle.Parent = MainFrame
+
+TrackToggle.MouseButton1Click:Connect(function()
+    trackingEnabled = not trackingEnabled
+    if trackingEnabled then
+        TrackToggle.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    else
+        TrackToggle.BackgroundColor3 = Color3.fromRGB(255,0,0)
+    end
+end)
+
+-- زر رينبو لإخفاء وإظهار القائمة
+local RainbowButton = Instance.new("TextButton")
+RainbowButton.Size = UDim2.new(0, 50, 0, 30)
+RainbowButton.Position = UDim2.new(0, 10, 0, 10)
+RainbowButton.Text = "🌈"
+RainbowButton.BackgroundColor3 = Color3.fromRGB(255,0,255)
+RainbowButton.TextColor3 = Color3.new(1,1,1)
+RainbowButton.Parent = ScreenGui
+
+RainbowButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Function: Get closest player
+local function getClosestPlayer()
+    local closest = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(PartSelected) then
+            local part = player.Character[PartSelected]
+            local distance = (part.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closest = player
+            end
+        end
+    end
+    return closest
+end
+
+-- Function: Check if part is visible
+local function isVisible(part)
+    local origin = Camera.CFrame.Position
+    local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
+    local ray = Ray.new(origin, direction)
+    local hit = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    if hit and hit:IsDescendantOf(part.Parent) then
+        return true
+    else
+        return false
+    end
+end
+
+-- Update Loop
+RunService.RenderStepped:Connect(function()
+    if trackingEnabled then
+        local targetPlayer = getClosestPlayer()
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(PartSelected) then
+            local part = targetPlayer.Character[PartSelected]
+            
+            -- Check visibility
+            if isVisible(part) then
+                -- لون أخضر شفاف إذا ظاهر
+                for _, p in pairs(targetPlayer.Character:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.Color = Color3.fromRGB(0,255,0)
+                        p.Transparency = 0.3
+                    end
+                end
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+            else
+                -- لو غير ظاهر، يرجع لون طبيعي
+                for _, p in pairs(targetPlayer.Character:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.Color = p.Color -- يحافظ على لونه الطبيعي
+                        p.Transparency = 0
+                    end
+                end
+            end
+        end
+    end
+end)
