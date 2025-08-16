@@ -1,9 +1,20 @@
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
 
--- دالة تسوي اسم فوق كل بارت
+-- دالة تحذف أي بارت اسمه "Base Home"
+local function removeBaseHome(parent)
+    for _, obj in pairs(parent:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name == "Base Home" then
+            obj:Destroy()
+        end
+    end
+end
+
+-- دالة تسوي اسم فوق كل بارت (ما تطبقه على جسم اللاعب)
 local function showNames(parent)
     for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("BasePart") then
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
             -- إنشاء BillboardGui
             local billboard = Instance.new("BillboardGui")
             billboard.Size = UDim2.new(0, 100, 0, 50)
@@ -24,5 +35,8 @@ local function showNames(parent)
     end
 end
 
--- نفّذ على Workspace
+-- تنفيذ الحذف أولًا
+removeBaseHome(Workspace)
+
+-- عرض أسماء كل البارتات الباقية ما عدا جسم اللاعب
 showNames(Workspace)
