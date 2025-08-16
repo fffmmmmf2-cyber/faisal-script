@@ -1,18 +1,17 @@
--- تعريف الموديل
-local model = workspace:WaitForChild("Seed Stands")
+-- خدمات
+local Workspace = game:GetService("Workspace")
 
--- دالة لتوليد ألوان رينبو
-local function getRainbowColor(time)
-    local hue = (time % 1) -- نضمن القيمة بين 0 و1
-    return Color3.fromHSV(hue, 1, 1)
-end
+-- أسماء البارتات اللي نبغى نحذفها
+local partsToRemove = {"Side 1", "Side 2"}
 
--- تحديث الألوان باستمرار
-while true do
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Color = getRainbowColor(tick() + part.Position.Magnitude/10)
+-- دالة تحذف كل البارتات مهما كانت عددها
+local function removeParts(parent)
+    for _, obj in pairs(parent:GetDescendants()) do
+        if obj:IsA("BasePart") and table.find(partsToRemove, obj.Name) then
+            obj:Destroy()
         end
     end
-    wait(0.1) -- تحديث كل 0.1 ثانية
 end
+
+-- تنفيذ الحذف
+removeParts(Workspace)
