@@ -1,17 +1,17 @@
--- خدمات
-local Workspace = game:GetService("Workspace")
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
 
--- أسماء البارتات اللي نبغى نحذفها
-local partsToRemove = {"Side 1", "Side 2"}
+-- نخزن موقع البداية
+local lastPosition = hrp.Position
 
--- دالة تحذف كل البارتات مهما كانت عددها
-local function removeParts(parent)
-    for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("BasePart") and table.find(partsToRemove, obj.Name) then
-            obj:Destroy()
-        end
+RunService.RenderStepped:Connect(function()
+    -- إذا حاول أي شيء يحركك للخلف بشكل مفاجئ
+    local moveVector = hrp.Position - lastPosition
+    if moveVector.Magnitude > 50 then -- لو الحركة كبيرة فجأة
+        hrp.CFrame = CFrame.new(lastPosition) -- نرجع مكانك
+    else
+        lastPosition = hrp.Position -- تحديث آخر موقع طبيعي
     end
-end
-
--- تنفيذ الحذف
-removeParts(Workspace)
+end)
