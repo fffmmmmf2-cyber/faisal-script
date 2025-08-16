@@ -1,17 +1,28 @@
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
-local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- نخزن موقع البداية
-local lastPosition = hrp.Position
+-- دالة تسوي اسم فوق كل بارت
+local function showNames(parent)
+    for _, obj in pairs(parent:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            -- إنشاء BillboardGui
+            local billboard = Instance.new("BillboardGui")
+            billboard.Size = UDim2.new(0, 100, 0, 50)
+            billboard.Adornee = obj
+            billboard.AlwaysOnTop = true
 
-RunService.RenderStepped:Connect(function()
-    -- إذا حاول أي شيء يحركك للخلف بشكل مفاجئ
-    local moveVector = hrp.Position - lastPosition
-    if moveVector.Magnitude > 50 then -- لو الحركة كبيرة فجأة
-        hrp.CFrame = CFrame.new(lastPosition) -- نرجع مكانك
-    else
-        lastPosition = hrp.Position -- تحديث آخر موقع طبيعي
+            -- إنشاء TextLabel
+            local text = Instance.new("TextLabel")
+            text.Size = UDim2.new(1,0,1,0)
+            text.BackgroundTransparency = 1
+            text.Text = obj.Name
+            text.TextColor3 = Color3.new(1,1,1)
+            text.TextScaled = true
+            text.Parent = billboard
+
+            billboard.Parent = obj
+        end
     end
-end)
+end
+
+-- نفّذ على Workspace
+showNames(Workspace)
