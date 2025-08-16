@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
 local clickCounts = {}
 local clickTimeLimit = 0.5 -- نصف ثانية بين كل ضغطة
@@ -108,26 +109,25 @@ Workspace.DescendantAdded:Connect(function(obj)
     showName(obj)
 end)
 
--- تتبع الضغط للجوال فقط
-UserInputService.TouchStarted:Connect(function(touch, processed)
+-- كشف الضغط للجوال فقط
+UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
-    local target = workspace:FindPartOnRayWithIgnoreList(
-        workspace.CurrentCamera:ScreenPointToRay(touch.Position.X, touch.Position.Y),
-        {player.Character}
-    )
-    if target and target:IsA("BasePart") then
-        local now = tick()
-        local lastTime = lastClickTime[target] or 0
-        if now - lastTime > clickTimeLimit then
-            clickCounts[target] = 0
-        end
-        clickCounts[target] = (clickCounts[target] or 0) + 1
-        lastClickTime[target] = now
+    if input.UserInputType == Enum.UserInputType.Touch then
+        local target = mouse.Target
+        if target and target:IsA("BasePart") then
+            local now = tick()
+            local lastTime = lastClickTime[target] or 0
+            if now - lastTime > clickTimeLimit then
+                clickCounts[target] = 0
+            end
+            clickCounts[target] = (clickCounts[target] or 0) + 1
+            lastClickTime[target] = now
 
-        if clickCounts[target] >= 3 then
-            clickCounts[target] = 0
-            showScripts(target)
-            bigFrame.Visible = true
+            if clickCounts[target] >= 3 then
+                clickCounts[target] = 0
+                showScripts(target)
+                bigFrame.Visible = true
+            end
         end
     end
 end)
