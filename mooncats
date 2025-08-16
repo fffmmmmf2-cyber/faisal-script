@@ -1,7 +1,7 @@
 -- LocalScript
 -- إعدادات البارت
-local PART_POSITION = Vector3.new(32.8, 2.75, -104.8)
-local PART_SIZE = Vector3.new(12, 6, 61)
+local PART_POSITION = Vector3.new(32.8, 2.75, -115.8)
+local PART_SIZE = Vector3.new(12, 6, 83)
 local PART_COLOR = BrickColor.new("Bright red")
 
 -- إنشاء البارت
