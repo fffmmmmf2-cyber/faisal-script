@@ -1,74 +1,40 @@
-local player = game.Players.LocalPlayer
+-- LocalScript
+local FARM_NAME = "Farm"
+local MARK_SIZE = Vector3.new(13, 6, 8) -- X=13, Y=6, Z=8
 
--- إعدادات
-local FARM_NAME = "Farm"       -- اسم فولدر المزرعة
-local ANIMAL_NAMES = {"Moon Cat"} -- أضف أسماء الحيوانات الأخرى حسب اللعبة
-local MARK_SIZE = Vector3.new(4, 1, 4) -- حجم العلامة
-local MARK_HEIGHT = 5 -- ارتفاع العلامة فوق الحيوان
-
--- الحصول على المزرعة الخاصة باللاعب
-local function getPlayerFarm()
-    for _, folder in pairs(workspace:GetChildren()) do
-        if folder:IsA("Folder") and folder.Name == FARM_NAME then
-            return folder
-        end
+-- إزالة أي علامات قديمة
+for _, old in pairs(workspace:GetChildren()) do
+    if old.Name == "FarmMarker" then
+        old:Destroy()
     end
-    return nil
 end
 
--- إنشاء علامة فوق الحيوان
-local function createMarker(parent)
-    local marker = Instance.new("Part")
-    marker.Size = MARK_SIZE
-    marker.Anchored = true
-    marker.CanCollide = false
-    marker.Material = Enum.Material.Neon
-    marker.BrickColor = BrickColor.new("Bright red")
-    marker.Transparency = 0.5
-    marker.Parent = workspace
-    return marker
-end
-
--- متابعة الحيوانات ووضع العلامة
-local function markAnimals()
-    local farm = getPlayerFarm()
-    if not farm then return end
-
-    -- إزالة أي علامات سابقة
-    for _, oldMarker in pairs(workspace:GetChildren()) do
-        if oldMarker.Name == "AnimalMarker" then
-            oldMarker:Destroy()
-        end
-    end
-
-    for _, obj in pairs(farm:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("BasePart") then
-            if table.find(ANIMAL_NAMES, obj.Name) then
-                local marker = createMarker(obj)
-                marker.Name = "AnimalMarker"
-
-                -- تحديث موقع العلامة كل 0.1 ثانية
-                spawn(function()
-                    while marker.Parent do
-                        local pos
-                        if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
-                            pos = obj.HumanoidRootPart.Position + Vector3.new(0, MARK_HEIGHT, 0)
-                        elseif obj:IsA("BasePart") then
-                            pos = obj.Position + Vector3.new(0, MARK_HEIGHT, 0)
-                        end
-                        if pos then
-                            marker.Position = pos
-                        end
-                        wait(0.1)
-                    end
-                end)
+-- المرور على كل مزرعة ووضع علامة
+for _, farm in pairs(workspace:GetChildren()) do
+    if farm:IsA("Folder") and farm.Name == FARM_NAME then
+        -- إيجاد مركز المزرعة (تقريبياً حسب جميع البارتات)
+        local totalPos = Vector3.new(0,0,0)
+        local count = 0
+        for _, obj in pairs(farm:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                totalPos = totalPos + obj.Position
+                count = count + 1
             end
         end
-    end
-end
+        if count > 0 then
+            local centerPos = totalPos / count
 
--- تكرار كل 2 ثانية لتحديث الحيوانات الجديدة
-while true do
-    markAnimals()
-    wait(2)
+            -- إنشاء البارت الكبير
+            local marker = Instance.new("Part")
+            marker.Name = "FarmMarker"
+            marker.Size = MARK_SIZE
+            marker.Anchored = true
+            marker.CanCollide = false
+            marker.Material = Enum.Material.Neon
+            marker.BrickColor = BrickColor.new("Bright red")
+            marker.Transparency = 0 -- واضح تمامًا
+            marker.Position = centerPos
+            marker.Parent = workspace
+        end
+    end
 end
