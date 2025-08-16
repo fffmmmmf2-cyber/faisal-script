@@ -1,0 +1,5 @@
+for i, part in pairs(workspace:GetChildren()) do
+    if part:IsA("BasePart") and part.Name == "PetArea" then
+        part.Transparency = 0 -- يخلي البارت واضح فقط
+    end
+end
