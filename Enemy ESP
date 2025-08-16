@@ -1,134 +1,133 @@
--- خدمات
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-
--- إنشاء واجهة المستخدم
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AnimuGUI"
-screenGui.Parent = Player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0.8, 0, 0.3, 0) -- يمين الشاشة
-frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-frame.BackgroundTransparency = 0.3
-frame.Parent = screenGui
-
--- زر إخفاء/إظهار
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 30, 0, 30)
-toggleBtn.Position = UDim2.new(1, -35, 0, 5)
-toggleBtn.Text = "-"
-toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
-toggleBtn.Parent = frame
-
-toggleBtn.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
-end)
-
--- الخانة 1: Enemy ESP
-local button1 = Instance.new("TextButton")
-button1.Size = UDim2.new(0, 180, 0, 40)
-button1.Position = UDim2.new(0, 10, 0, 10)
-button1.Text = "Enemy ESP"
-button1.TextColor3 = Color3.fromRGB(255,255,255)
-button1.BackgroundColor3 = Color3.fromRGB(255,0,0)
-button1.Parent = frame
-
--- الخانة 2: فاضية مؤقتاً
-local button2 = Instance.new("TextButton")
-button2.Size = UDim2.new(0, 180, 0, 40)
-button2.Position = UDim2.new(0, 10, 0, 60)
-button2.Text = "Coming Soon"
-button2.TextColor3 = Color3.fromRGB(255,255,255)
-button2.BackgroundColor3 = Color3.fromRGB(0,0,255)
-button2.Parent = frame
-
--- تفعيل سكربت الـ ESP عند الضغط على الخانة 1
-local enemyESPScript = [[
+-- LocalScript: GUI قابل للسحب + زر رينبو مستقل يخفي/يظهر الإطار + خانتين لتشغيل السكربتات
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local function createHealthGui(player, humanoid)
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp or not humanoid then return end
-    local old = player.Character:FindFirstChild("EnemyBillboard")
-    if old then old:Destroy() end
-    local billboard = Instance.new("BillboardGui")
-    billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0,150,0,40)
-    billboard.StudsOffset = Vector3.new(0,4,0)
-    billboard.AlwaysOnTop = true
-    billboard.Name = "EnemyBillboard"
-    billboard.Parent = player.Character
+-- ===== ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomLauncherGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
 
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1,0,0.5,0)
-    nameLabel.Position = UDim2.new(0,0,0,0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255,0,0)
-    nameLabel.TextScaled = true
-    nameLabel.Parent = billboard
+-- ===== الإطار الرئيسي (قابل للسحب)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 220, 0, 140)
+mainFrame.Position = UDim2.new(0.7, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
 
-    local healthBar = Instance.new("Frame")
-    healthBar.Size = UDim2.new(1,0,0.3,0)
-    healthBar.Position = UDim2.new(0,0,0.6,0)
-    healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
-    healthBar.BorderSizePixel = 1
-    healthBar.Parent = billboard
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,24)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "Scripts Launcher"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.Parent = mainFrame
 
-    humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-        healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
+-- قائمة الأزرار (عمودي)
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0,8)
+UIListLayout.Parent = mainFrame
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.Padding = UDim.new(0,8)
+
+-- helper لإنشاء زر داخل الإطار
+local function createButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0,200,0,44)
+    -- position will be handled by UIListLayout; set initial position under title
+    btn.Position = UDim2.new(0.5, -100, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(200,30,30)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+    btn.Text = text
+    btn.AutoButtonColor = true
+    btn.Parent = mainFrame
+    return btn
+end
+
+-- ===== الخانات
+local btn1 = createButton("Enemy ESP")        -- خانة 1
+local btn2 = createButton("NoClip")          -- خانة 2
+
+-- روابط الـ raw على GitHub (استبدل إذا احتجت)
+local enemyESPUrl = "https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/Enemy%20ESP"
+local noClipUrl    = "https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/NoClip"
+
+-- تشغيل عن طريق loadstring مع حماية pcall
+btn1.MouseButton1Click:Connect(function()
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(enemyESPUrl))()
     end)
-end
-
-local function applyEnemyEffect(player)
-    if player == Players.LocalPlayer then return end
-    local function onCharacter(char)
-        if not char then return end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-        if char:FindFirstChild("EnemyHighlight") then
-            char.EnemyHighlight:Destroy()
-        end
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "EnemyHighlight"
-        highlight.Adornee = char
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.FillColor = Color3.fromRGB(255,0,0)
-        highlight.FillTransparency = 0
-        highlight.OutlineTransparency = 0.7
-        highlight.Parent = char
-        createHealthGui(player, humanoid)
+    if not ok then
+        warn("Failed to load Enemy ESP:", err)
+    else
+        -- مؤشر بصري: غيّر لون الزر لما ينفّذ
+        btn1.BackgroundColor3 = Color3.fromRGB(100,100,100)
     end
-    if player.Character then
-        onCharacter(player.Character)
-    end
-    player.CharacterAdded:Connect(onCharacter)
-end
-
-for _, player in pairs(Players:GetPlayers()) do
-    applyEnemyEffect(player)
-end
-
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        applyEnemyEffect(player)
-    end)
 end)
 
-while true do
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer then
-            applyEnemyEffect(player)
-        end
+btn2.MouseButton1Click:Connect(function()
+    local ok, err = pcall(function()
+        loadstring(game:HttpGet(noClipUrl))()
+    end)
+    if not ok then
+        warn("Failed to load NoClip:", err)
+    else
+        btn2.BackgroundColor3 = Color3.fromRGB(100,100,100)
     end
-    wait(5)
-end
-]]
-
-button1.MouseButton1Click:Connect(function()
-    loadstring(enemyESPScript)()
 end)
+
+-- ===== زر صغير مستقل (رينبو) قابل للحركة ويخفي/يظهر الإطار
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleButton"
+toggleBtn.Size = UDim2.new(0,38,0,38)
+-- حطه بجانب منتصف الإطار مبدئياً (لكن قابل للسحب)
+toggleBtn.Position = UDim2.new(0.95, -38, 0.32, -19)
+toggleBtn.AnchorPoint = Vector2.new(0,0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+toggleBtn.Text = "" -- بدون نص
+toggleBtn.Parent = screenGui
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+
+local visible = true
+toggleBtn.MouseButton1Click:Connect(function()
+    visible = not visible
+    mainFrame.Visible = visible
+end)
+
+-- رينبو أنيميشن للزر الصغير
+RunService.RenderStepped:Connect(function(dt)
+    -- hue cycles over time; قيمة بين 0 و1
+    local hue = (tick() * 0.15) % 1
+    local c = Color3.fromHSV(hue, 1, 1)
+    if toggleBtn then
+        toggleBtn.BackgroundColor3 = c
+    end
+end)
+
+-- اختياري: منع التشغيل المزدوج عبر علامة (لو تبي)
+local ran = {
+    btn1 = false,
+    btn2 = false
+}
+-- لو تبي منع التشغيل المزدوج من الكود التالي:
+-- btn1.MouseButton1Click:Connect(function()
+--    if ran.btn1 then return end
+--    ran.btn1 = true
+--    ... load ...
+-- end)
+-- حالياً خليت التنفيذ يسمح بعدة تشغيلات لكن يغير لون الزر بعد نجاح التحميل.
+
+-- ===== نهاية السكربت
+print("Launcher GUI loaded.")
