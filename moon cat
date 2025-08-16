@@ -1,25 +1,16 @@
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-
+-- جلب كل البارتات في الـ Workspace
 for _, part in pairs(workspace:GetDescendants()) do
     if part:IsA("BasePart") then
-        -- إنشاء BillboardGui لكل بارت
-        local billboard = Instance.new("BillboardGui")
-        billboard.Adornee = part
-        billboard.Size = UDim2.new(0, 100, 0, 30) -- حجم صغير
-        billboard.StudsOffset = Vector3.new(0, 2, 0) -- فوق البارت شوية
-        billboard.AlwaysOnTop = true
-        billboard.Parent = Player:WaitForChild("PlayerGui")
-
-        -- إنشاء TextLabel داخل الـ BillboardGui
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Size = UDim2.new(1,0,1,0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextColor3 = Color3.new(1,1,1) -- أبيض
-        textLabel.TextScaled = false -- نص صغير ثابت
-        textLabel.Font = Enum.Font.SourceSans
-        textLabel.TextSize = 14 -- حجم صغير
-        textLabel.Text = part.Name
-        textLabel.Parent = billboard
+        local partName = part.Name
+        
+        -- تحديد البارتات اللي اسمها "Part" متبوعة برقم
+        if string.match(partName, "^Part%d+$") then
+            part.BrickColor = BrickColor.new("Bright blue") -- لون أزرق
+        end
+        
+        -- تحديد البارتات اللي اسمها يحتوي كلمة "pet" أو "Pet"
+        if string.find(partName:lower(), "pet") then
+            part.BrickColor = BrickColor.new("Bright red") -- لون أحمر
+        end
     end
 end
