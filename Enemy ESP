@@ -1,4 +1,4 @@
-ط-- خدمات
+-- خدمات
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
@@ -37,7 +37,16 @@ button1.TextColor3 = Color3.fromRGB(255,255,255)
 button1.BackgroundColor3 = Color3.fromRGB(255,0,0)
 button1.Parent = frame
 
--- تفعيل سكربت الـ ESP عند الضغط على الخانة 1
+-- الخانة 2: فاضية
+local button2 = Instance.new("TextButton")
+button2.Size = UDim2.new(0, 180, 0, 40)
+button2.Position = UDim2.new(0, 10, 0, 60)
+button2.Text = "Coming Soon"
+button2.TextColor3 = Color3.fromRGB(255,255,255)
+button2.BackgroundColor3 = Color3.fromRGB(0,0,255)
+button2.Parent = frame
+
+-- كود تشغيل الـ Enemy ESP
 local enemyESPScript = [[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
