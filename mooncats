@@ -1,35 +1,48 @@
--- LocalScript: petarea_counter_red.lua
+-- LocalScript: farm_petarea_display.lua
 local player = game.Players.LocalPlayer
 
 -- إنشاء ScreenGui
 local gui = Instance.new("ScreenGui")
-gui.Name = "PetAreaCounterRed"
+gui.Name = "FarmPetAreaDisplay"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- إنشاء TextLabel في وسط الشاشة
+-- TextLabel لعرض المعلومات
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 400, 0, 50)
-textLabel.Position = UDim2.new(0.5, -200, 0.5, -25) -- في الوسط
-textLabel.BackgroundTransparency = 1 -- بدون خلفية
+textLabel.Size = UDim2.new(0, 400, 0, 70)
+textLabel.Position = UDim2.new(0.5, -200, 0.5, -35) -- في الوسط
+textLabel.BackgroundTransparency = 1
 textLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- أحمر
 textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextScaled = true
+textLabel.TextWrapped = true
 textLabel.Parent = gui
 
--- دالة لحساب عدد البارتات التي اسمها PetArea
-local function updateCount()
+-- دالة لحساب عدد PetArea في الـ Workspace
+local function getPetAreaCount()
     local count = 0
     for _, part in pairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and part.Name == "PetArea" then
             count = count + 1
         end
     end
-    textLabel.Text = "العدد(" .. count .. ")"
+    return count
 end
 
--- تحديث كل 5 ثواني
+-- دالة للحصول على اسم المزرعة الحالية
+local function getFarmName()
+    local farm = workspace:FindFirstChild("Farm") -- لو عندك أكثر من Farm، يمكن تحتاج تعديل
+    if farm then
+        return farm.Name
+    else
+        return "لا يوجد مزرعة"
+    end
+end
+
+-- تحديث النص كل 5 ثواني
 while true do
-    updateCount()
+    local farmName = getFarmName()
+    local petCount = getPetAreaCount()
+    textLabel.Text = "أنت في: " .. farmName .. "\nالعدد(" .. petCount .. ")"
     wait(5)
 end
