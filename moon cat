@@ -1,4 +1,33 @@
--- جلب كل البارتات في الـ Workspace
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+for _, part in pairs(workspace:GetDescendants()) do
+    if part:IsA("BasePart") then
+        local partName = part.Name
+        
+        -- شرط البارت يبدأ بـ "Part" وبعدين رقم أو يحتوي "pet"
+        if string.match(partName, "^Part%d+$") or string.find(partName:lower(), "pet") then
+            -- إنشاء BillboardGui لكل بارت
+            local billboard = Instance.new("BillboardGui")
+            billboard.Adornee = part
+            billboard.Size = UDim2.new(0, 100, 0, 30) -- حجم صغير
+            billboard.StudsOffset = Vector3.new(0, 2, 0) -- فوق البارت شوية
+            billboard.AlwaysOnTop = true
+            billboard.Parent = Player:WaitForChild("PlayerGui")
+
+            -- إنشاء TextLabel داخل الـ BillboardGui
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1,0,1,0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = Color3.new(1,1,1) -- أبيض
+            textLabel.TextScaled = false
+            textLabel.Font = Enum.Font.SourceSans
+            textLabel.TextSize = 14 -- حجم صغير
+            textLabel.Text = partName -- يظهر الاسم
+            textLabel.Parent = billboard
+        end
+    end
+end-- جلب كل البارتات في الـ Workspace
 for _, part in pairs(workspace:GetDescendants()) do
     if part:IsA("BasePart") then
         local partName = part.Name
