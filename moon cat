@@ -5,57 +5,57 @@ local workspace = game:GetService("Workspace")
 -- اسم البارت الخاص بك
 local ownerPetAreaName = Player.Name .. "_PetArea"
 
--- تنظيف بارتات PetArea الآخرين
-for _, part in pairs(workspace:GetDescendants()) do
-    if part:IsA("BasePart") and part.Name == "PetArea" then
-        if part ~= workspace:FindFirstChild(ownerPetAreaName) then
-            part:Destroy()
-        end
-    end
-end
-
--- التأكد أن بارتك موجود
+-- التأكد من وجود البارت الخاص بك
 local petArea = workspace:FindFirstChild(ownerPetAreaName)
 if not petArea then
-    -- إنشاء البارت لو ما موجود
     petArea = Instance.new("Part")
     petArea.Name = ownerPetAreaName
     petArea.Size = Vector3.new(7,7,7)
     petArea.Anchored = true
-    petArea.Position = Vector3.new(0,5,0) -- ضع البارت في المكان المناسب لك
+    petArea.Position = Vector3.new(0,5,0)
     petArea.Parent = workspace
 end
 
--- دالة لتحريك PetMover داخل البارت عشوائياً
-local function movePetMoversInside()
+-- دالة لتحريك PetMover بالقوة داخل البارت
+local function forceMovePetMover(model)
+    local petMover = model:FindFirstChild("PetMover")
+    if not petMover then return end
+
+    -- تفعيل PrimaryPart إذا لم يكن موجود
+    if model.PrimaryPart == nil then
+        model.PrimaryPart = petMover
+    end
+
+    -- تعطيل أي Anchored يمنع الحركة
+    for _, part in pairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = false
+        end
+    end
+
+    -- تحديد موقع عشوائي داخل البارت
+    local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5)
+    local randomPos = Vector3.new(
+        math.random(-halfSize.X*100, halfSize.X*100)/100,
+        math.random(-halfSize.Y*100, halfSize.Y*100)/100,
+        math.random(-halfSize.Z*100, halfSize.Z*100)/100
+    )
+
+    -- تحريك البارت بالقوة باستخدام CFrame (يتخطى Anchored أو أي قيود)
+    model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
+end
+
+-- دالة لتحريك كل PetMover موجودين داخل Workspace بالقوة
+local function moveAllPetMovers()
     for _, model in pairs(workspace:GetChildren()) do
         if model:IsA("Model") then
-            local petMover = model:FindFirstChild("PetMover")
-            if petMover then
-                if model.PrimaryPart == nil then
-                    model.PrimaryPart = petMover
-                end
-                -- وضع البارت داخل حدود PetArea بشكل عشوائي
-                local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5)
-                local randomPos = Vector3.new(
-                    math.random(-halfSize.X*100, halfSize.X*100)/100,
-                    math.random(-halfSize.Y*100, halfSize.Y*100)/100,
-                    math.random(-halfSize.Z*100, halfSize.Z*100)/100
-                )
-                model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
-                -- تثبيت جميع أجزاء الموديل
-                for _, part in pairs(model:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Anchored = true
-                    end
-                end
-            end
+            forceMovePetMover(model)
         end
     end
 end
 
--- تحديث مستمر كل 0.5 ثانية
+-- تحديث كل ثانية
 while true do
-    movePetMoversInside()
-    task.wait(0.5)
+    moveAllPetMovers()
+    task.wait(1)
 end
