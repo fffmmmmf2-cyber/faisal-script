@@ -2,14 +2,14 @@ local Workspace = game:GetService("Workspace")
 
 -- دالة لإنشاء BillboardGui لكل بارت
 local function createNameTag(part)
-    -- نتأكد أنه ما فيه اسم مسبق
+    -- نتأكد أنه ما فيه NameTag مسبق
     if part:FindFirstChild("NameTag") then return end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "NameTag"
     billboard.Adornee = part
-    billboard.Size = UDim2.new(0, 100, 0, 30)
-    billboard.StudsOffset = Vector3.new(0, part.Size.Y + 0.5, 0) -- فوق البارت شوي
+    billboard.Size = UDim2.new(0, 80, 0, 20) -- حجم أصغر لتقليل التشويش
+    billboard.StudsOffset = Vector3.new(0, part.Size.Y + 0.3, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = part
 
@@ -17,21 +17,21 @@ local function createNameTag(part)
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.TextStrokeTransparency = 0.7
+    textLabel.TextStrokeTransparency = 0.5 -- يقلل التباين العالي للتشويش
     textLabel.Font = Enum.Font.SourceSans
     textLabel.TextScaled = true
-    textLabel.Text = part.Name -- اسم البارت
+    textLabel.Text = part.Name
     textLabel.Parent = billboard
 end
 
--- إنشاء NameTag لكل بارت موجود حاليًا
+-- إنشاء NameTag لكل بارت موجود
 for _, part in ipairs(Workspace:GetDescendants()) do
     if part:IsA("BasePart") then
         createNameTag(part)
     end
 end
 
--- مراقبة أي بارت جديد ينضاف للعبة
+-- مراقبة أي بارت جديد ينضاف
 Workspace.DescendantAdded:Connect(function(part)
     if part:IsA("BasePart") then
         createNameTag(part)
