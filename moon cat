@@ -1,10 +1,10 @@
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- قائمة البارتات المهمة
+-- قائمة البارتات المهمة بدون تثبيت جسم اللاعب نفسه
 local importantParts = {
     "Tail1", "Tail2", "Tail3", "Tail4",
-    "BackLegR", "FrontLegR", "Torso", "RootPart",
+    "BackLegR", "FrontLegR",
     "PetMover", "CatLines", "RightEye", "LeftEye",
     "RightEar", "LeftEar", "Nose"
 }
