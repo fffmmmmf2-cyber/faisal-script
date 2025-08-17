@@ -1,14 +1,28 @@
--- الخدمات المطلوبة
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- إنشاء ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MyInventoryGUI"
-screenGui.Parent = PlayerGui
+-- محاولة العثور على الانفنتوري الحقيقي في PlayerGui
+local function openInventory()
+    local playerGui = Player:WaitForChild("PlayerGui")
+    
+    -- عادة الانفنتوري يكون باسم معين، هنا نجرب بعض الأسماء الشائعة
+    local inventoryNames = {"InventoryGUI", "BackpackGui", "PlayerInventory"}
+    
+    for _, name in ipairs(inventoryNames) do
+        local gui = playerGui:FindFirstChild(name)
+        if gui then
+            gui.Visible = true -- نفتح الانفنتوري
+            return true
+        end
+    end
+    
+    -- إذا ما وجدنا شيء نقدر نرسل رسالة للاعب
+    warn("ما تم العثور على الانفنتوري في PlayerGui")
+    return false
+end
 
--- إنشاء الزر
+-- إنشاء زر على الشاشة
+local screenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
 local openButton = Instance.new("TextButton")
 openButton.Size = UDim2.new(0, 150, 0, 50)
 openButton.Position = UDim2.new(0, 20, 0, 20)
@@ -17,23 +31,7 @@ openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 openButton.Parent = screenGui
 
--- إنشاء واجهة الانفنتوري (مثال)
-local inventoryFrame = Instance.new("Frame")
-inventoryFrame.Size = UDim2.new(0, 400, 0, 300)
-inventoryFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-inventoryFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-inventoryFrame.Visible = false -- مخفي في البداية
-inventoryFrame.Parent = screenGui
-
--- مثال لعرض عناصر داخل الانفنتوري
-local exampleItem = Instance.new("TextLabel")
-exampleItem.Size = UDim2.new(0, 100, 0, 50)
-exampleItem.Position = UDim2.new(0, 10, 0, 10)
-exampleItem.Text = "بذرة تفاح"
-exampleItem.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-exampleItem.Parent = inventoryFrame
-
--- تشغيل/إخفاء الانفنتوري عند الضغط على الزر
+-- عند الضغط على الزر نشغل الانفنتوري
 openButton.MouseButton1Click:Connect(function()
-    inventoryFrame.Visible = not inventoryFrame.Visible
+    openInventory()
 end)
