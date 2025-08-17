@@ -27,13 +27,13 @@ textLabel.BackgroundTransparency = 1
 textLabel.Font = Enum.Font.SourceSansBold
 textLabel.Parent = frame
 
--- بعد ثانيتين يبدأ التدرج بالاختفاء
-task.delay(2, function()
-    local fadeTime = 1.5 -- المدة (1.5 ثانية)
-    local steps = 30 -- عدد الخطوات (كل ما زاد صار أنعم)
+-- يظل ظاهر لمدة 1 ثانية
+task.delay(1, function()
+    local fadeTime = 0.75 -- مدة الاختفاء
+    local steps = 75 -- عدد الخطوات (كثير عشان يكون ناعم)
     for i = 1, steps do
         local alpha = i / steps
-        frame.BackgroundTransparency = 0.3 + (0.7 * alpha) -- يخلي الخلفية تختفي تدريجي
+        frame.BackgroundTransparency = 0.3 + (0.7 * alpha) -- الخلفية تختفي تدريجي
         textLabel.TextTransparency = alpha -- النص يختفي تدريجي
         task.wait(fadeTime / steps)
     end
