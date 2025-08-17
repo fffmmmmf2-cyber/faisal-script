@@ -1,28 +1,38 @@
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- محاولة العثور على الانفنتوري الحقيقي في PlayerGui
-local function openInventory()
-    local playerGui = Player:WaitForChild("PlayerGui")
-    
-    -- عادة الانفنتوري يكون باسم معين، هنا نجرب بعض الأسماء الشائعة
-    local inventoryNames = {"InventoryGUI", "BackpackGui", "PlayerInventory"}
-    
-    for _, name in ipairs(inventoryNames) do
-        local gui = playerGui:FindFirstChild(name)
-        if gui then
-            gui.Visible = true -- نفتح الانفنتوري
-            return true
+-- دالة للبحث عن أي GUI يبدو كأنه انفنتوري
+local function findInventoryGui(parent)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("ScreenGui") then
+            -- إذا كان فيه أي عناصر داخلية (مثلا أيقونات أو TextLabels) احتمال يكون انفنتوري
+            if #child:GetChildren() > 0 then
+                return child
+            end
+        end
+        -- بحث بشكل متكرر داخل العناصر الفرعية
+        local found = findInventoryGui(child)
+        if found then
+            return found
         end
     end
-    
-    -- إذا ما وجدنا شيء نقدر نرسل رسالة للاعب
-    warn("ما تم العثور على الانفنتوري في PlayerGui")
-    return false
+    return nil
+end
+
+-- دالة فتح الانفنتوري
+local function openInventory()
+    local gui = findInventoryGui(PlayerGui)
+    if gui then
+        gui.Visible = true
+        print("تم العثور على الانفنتوري وفتحه")
+    else
+        warn("لم يتم العثور على الانفنتوري")
+    end
 end
 
 -- إنشاء زر على الشاشة
-local screenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
+local screenGui = Instance.new("ScreenGui", PlayerGui)
 local openButton = Instance.new("TextButton")
 openButton.Size = UDim2.new(0, 150, 0, 50)
 openButton.Position = UDim2.new(0, 20, 0, 20)
