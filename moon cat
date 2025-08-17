@@ -1,39 +1,31 @@
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
--- دالة لإنشاء BillboardGui لكل بارت
-local function createNameTag(part)
-    -- نتأكد أنه ما فيه NameTag مسبق
-    if part:FindFirstChild("NameTag") then return end
+-- قائمة البارتات المهمة
+local importantParts = {
+    "Tail1", "Tail2", "Tail3", "Tail4",
+    "BackLegR", "FrontLegR", "Torso", "RootPart",
+    "PetMover", "CatLines", "RightEye", "LeftEye",
+    "RightEar", "LeftEar", "Nose"
+}
 
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "NameTag"
-    billboard.Adornee = part
-    billboard.Size = UDim2.new(0, 80, 0, 20) -- حجم أصغر لتقليل التشويش
-    billboard.StudsOffset = Vector3.new(0, part.Size.Y + 0.3, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = part
-
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.TextStrokeTransparency = 0.5 -- يقلل التباين العالي للتشويش
-    textLabel.Font = Enum.Font.SourceSans
-    textLabel.TextScaled = true
-    textLabel.Text = part.Name
-    textLabel.Parent = billboard
-end
-
--- إنشاء NameTag لكل بارت موجود
-for _, part in ipairs(Workspace:GetDescendants()) do
-    if part:IsA("BasePart") then
-        createNameTag(part)
+-- دالة لتثبيت أي بارت مهم
+local function lockImportantParts()
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") then
+            for _, name in ipairs(importantParts) do
+                if part.Name == name then
+                    -- تثبيت البارت
+                    part.Anchored = true
+                    part.CFrame = part.CFrame -- يثبت مكانه الحالي
+                    part.Velocity = Vector3.new(0,0,0)
+                    part.RotVelocity = Vector3.new(0,0,0)
+                    break
+                end
+            end
+        end
     end
 end
 
--- مراقبة أي بارت جديد ينضاف
-Workspace.DescendantAdded:Connect(function(part)
-    if part:IsA("BasePart") then
-        createNameTag(part)
-    end
-end)
+-- تشغيل التثبيت كل فريم
+RunService.Heartbeat:Connect(lockImportantParts)
