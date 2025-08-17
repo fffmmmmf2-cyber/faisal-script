@@ -1,17 +1,16 @@
--- الخدمات
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
--- البارت اللي نبغى نخلي كل الأجزاء فيه
+-- البارت اللي نبيه كل الأجزاء تتجمع فيه
 local petArea = Workspace:WaitForChild("PetArea")
 
--- قائمة البارتات
-local partsList = {
-    "Tail1", "Tail3", "Tail4",
-    "BackLegR", "FrontLegR",
-    "Torso", "RootPart", "PetMover", "CatLines",
-    "RightEye", "LeftEye",
-    "RightEar", "LeftEar",
-    "Nose",
+-- قائمة البارتات المهمة (محدثة بكل الأسماء اللي بعثتها)
+local importantParts = {
+    "Tail1", "Tail2", "Tail3", "Tail4",
+    "BackLegR", "FrontLegR", "Torso", "RootPart",
+    "PetMover", "CatLines", "RightEye", "LeftEye",
+    "RightEar", "LeftEar", "Nose",
     "LeftLeg", "RightLeg",
     "FrontLegBase006", "FrontLeftLeg",
     "RightWhisker", "LeftWhisker",
@@ -19,11 +18,35 @@ local partsList = {
     "FrontLegL", "FrontLegR"
 }
 
--- نقل وتثبيت كل جزء لمركز PetArea
-for _, partName in ipairs(partsList) do
-    local part = Workspace:FindFirstChild(partName, true)
-    if part and part:IsA("BasePart") then
-        part.CFrame = CFrame.new(petArea.Position) -- يحدد موقع الجزء في مركز PetArea
-        part.Anchored = true -- يثبت الجزء
+-- دالة لتثبيت ونقل أي بارت مهم
+local function lockAndMoveParts()
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") then
+            -- نتأكد أن البارت مو جزء من جسم أي لاعب
+            local isPlayerPart = false
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Character and part:IsDescendantOf(player.Character) then
+                    isPlayerPart = true
+                    break
+                end
+            end
+
+            if not isPlayerPart then
+                for _, name in ipairs(importantParts) do
+                    if part.Name == name then
+                        -- نقل البارت لمركز PetArea
+                        part.CFrame = CFrame.new(petArea.Position)
+                        -- تثبيت البارت وإيقاف حركته
+                        part.Anchored = true
+                        part.Velocity = Vector3.new(0,0,0)
+                        part.RotVelocity = Vector3.new(0,0,0)
+                        break
+                    end
+                end
+            end
+        end
     end
 end
+
+-- تشغيل التثبيت والنقل كل فريم
+RunService.Heartbeat:Connect(lockAndMoveParts)
