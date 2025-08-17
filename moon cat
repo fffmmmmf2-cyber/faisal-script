@@ -1,70 +1,39 @@
+-- الخدمات المطلوبة
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local workspace = game:GetService("Workspace")
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- اسم بارت PetArea الخاص بك
-local ownerPetAreaName = Player.Name .. "_PetArea"
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MyInventoryGUI"
+screenGui.Parent = PlayerGui
 
--- التأكد من وجود PetArea
-local petArea = workspace:FindFirstChild(ownerPetAreaName)
-if not petArea then
-    petArea = Instance.new("Part")
-    petArea.Name = ownerPetAreaName
-    petArea.Size = Vector3.new(7,7,7)
-    petArea.Anchored = true
-    petArea.Position = Vector3.new(0,5,0)
-    petArea.Parent = workspace
-end
+-- إنشاء الزر
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 150, 0, 50)
+openButton.Position = UDim2.new(0, 20, 0, 20)
+openButton.Text = "افتح الشنطة"
+openButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.Parent = screenGui
 
--- دالة لحماية وتحريك PetMover
-local function forceMovePetMover(model)
-    local petMover = model:FindFirstChild("PetMover")
-    if not petMover then return end
+-- إنشاء واجهة الانفنتوري (مثال)
+local inventoryFrame = Instance.new("Frame")
+inventoryFrame.Size = UDim2.new(0, 400, 0, 300)
+inventoryFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+inventoryFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+inventoryFrame.Visible = false -- مخفي في البداية
+inventoryFrame.Parent = screenGui
 
-    -- تحديد PrimaryPart
-    if model.PrimaryPart == nil then
-        model.PrimaryPart = petMover
-    end
+-- مثال لعرض عناصر داخل الانفنتوري
+local exampleItem = Instance.new("TextLabel")
+exampleItem.Size = UDim2.new(0, 100, 0, 50)
+exampleItem.Position = UDim2.new(0, 10, 0, 10)
+exampleItem.Text = "بذرة تفاح"
+exampleItem.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+exampleItem.Parent = inventoryFrame
 
-    -- تعطيل أي Anchored يمنع الحركة
-    for _, part in pairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = false
-        end
-    end
-
-    -- تحريك عشوائي داخل PetArea
-    local halfSize = petArea.Size / 2 - Vector3.new(0.5,0.5,0.5)
-    local randomPos = Vector3.new(
-        math.random(-halfSize.X*100, halfSize.X*100)/100,
-        math.random(-halfSize.Y*100, halfSize.Y*100)/100,
-        math.random(-halfSize.Z*100, halfSize.Z*100)/100
-    )
-
-    -- تحريك الموديل بالقوة باستخدام CFrame
-    model:SetPrimaryPartCFrame(petArea.CFrame * CFrame.new(randomPos))
-end
-
--- تحريك أي موديلات موجودة عند بدء السكربت
-for _, model in pairs(workspace:GetChildren()) do
-    if model:IsA("Model") then
-        forceMovePetMover(model)
-    end
-end
-
--- مراقبة أي موديلات جديدة وتحريكها فورًا
-workspace.ChildAdded:Connect(function(child)
-    if child:IsA("Model") then
-        forceMovePetMover(child)
-    end
+-- تشغيل/إخفاء الانفنتوري عند الضغط على الزر
+openButton.MouseButton1Click:Connect(function()
+    inventoryFrame.Visible = not inventoryFrame.Visible
 end)
-
--- تحديث كل ثانية لتحريك الحيوانات عشوائيًا
-while true do
-    for _, model in pairs(workspace:GetChildren()) do
-        if model:IsA("Model") then
-            forceMovePetMover(model)
-        end
-    end
-    task.wait(1)
-end
