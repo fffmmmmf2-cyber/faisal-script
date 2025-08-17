@@ -1,5 +1,8 @@
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local localPlayer = Players.LocalPlayer
 
 -- قائمة البارتات المهمة
 local importantParts = {
@@ -9,23 +12,24 @@ local importantParts = {
     "RightEar", "LeftEar", "Nose"
 }
 
--- دالة لتثبيت أي بارت مهم
+-- دالة لتثبيت أي بارت مهم بدون تثبيت جسمي
 local function lockImportantParts()
     for _, part in ipairs(Workspace:GetDescendants()) do
         if part:IsA("BasePart") then
-            for _, name in ipairs(importantParts) do
-                if part.Name == name then
-                    -- تثبيت البارت
-                    part.Anchored = true
-                    part.CFrame = part.CFrame -- يثبت مكانه الحالي
-                    part.Velocity = Vector3.new(0,0,0)
-                    part.RotVelocity = Vector3.new(0,0,0)
-                    break
+            -- نتأكد أن البارت مو جزء من شخصية اللاعب المحلي
+            if not localPlayer.Character or not part:IsDescendantOf(localPlayer.Character) then
+                for _, name in ipairs(importantParts) do
+                    if part.Name == name then
+                        part.Anchored = true
+                        part.CFrame = part.CFrame
+                        part.Velocity = Vector3.new(0,0,0)
+                        part.RotVelocity = Vector3.new(0,0,0)
+                        break
+                    end
                 end
             end
         end
     end
 end
 
--- تشغيل التثبيت كل فريم
 RunService.Heartbeat:Connect(lockImportantParts)
