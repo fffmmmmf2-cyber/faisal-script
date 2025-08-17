@@ -1,41 +1,79 @@
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")  
+local RunService = game:GetService("RunService")  
+local Players = game:GetService("Players")  
 
--- قائمة البارتات المهمة (كما هي بدون أي تغيير)
-local importantParts = {
-    "Tail1", "Tail2", "Tail3", "Tail4",
-    "BackLegR", "FrontLegR", "Torso", "RootPart",
-    "PetMover", "CatLines", "RightEye", "LeftEye",
-    "RightEar", "LeftEar", "Nose"
-}
+-- اللاعب المحلي
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة لتثبيت أي بارت مهم بدون تثبيت جسد أي لاعب
-local function lockImportantParts()
-    for _, part in ipairs(Workspace:GetDescendants()) do
-        if part:IsA("BasePart") then
-            -- نتأكد أن البارت مو جزء من أي شخصية لاعب
-            local isPlayerPart = false
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character and part:IsDescendantOf(player.Character) then
-                    isPlayerPart = true
-                    break
-                end
-            end
+-- واجهة الحقوق
+local screenGui = Instance.new("ScreenGui")
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
 
-            if not isPlayerPart then
-                for _, name in ipairs(importantParts) do
-                    if part.Name == name then
-                        part.Anchored = true
-                        part.CFrame = part.CFrame
-                        part.Velocity = Vector3.new(0,0,0)
-                        part.RotVelocity = Vector3.new(0,0,0)
-                        break
-                    end
-                end
-            end
-        end
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(1, 0, 1, 0) -- يغطي كل الشاشة
+frame.Position = UDim2.new(0, 0, 0, 0)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BackgroundTransparency = 0.3 -- أسود شفاف
+frame.Parent = screenGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.Text = "Created by Faisal"
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.TextScaled = true
+textLabel.BackgroundTransparency = 1
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.Parent = frame
+
+-- بعد ثانيتين يبدأ التدرج بالاختفاء
+task.delay(2, function()
+    local fadeTime = 1.5 -- المدة (1.5 ثانية)
+    local steps = 30 -- عدد الخطوات (كل ما زاد صار أنعم)
+    for i = 1, steps do
+        local alpha = i / steps
+        frame.BackgroundTransparency = 0.3 + (0.7 * alpha) -- يخلي الخلفية تختفي تدريجي
+        textLabel.TextTransparency = alpha -- النص يختفي تدريجي
+        task.wait(fadeTime / steps)
     end
-end
+    screenGui:Destroy()
+end)
 
+
+-- قائمة البارتات المهمة (كما هي بدون أي تغيير)  
+local importantParts = {  
+    "Tail1", "Tail2", "Tail3", "Tail4",  
+    "BackLegR", "FrontLegR", "Torso", "RootPart",  
+    "PetMover", "CatLines", "RightEye", "LeftEye",  
+    "RightEar", "LeftEar", "Nose"  
+}  
+  
+-- دالة لتثبيت أي بارت مهم بدون تثبيت جسد أي لاعب  
+local function lockImportantParts()  
+    for _, part in ipairs(Workspace:GetDescendants()) do  
+        if part:IsA("BasePart") then  
+            local isPlayerPart = false  
+            for _, plr in ipairs(Players:GetPlayers()) do  
+                if plr.Character and part:IsDescendantOf(plr.Character) then  
+                    isPlayerPart = true  
+                    break  
+                end  
+            end  
+  
+            if not isPlayerPart then  
+                for _, name in ipairs(importantParts) do  
+                    if part.Name == name then  
+                        part.Anchored = true  
+                        part.CFrame = part.CFrame  
+                        part.Velocity = Vector3.new(0,0,0)  
+                        part.RotVelocity = Vector3.new(0,0,0)  
+                        break  
+                    end  
+                end  
+            end  
+        end  
+    end  
+end  
+  
 RunService.Heartbeat:Connect(lockImportantParts)
