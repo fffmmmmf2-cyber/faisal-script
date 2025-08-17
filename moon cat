@@ -2,9 +2,7 @@ local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
-local localPlayer = Players.LocalPlayer
-
--- قائمة البارتات المهمة
+-- قائمة البارتات المهمة (كما هي بدون أي تغيير)
 local importantParts = {
     "Tail1", "Tail2", "Tail3", "Tail4",
     "BackLegR", "FrontLegR", "Torso", "RootPart",
@@ -12,12 +10,20 @@ local importantParts = {
     "RightEar", "LeftEar", "Nose"
 }
 
--- دالة لتثبيت أي بارت مهم بدون تثبيت جسمي
+-- دالة لتثبيت أي بارت مهم بدون تثبيت جسد أي لاعب
 local function lockImportantParts()
     for _, part in ipairs(Workspace:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- نتأكد أن البارت مو جزء من شخصية اللاعب المحلي
-            if not localPlayer.Character or not part:IsDescendantOf(localPlayer.Character) then
+            -- نتأكد أن البارت مو جزء من أي شخصية لاعب
+            local isPlayerPart = false
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Character and part:IsDescendantOf(player.Character) then
+                    isPlayerPart = true
+                    break
+                end
+            end
+
+            if not isPlayerPart then
                 for _, name in ipairs(importantParts) do
                     if part.Name == name then
                         part.Anchored = true
