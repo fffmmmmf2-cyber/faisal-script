@@ -2,10 +2,14 @@
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- دالة تكبر الـZone
+-- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
+local enlargedParts = {}
+
+-- دالة تكبر الـZone مرة واحدة فقط
 local function enlargeZone(part)
-    if part and part:IsA("BasePart") then
+    if part and part:IsA("BasePart") and not enlargedParts[part] then
         part.Size = part.Size * 10 -- تكبير 10 مرات
+        enlargedParts[part] = true -- ونسجل أنه تم تكبيره
     end
 end
 
