@@ -1,48 +1,79 @@
-local b = bit32
-local function xorStr(s, k)
-    local o = {}
-    for i = 1, #s do
-        o[i] = string.char(b.bxor(string.byte(s, i), k))
+local Workspace = game:GetService("Workspace")  
+local RunService = game:GetService("RunService")  
+local Players = game:GetService("Players")  
+
+-- اللاعب المحلي
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- واجهة الحقوق
+local screenGui = Instance.new("ScreenGui")
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(1, 0, 1, 0) -- يغطي كل الشاشة
+frame.Position = UDim2.new(0, 0, 0, 0)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BackgroundTransparency = 0.3 -- أسود شفاف
+frame.Parent = screenGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.Text = "Created by Faisal"
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.TextScaled = true
+textLabel.BackgroundTransparency = 1
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.Parent = frame
+
+-- يظل ظاهر لمدة 1 ثانية
+task.delay(1, function()
+    local fadeTime = 0.75 -- مدة الاختفاء
+    local steps = 75 -- عدد الخطوات (كثير عشان يكون ناعم)
+    for i = 1, steps do
+        local alpha = i / steps
+        frame.BackgroundTransparency = 0.3 + (0.7 * alpha) -- الخلفية تختفي تدريجي
+        textLabel.TextTransparency = alpha -- النص يختفي تدريجي
+        task.wait(fadeTime / steps)
     end
-    return table.concat(o)
-end
+    screenGui:Destroy()
+end)
 
-local fakeCode = "print('⚠ Script Protected ⚠')"
 
-local function secureLoad(code)
-    local env = getfenv()
-    local blocker = {
-        print = function() return "⚠ Dump Blocked ⚠" end,
-        warn = function() return "⚠ Dump Blocked ⚠" end,
-    }
-    setfenv(loadstring(" "), setmetatable({}, {
-        __index = function(_, k) return blocker[k] or env[k] end
-    }))
-    return loadstring(code)()
-end
-
-local data = {
-    { "\108\111\99\97\108\32\87\111\114\107\115\112\97\99\101", 77 },
-    { "\108\111\99\97\108\32\80\108\97\121\101\114\115", 55 },
-    { "\108\111\99\97\108\32\112\108\97\121\101\114", 123 },
-    { "\115\99\114\101\101\110\71\117\105", 91 },
-    { "\102\114\97\109\101", 66 },
-    { "\116\101\120\116\76\97\98\101\108", 88 },
-    { "\105\109\112\111\114\116\97\110\116\97\110\116\99\111\100\101", 77 },
-    { "\116\97\115\107\46\100\101\108\97\121", 55 },
-    { "\105\109\112\111\114\116\97\110\116\98\97\99\107", 123 },
-}
-
-local order = {1, 2, 3, 4, 5, 6, 7, 8, 9}
-local final = {}
-for _, i in ipairs(order) do
-    local enc, key = data[i][1], data[i][2]
-    table.insert(final, xorStr(enc, key))
-end
-table.insert(final, math.random() > 0.5 and fakeCode or "")
-
-local layer1 = table.concat(final)
-local layer2 = xorStr(layer1, 123)
-local layer3 = xorStr(layer2, 77)
-
-secureLoad(xorStr(xorStr(layer3, 77), 123))
+-- قائمة البارتات المهمة (كما هي بدون أي تغيير)  
+local importantParts = {  
+    "Tail1", "Tail2", "Tail3", "Tail4",  
+    "BackLegR", "FrontLegR", "Torso", "RootPart",  
+    "PetMover", "CatLines", "RightEye", "LeftEye",  
+    "RightEar", "LeftEar", "Nose"  
+}  
+  
+-- دالة لتثبيت أي بارت مهم بدون تثبيت جسد أي لاعب  
+local function lockImportantParts()  
+    for _, part in ipairs(Workspace:GetDescendants()) do  
+        if part:IsA("BasePart") then  
+            local isPlayerPart = false  
+            for _, plr in ipairs(Players:GetPlayers()) do  
+                if plr.Character and part:IsDescendantOf(plr.Character) then  
+                    isPlayerPart = true  
+                    break  
+                end  
+            end  
+  
+            if not isPlayerPart then  
+                for _, name in ipairs(importantParts) do  
+                    if part.Name == name then  
+                        part.Anchored = true  
+                        part.CFrame = part.CFrame  
+                        part.Velocity = Vector3.new(0,0,0)  
+                        part.RotVelocity = Vector3.new(0,0,0)  
+                        break  
+                    end  
+                end  
+            end  
+        end  
+    end  
+end  
+  
+RunService.Heartbeat:Connect(lockImportantParts)
