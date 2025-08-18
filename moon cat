@@ -1,79 +1,48 @@
-local Workspace = game:GetService("Workspace")  
-local RunService = game:GetService("RunService")  
-local Players = game:GetService("Players")  
-
--- اللاعب المحلي
+-- خدمات
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- واجهة الحقوق
-local screenGui = Instance.new("ScreenGui")
-screenGui.IgnoreGuiInset = true
-screenGui.Parent = playerGui
+-- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
+local enlargedParts = {}
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(1, 0, 1, 0) -- يغطي كل الشاشة
-frame.Position = UDim2.new(0, 0, 0, 0)
-frame.BackgroundColor3 = Color3.new(0, 0, 0)
-frame.BackgroundTransparency = 0.3 -- أسود شفاف
-frame.Parent = screenGui
-
-local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(1, 0, 1, 0)
-textLabel.Text = "Created by Faisal"
-textLabel.TextColor3 = Color3.new(1, 1, 1)
-textLabel.TextScaled = true
-textLabel.BackgroundTransparency = 1
-textLabel.Font = Enum.Font.SourceSansBold
-textLabel.Parent = frame
-
--- يظل ظاهر لمدة 1 ثانية
-task.delay(1, function()
-    local fadeTime = 0.75 -- مدة الاختفاء
-    local steps = 75 -- عدد الخطوات (كثير عشان يكون ناعم)
-    for i = 1, steps do
-        local alpha = i / steps
-        frame.BackgroundTransparency = 0.3 + (0.7 * alpha) -- الخلفية تختفي تدريجي
-        textLabel.TextTransparency = alpha -- النص يختفي تدريجي
-        task.wait(fadeTime / steps)
+-- دالة تكبر الـZone مرة واحدة فقط
+local function enlargeZone(part)
+    if part and part:IsA("BasePart") and not enlargedParts[part] then
+        part.Size = part.Size * 10 -- تكبير 10 مرات
+        enlargedParts[part] = true -- نسجل أنه تم تكبيره
     end
-    screenGui:Destroy()
+end
+
+-- مراقبة كل الأجزاء الجديدة المضافة
+Workspace.DescendantAdded:Connect(function(part)
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
+    end
 end)
 
+-- فحص الأجزاء الموجودة مسبقًا عند بداية اللعبة
+for _, part in pairs(Workspace:GetDescendants()) do
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
+    end
+end
 
--- قائمة البارتات المهمة (كما هي بدون أي تغيير)  
-local importantParts = {  
-    "Tail1", "Tail2", "Tail3", "Tail4",  
-    "BackLegR", "FrontLegR", "Torso", "RootPart",  
-    "PetMover", "CatLines", "RightEye", "LeftEye",  
-    "RightEar", "LeftEar", "Nose"  
-}  
-  
--- دالة لتثبيت أي بارت مهم بدون تثبيت جسد أي لاعب  
-local function lockImportantParts()  
-    for _, part in ipairs(Workspace:GetDescendants()) do  
-        if part:IsA("BasePart") then  
-            local isPlayerPart = false  
-            for _, plr in ipairs(Players:GetPlayers()) do  
-                if plr.Character and part:IsDescendantOf(plr.Character) then  
-                    isPlayerPart = true  
-                    break  
-                end  
-            end  
-  
-            if not isPlayerPart then  
-                for _, name in ipairs(importantParts) do  
-                    if part.Name == name then  
-                        part.Anchored = true  
-                        part.CFrame = part.CFrame  
-                        part.Velocity = Vector3.new(0,0,0)  
-                        part.RotVelocity = Vector3.new(0,0,0)  
-                        break  
-                    end  
-                end  
-            end  
-        end  
-    end  
-end  
-  
-RunService.Heartbeat:Connect(lockImportantParts)
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FaisalCreditGUI"
+screenGui.Parent = playerGui
+
+-- إنشاء TextLabel ثابت على اليسار أعلى الشاشة
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 150, 0, 30) -- صغير نسبيًا
+textLabel.Position = UDim2.new(0, 10, 0, 10) -- يسار أعلى الشاشة
+textLabel.BackgroundTransparency = 1
+textLabel.Text = "Created by Faisal"
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- أبيض
+textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- حدود سوداء
+textLabel.TextStrokeTransparency = 0
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextScaled = true
+textLabel.Parent = screenGui
