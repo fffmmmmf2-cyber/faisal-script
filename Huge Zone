@@ -23,7 +23,7 @@ do
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0, 400, 0, 50)
-    textLabel.Position = UDim2.new(0.5, -200, 0.5, -25) -- وسط الشاشة
+    textLabel.Position = UDim2.new(0.5, 0, 0.5, 0) -- بالضبط وسط الشاشة
     textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = "Created by Faisal"
@@ -34,12 +34,13 @@ do
     textLabel.TextScaled = true
     textLabel.Parent = screenGui
 
-    -- اختفاء تدريجي خلال 1 ثانية
-    local fadeTime = 1 -- ثانية واحدة
-    local steps = 30 -- عدد خطوات الاختفاء (كل خطوة صغيرة لتكون ناعمة)
-    local waitTime = fadeTime / steps
-
+    -- يظهر 1.5 ثانية بالكامل ثم يختفي تدريجي خلال ثانية
     spawn(function()
+        wait(1.5) -- فترة الظهور الكامل
+        local fadeTime = 1 -- ثانية للاختفاء
+        local steps = 30 -- خطوات الاختفاء
+        local waitTime = fadeTime / steps
+
         for i = 1, steps do
             textLabel.TextTransparency = i/steps
             textLabel.TextStrokeTransparency = i/steps
