@@ -1,6 +1,5 @@
 -- خدمات
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 -- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
 local enlargedParts = {}
@@ -9,15 +8,16 @@ local enlargedParts = {}
 local function enlargeZone(part)
     if part and part:IsA("BasePart") and not enlargedParts[part] then
         part.Size = part.Size * 10 -- تكبير 10 مرات
-        enlargedParts[part] = true -- ونسجل أنه تم تكبيره
+        enlargedParts[part] = true -- نسجل أنه تم تكبيره
     end
 end
 
--- يراقب Workspace كل 0.1 ثانية
-RunService.Heartbeat:Connect(function()
+-- فحص كل ثانية
+while true do
     for _, part in pairs(Workspace:GetDescendants()) do
         if part.Name == "Zone" and part:IsA("BasePart") then
             enlargeZone(part)
         end
     end
-end)
+    wait(1) -- يفحص كل ثانية
+end
