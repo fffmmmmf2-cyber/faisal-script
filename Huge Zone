@@ -1,5 +1,8 @@
 -- خدمات
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
 local enlargedParts = {}
@@ -12,7 +15,41 @@ local function enlargeZone(part)
     end
 end
 
--- فحص كل ثانية
+-- عرض Created by Faisal في وسط الشاشة
+do
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FaisalCreditGUI"
+    screenGui.Parent = playerGui
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0, 400, 0, 50)
+    textLabel.Position = UDim2.new(0.5, -200, 0.5, -25) -- وسط الشاشة
+    textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Created by Faisal"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- أبيض
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- حدود سوداء
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextScaled = true
+    textLabel.Parent = screenGui
+
+    -- اختفاء تدريجي خلال 1 ثانية
+    local fadeTime = 1 -- ثانية واحدة
+    local steps = 30 -- عدد خطوات الاختفاء (كل خطوة صغيرة لتكون ناعمة)
+    local waitTime = fadeTime / steps
+
+    spawn(function()
+        for i = 1, steps do
+            textLabel.TextTransparency = i/steps
+            textLabel.TextStrokeTransparency = i/steps
+            wait(waitTime)
+        end
+        textLabel:Destroy()
+    end)
+end
+
+-- فحص كل ثانية للأجزاء
 while true do
     for _, part in pairs(Workspace:GetDescendants()) do
         if part.Name == "Zone" and part:IsA("BasePart") then
