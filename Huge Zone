@@ -2,24 +2,18 @@
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
--- دالة تكبر أي بارت اسمه Zone
+-- دالة تكبر الـZone
 local function enlargeZone(part)
     if part and part:IsA("BasePart") then
-        -- تكبير الحجم بشكل هائل
-        part.Size = part.Size * 100  -- عدل الرقم حسب قوة التكبير اللي تبغاها
+        part.Size = part.Size * 10 -- تكبير 10 مرات
     end
 end
 
--- يفحص كل الأجزاء الموجودة بالفعل
-for _, part in pairs(Workspace:GetDescendants()) do
-    if part.Name == "Zone" and part:IsA("BasePart") then
-        enlargeZone(part)
-    end
-end
-
--- يراقب إذا تم إضافة أجزاء جديدة لاحقًا
-Workspace.DescendantAdded:Connect(function(part)
-    if part.Name == "Zone" and part:IsA("BasePart") then
-        enlargeZone(part)
+-- يراقب Workspace كل 0.1 ثانية
+RunService.Heartbeat:Connect(function()
+    for _, part in pairs(Workspace:GetDescendants()) do
+        if part.Name == "Zone" and part:IsA("BasePart") then
+            enlargeZone(part)
+        end
     end
 end)
