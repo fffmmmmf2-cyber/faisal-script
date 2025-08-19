@@ -1,36 +1,30 @@
--- خدمات
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تكبر أي Zone جديدة فور ظهورها
 local function enlargeZone(part)
     if part and part:IsA("BasePart") then
-        part.Size = part.Size * 10 -- تكبير 10 مرات
+        part.Size = part.Size * 10
     end
 end
 
--- فحص كل الـZone الموجودة عند بداية اللعبة
 for _, part in pairs(Workspace:GetDescendants()) do
     if part.Name == "Zone" and part:IsA("BasePart") then
         enlargeZone(part)
     end
 end
 
--- مراقبة كل الأجزاء الجديدة في Workspace باستمرار
 Workspace.DescendantAdded:Connect(function(part)
     if part.Name == "Zone" and part:IsA("BasePart") then
         enlargeZone(part)
     end
 end)
 
--- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FaisalCreditGUI"
 screenGui.Parent = playerGui
 
--- إنشاء TextLabel صغير يسار أعلى الشاشة
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(0, 120, 0, 20)
 textLabel.Position = UDim2.new(0, 10, 0, 10)
