@@ -4,14 +4,10 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
-local enlargedParts = {}
-
--- دالة تكبر الـZone مرة واحدة فقط
+-- دالة تكبر أي Zone تظهر
 local function enlargeZone(part)
-    if part and part:IsA("BasePart") and not enlargedParts[part] then
+    if part and part:IsA("BasePart") then
         part.Size = part.Size * 10 -- تكبير 10 مرات
-        enlargedParts[part] = true
     end
 end
 
@@ -34,8 +30,8 @@ screenGui.Parent = playerGui
 
 -- إنشاء TextLabel صغير يسار أعلى الشاشة
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 120, 0, 20) -- صغير وأنيق
-textLabel.Position = UDim2.new(0, 10, 0, 10) -- يسار فوق
+textLabel.Size = UDim2.new(0, 120, 0, 20)
+textLabel.Position = UDim2.new(0, 10, 0, 10)
 textLabel.BackgroundTransparency = 1
 textLabel.Text = "Created by Faisal Script"
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
