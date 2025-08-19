@@ -4,22 +4,28 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تكبر أي Zone تظهر
+-- جدول لتخزين الأجزاء التي تم تكبيرها بالفعل
+local enlargedParts = {}
+
+-- دالة تكبر أي Zone مرة واحدة
 local function enlargeZone(part)
-    if part and part:IsA("BasePart") then
+    if part and part:IsA("BasePart") and not enlargedParts[part] then
         part.Size = part.Size * 10 -- تكبير 10 مرات
+        enlargedParts[part] = true -- نسجل أنه تم تكبيره
     end
 end
 
--- فحص كل الـZone الموجودة باستمرار كل ثانية
-spawn(function()
-    while true do
-        for _, part in pairs(Workspace:GetDescendants()) do
-            if part.Name == "Zone" and part:IsA("BasePart") then
-                enlargeZone(part)
-            end
-        end
-        wait(1) -- يفحص كل ثانية
+-- فحص كل الـZone الموجودة عند بداية اللعبة
+for _, part in pairs(Workspace:GetDescendants()) do
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
+    end
+end
+
+-- مراقبة كل الأجزاء الجديدة في Workspace
+Workspace.DescendantAdded:Connect(function(part)
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
     end
 end)
 
