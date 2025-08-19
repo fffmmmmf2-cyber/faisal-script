@@ -2,37 +2,35 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تضيف اسم تحت العنصر
-local function addLabel(obj)
-    if obj:IsA("GuiObject") then
-        -- لو فيه لابل قديم نحذفه عشان ما يتكرر
-        if obj:FindFirstChild("GuiNameLabel") then
-            obj.GuiNameLabel:Destroy()
-        end
+-- دالة تضيف TextLabel تحت العنصر
+local function addLabel(guiObject)
+    if guiObject:IsA("GuiObject") then
+        -- نتأكد ما فيه لابل مكرر
+        if guiObject:FindFirstChild("GuiNameLabel") then return end
 
         local label = Instance.new("TextLabel")
         label.Name = "GuiNameLabel"
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.Position = UDim2.new(0, 0, 1, 0)
-        label.Text = obj.Name
+        label.Text = guiObject.Name
         label.TextScaled = true
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.BackgroundTransparency = 1
-        label.Parent = obj
-
-        -- لو الاسم تغير يحدث تلقائي
-        obj:GetPropertyChangedSignal("Name"):Connect(function()
-            label.Text = obj.Name
-        end)
+        label.Size = UDim2.new(1, 0, 0, 12) -- صغير مره
+        label.Position = UDim2.new(0, 0, 1, 0) -- تحت العنصر
+        label.Parent = guiObject
     end
 end
 
--- يمر على كل العناصر الحالية
-for _, gui in pairs(playerGui:GetDescendants()) do
-    addLabel(gui)
+-- نمشي على كل العناصر الموجودة
+local function scanGui(parent)
+    for _, child in ipairs(parent:GetChildren()) do
+        addLabel(child)
+        scanGui(child)
+    end
 end
 
--- يراقب أي عنصر GUI جديد يضاف
-playerGui.DescendantAdded:Connect(function(obj)
-    addLabel(obj)
+scanGui(playerGui)
+
+-- أي عنصر جديد يضاف له لابل
+playerGui.DescendantAdded:Connect(function(child)
+    addLabel(child)
 end)
