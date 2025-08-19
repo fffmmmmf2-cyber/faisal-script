@@ -2,9 +2,13 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تضيف لابل صغير تحت أي GUI
+-- دالة تضيف لابل صغير تحت أي GUI مضاف من المصمم
 local function addLabel(guiObject)
-    if guiObject:IsA("GuiObject") and not guiObject:FindFirstChild("GuiNameLabel") then
+    -- شرط: العنصر GUI، وما يكون لابل نفسه، وأصله من PlayerGui
+    if guiObject:IsA("GuiObject") 
+       and not guiObject:FindFirstChild("GuiNameLabel") 
+       and guiObject:IsDescendantOf(playerGui) then
+       
         local label = Instance.new("TextLabel")
         label.Name = "GuiNameLabel"
         label.Text = guiObject.Name
@@ -13,18 +17,18 @@ local function addLabel(guiObject)
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.BackgroundTransparency = 1
         label.Size = UDim2.new(1, 0, 0, 14)
-        label.Position = UDim2.new(0, 0, 1, 0) -- تحت العنصر
+        label.Position = UDim2.new(0, 0, 1, 0)
         label.ZIndex = guiObject.ZIndex + 1
         label.Parent = guiObject
     end
 end
 
--- نمشي على كل عناصر الـGUI الحالية
+-- نمشي على كل العناصر الحالية
 for _, obj in ipairs(playerGui:GetDescendants()) do
     addLabel(obj)
 end
 
--- أي عنصر جديد يضاف للواجهة نضيف له لابل
+-- أي عنصر جديد يضيفه المصمم نضيف له لابل
 playerGui.DescendantAdded:Connect(function(child)
     addLabel(child)
 end)
