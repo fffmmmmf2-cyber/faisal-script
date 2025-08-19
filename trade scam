@@ -9,12 +9,13 @@ local function addLabelsToGui(gui)
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(1, 0, 0, 20)
             label.Position = UDim2.new(0, 0, 1, 0)
-            label.Text = obj.Name
+            label.Text = obj.Name -- يكتب اسم العنصر فقط
             label.TextScaled = true
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
             label.BackgroundTransparency = 1
             label.Parent = obj
 
-            task.wait(0.05) -- عشان ما يعلق
+            task.wait(0.05) -- انتظار بسيط عشان ما يعلق
         end
     end
 end
