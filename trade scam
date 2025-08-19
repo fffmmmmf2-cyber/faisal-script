@@ -2,39 +2,29 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- الأنواع اللي نبي نسوي لها لابل
-local allowed = {
-    Frame = true,
-    TextButton = true,
-    ImageButton = true,
-    TextLabel = true,
-    ImageLabel = true,
-    ScrollingFrame = true,
-    ViewportFrame = true,
-}
-
--- دالة تضيف لابل تحت العنصر
-local function addLabel(guiObject)
-    if allowed[guiObject.ClassName] and not guiObject:FindFirstChild("GuiNameLabel") then
+-- دالة تضيف لابل صغير وواضح تحت TextButton
+local function addLabel(button)
+    if button:IsA("TextButton") and not button:FindFirstChild("GuiNameLabel") then
         local label = Instance.new("TextLabel")
         label.Name = "GuiNameLabel"
-        label.Text = guiObject.Name
-        label.TextScaled = true
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Text = button.Name
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 14 -- حجم صغير وواضح
+        label.TextColor3 = Color3.fromRGB(255, 255, 255) -- أبيض
         label.BackgroundTransparency = 1
-        label.Size = UDim2.new(1, 0, 0, 12)
-        label.Position = UDim2.new(0, 0, 1, 0) -- تحت العنصر
-        label.ZIndex = 10
-        label.Parent = guiObject
+        label.Size = UDim2.new(1, 0, 0, 14) -- صغير مره
+        label.Position = UDim2.new(0, 0, 1, 0) -- تحت الزر
+        label.ZIndex = button.ZIndex + 1 -- يطلع فوق الزر
+        label.Parent = button
     end
 end
 
--- يمشي على كل العناصر الحالية
-for _, child in ipairs(playerGui:GetDescendants()) do
-    addLabel(child)
+-- نمشي على كل الأزرار الموجودة الآن
+for _, button in ipairs(playerGui:GetDescendants()) do
+    addLabel(button)
 end
 
--- أي عنصر جديد يضاف له لابل
+-- أي زر جديد يضاف للواجهة نضيف له لابل
 playerGui.DescendantAdded:Connect(function(child)
     addLabel(child)
 end)
