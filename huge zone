@@ -11,37 +11,35 @@ local enlargedParts = {}
 local function enlargeZone(part)
     if part and part:IsA("BasePart") and not enlargedParts[part] then
         part.Size = part.Size * 10 -- تكبير 10 مرات
-        enlargedParts[part] = true -- نسجل أنه تم تكبيره
+        enlargedParts[part] = true
     end
 end
 
--- مراقبة كل الأجزاء الجديدة المضافة
-Workspace.DescendantAdded:Connect(function(part)
-    if part.Name == "Zone" and part:IsA("BasePart") then
-        enlargeZone(part)
+-- فحص كل الـZone الموجودة باستمرار كل ثانية
+spawn(function()
+    while true do
+        for _, part in pairs(Workspace:GetDescendants()) do
+            if part.Name == "Zone" and part:IsA("BasePart") then
+                enlargeZone(part)
+            end
+        end
+        wait(1) -- يفحص كل ثانية
     end
 end)
-
--- فحص الأجزاء الموجودة مسبقًا عند بداية اللعبة
-for _, part in pairs(Workspace:GetDescendants()) do
-    if part.Name == "Zone" and part:IsA("BasePart") then
-        enlargeZone(part)
-    end
-end
 
 -- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FaisalCreditGUI"
 screenGui.Parent = playerGui
 
--- إنشاء TextLabel ثابت على اليسار أعلى الشاشة
+-- إنشاء TextLabel صغير يسار أعلى الشاشة
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 150, 0, 30) -- صغير نسبيًا
-textLabel.Position = UDim2.new(0, 10, 0, 10) -- يسار أعلى الشاشة
+textLabel.Size = UDim2.new(0, 120, 0, 20) -- صغير وأنيق
+textLabel.Position = UDim2.new(0, 10, 0, 10) -- يسار فوق
 textLabel.BackgroundTransparency = 1
-textLabel.Text = "Created by Faisal"
-textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- أبيض
-textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- حدود سوداء
+textLabel.Text = "Created by Faisal Script"
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 textLabel.TextStrokeTransparency = 0
 textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextScaled = true
