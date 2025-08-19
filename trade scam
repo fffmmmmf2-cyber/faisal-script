@@ -2,38 +2,26 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تضيف TextLabel أسفل أي عنصر GUI
-local function addNameLabel(guiObject)
-    if guiObject:IsA("GuiObject") and not guiObject:FindFirstChild("NameLabel") then
-        local label = Instance.new("TextLabel")
-        label.Name = "NameLabel"
-        label.Text = guiObject.Name
-        label.Size = UDim2.new(1, 0, 0, 20)  -- عرض نفس عنصر GUI وارتفاع 20
-        label.Position = UDim2.new(0, 0, 1, 0)  -- أسفل العنصر
-        label.BackgroundTransparency = 0.5
-        label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextScaled = true
-        label.Parent = guiObject
-    end
-end
-
--- دالة تفحص كل عناصر GUI عند اللاعب
-local function scanGUI(parent)
-    for _, obj in pairs(parent:GetChildren()) do
+-- دالة تضيف اسم لكل GUI
+local function addLabelsToGui(gui)
+    for _, obj in pairs(gui:GetDescendants()) do
         if obj:IsA("GuiObject") then
-            addNameLabel(obj)
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 0, 20)
+            label.Position = UDim2.new(0, 0, 1, 0)
+            label.Text = obj.Name
+            label.TextScaled = true
+            label.BackgroundTransparency = 1
+            label.Parent = obj
+
+            task.wait(0.05) -- عشان ما يعلق
         end
-        -- استدعاء دالة البحث بشكل متكرر في كل الأطفال
-        scanGUI(obj)
     end
 end
 
--- تشغيل أول مرة
-scanGUI(playerGui)
-
--- لو ظهر GUI جديد أثناء اللعب
-playerGui.ChildAdded:Connect(function(child)
-    wait(0.1)
-    scanGUI(child)
-end)
+-- يمر على كل ScreenGui
+for _, gui in pairs(playerGui:GetChildren()) do
+    if gui:IsA("ScreenGui") then
+        addLabelsToGui(gui)
+    end
+end
