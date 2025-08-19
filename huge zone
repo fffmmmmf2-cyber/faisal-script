@@ -1,83 +1,43 @@
+-- خدمات
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local function markAndEnlarge(part)
-	if not part or not part:IsA("BasePart") then return end
-	if part:GetAttribute("Faisal_Enlarged") then return end
-	part:SetAttribute("Faisal_Enlarged", true)
-	part.Size = part.Size * 10
+-- دالة تكبر أي Zone جديدة فور ظهورها
+local function enlargeZone(part)
+    if part and part:IsA("BasePart") then
+        part.Size = part.Size * 10 -- تكبير 10 مرات
+    end
 end
 
-local function tryEnlarge(target)
-	if not target then return end
-	if target:IsA("BasePart") and target.Name == "Zone" then
-		markAndEnlarge(target)
-	elseif target:IsA("Model") or target:IsA("Folder") then
-		for _, d in ipairs(target:GetDescendants()) do
-			if d:IsA("BasePart") and d.Name == "Zone" then
-				markAndEnlarge(d)
-			end
-		end
-	end
+-- فحص كل الـZone الموجودة عند بداية اللعبة
+for _, part in pairs(Workspace:GetDescendants()) do
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
+    end
 end
 
-for _, d in ipairs(Workspace:GetDescendants()) do
-	if d:IsA("BasePart") and d.Name == "Zone" then
-		markAndEnlarge(d)
-	end
-end
-
-Workspace.DescendantAdded:Connect(function(inst)
-	-- لو البارت يجي باسم ثاني ثم يصير Zone لاحقاً
-	if inst:IsA("BasePart") then
-		if inst.Name == "Zone" then
-			markAndEnlarge(inst)
-		else
-			inst:GetPropertyChangedSignal("Name"):Connect(function()
-				if inst.Name == "Zone" then
-					markAndEnlarge(inst)
-				end
-			end)
-		end
-	end
-	-- لو يجي داخل موديل
-	tryEnlarge(inst)
+-- مراقبة كل الأجزاء الجديدة في Workspace باستمرار
+Workspace.DescendantAdded:Connect(function(part)
+    if part.Name == "Zone" and part:IsA("BasePart") then
+        enlargeZone(part)
+    end
 end)
 
--- فحص خفيف جداً كشبكة أمان (كل 0.25ث)
-task.spawn(function()
-	while true do
-		for _, d in ipairs(Workspace:GetDescendants()) do
-			if d:IsA("BasePart") and d.Name == "Zone" then
-				if not d:GetAttribute("Faisal_Enlarged") then
-					markAndEnlarge(d)
-				end
-			end
-		end
-		task.wait(0.25)
-	end
-end)
-
-local old = playerGui:FindFirstChild("FaisalCreditGUI")
-if old then old:Destroy() end
-
+-- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FaisalCreditGUI"
-screenGui.IgnoreGuiInset = true
-screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+-- إنشاء TextLabel صغير يسار أعلى الشاشة
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(0, 120, 0, 20)
 textLabel.Position = UDim2.new(0, 10, 0, 10)
 textLabel.BackgroundTransparency = 1
 textLabel.Text = "Created by Faisal Script"
-textLabel.TextColor3 = Color3.fromRGB(255,255,255)
-textLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 textLabel.TextStrokeTransparency = 0
 textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextScaled = true
