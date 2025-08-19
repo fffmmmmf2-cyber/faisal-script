@@ -2,41 +2,56 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تتحقق إذا ScreenGui من الماب (المصمم)
-local function isDesignerGui(guiObject)
-    local screen = guiObject:FindFirstAncestorWhichIsA("ScreenGui")
-    if screen and screen.Parent == playerGui then
-        return true
-    end
-    return false
-end
-
--- دالة تضيف لابل صغير تحت العنصر
-local function addLabel(guiObject)
-    if guiObject:IsA("GuiObject") 
-       and not guiObject:FindFirstChild("GuiNameLabel") 
-       and isDesignerGui(guiObject) then
-       
-        local label = Instance.new("TextLabel")
-        label.Name = "GuiNameLabel"
-        label.Text = guiObject.Name
-        label.Font = Enum.Font.SourceSans
-        label.TextSize = 14
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.BackgroundTransparency = 1
-        label.Size = UDim2.new(1, 0, 0, 14)
-        label.Position = UDim2.new(0, 0, 1, 0) -- تحت العنصر
-        label.ZIndex = guiObject.ZIndex + 1
-        label.Parent = guiObject
-    end
-end
-
--- امشي على كل العناصر الحالية داخل GUIs المصممة
+-- جمع كل عناصر GUI المصممة من الماب
+local guis = {}
 for _, obj in ipairs(playerGui:GetDescendants()) do
-    addLabel(obj)
+    if obj:IsA("GuiObject") and obj:FindFirstAncestorWhichIsA("ScreenGui") and obj:FindFirstAncestorWhichIsA("ScreenGui").Parent == playerGui then
+        table.insert(guis, obj)
+    end
 end
 
--- أي عنصر جديد يظهر داخل GUIs المصممة نضيف له لابل
-playerGui.DescendantAdded:Connect(function(child)
-    addLabel(child)
+-- دالة تضيف لابل تحت العنصر
+local function createLabel(guiObject)
+    local label = Instance.new("TextLabel")
+    label.Name = "GuiNameLabel"
+    label.Text = guiObject.Name
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 0, 14)
+    label.Position = UDim2.new(0, 0, 1, 0)
+    label.ZIndex = guiObject.ZIndex + 1
+    label.Parent = guiObject
+    return label
+end
+
+-- نقسم الجدول على رُباع
+local function splitIntoQuarters(tbl)
+    local quarters = {}
+    local quarterSize = math.ceil(#tbl / 4)
+    for i = 1, #tbl, quarterSize do
+        table.insert(quarters, {unpack(tbl, i, math.min(i + quarterSize - 1, #tbl))})
+    end
+    return quarters
+end
+
+local quarters = splitIntoQuarters(guis)
+
+-- تبدأ الحلقة
+spawn(function()
+    while true do
+        for _, quarter in ipairs(quarters) do
+            local labels = {}
+            -- نعرض الأسماء
+            for _, gui in ipairs(quarter) do
+                table.insert(labels, createLabel(gui))
+            end
+            wait(5)
+            -- نخفي الأسماء
+            for _, label in ipairs(labels) do
+                label:Destroy()
+            end
+        end
+    end
 end)
