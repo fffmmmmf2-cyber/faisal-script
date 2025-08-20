@@ -20,8 +20,8 @@ screenGui.Parent = playerGui
 -- الدائرة  
 local circle = Instance.new("Frame")  
 circle.Size = UDim2.new(0, 40, 0, 40)
--- رفع أكثر (0.35) وتحريك شوي يسار (-70)
-circle.Position = UDim2.new(1, -70, 0.35, -20) 
+-- رفع شوي (0.45) وتحريك شوي يسار (-70 بدل -50)
+circle.Position = UDim2.new(1, -70, 0.45, -20) 
 circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء  
 circle.BorderSizePixel = 0  
 circle.Parent = screenGui  
@@ -31,7 +31,7 @@ local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(1, 0)  
 uiCorner.Parent = circle  
 
--- التشييك المستمر مع فترة راحة قصيرة 0.02 ثانية
+-- التشييك كل 0.1 ثانية  
 task.spawn(function()
 	while true do
 		local isClose = false  
@@ -39,7 +39,7 @@ task.spawn(function()
 		for _, part in ipairs(Workspace:GetDescendants()) do  
 			if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
 				local distance = (part.Position - hrp.Position).Magnitude  
-				if distance <= 30 then  -- مسافة 30 ستود
+				if distance <= 30 then  -- تم تعديل المسافة من 40 إلى 30 ستود
 					isClose = true  
 					break  
 				end  
@@ -52,6 +52,6 @@ task.spawn(function()
 			circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
 		end  
 
-		task.wait(0.02) -- فترة راحة قصيرة
+		task.wait(0.1) -- استراحة خفيفة
 	end
 end)
