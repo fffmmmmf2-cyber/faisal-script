@@ -38,7 +38,7 @@ task.spawn(function()
 		for _, part in ipairs(Workspace:GetDescendants()) do  
 			if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
 				local distance = (part.Position - hrp.Position).Magnitude  
-				if distance <= 15 then  
+				if distance <= 40 then  -- تم تعديل المسافة من 15 إلى 40 ستود
 					isClose = true  
 					break  
 				end  
