@@ -5,40 +5,62 @@ local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local playerGui = player:WaitForChild("PlayerGui")
 
--- إنشاء واجهة بسيطة
+-- إنشاء ScreenGui صغير في يمين الشاشة
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 
-local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(0, 200, 0, 50)
-textLabel.Position = UDim2.new(0.5, -100, 0, 50)
-textLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-textLabel.TextScaled = true
-textLabel.Text = "في الانتظار..."
-textLabel.Parent = screenGui
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 150, 0, 80) -- صغير
+frame.Position = UDim2.new(1, -160, 0.5, -40) -- على اليمين بالضبط
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
--- دالة تتحقق إذا الاسم كله أرقام
-local function isNumberName(str)
-    return tonumber(str) ~= nil
-end
+-- TextLabel لكتابة القريب / البعيد
+local distanceLabel = Instance.new("TextLabel")
+distanceLabel.Size = UDim2.new(1, -10, 0, 40)
+distanceLabel.Position = UDim2.new(0, 5, 0, 5)
+distanceLabel.BackgroundTransparency = 1
+distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+distanceLabel.TextScaled = true
+distanceLabel.Text = "في الانتظار..."
+distanceLabel.Parent = frame
+
+-- TextLabel لكتابة عدد بارتات Ball
+local countLabel = Instance.new("TextLabel")
+countLabel.Size = UDim2.new(1, -10, 0, 30)
+countLabel.Position = UDim2.new(0, 5, 0, 45)
+countLabel.BackgroundTransparency = 1
+countLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+countLabel.TextScaled = true
+countLabel.Text = "عدد Ball: 0"
+countLabel.Parent = frame
 
 RunService.RenderStepped:Connect(function()
     local foundClose = false
+    local ballCount = 0
 
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and isNumberName(part.Name) then
+        if part:IsA("BasePart") then
+            -- يفحص القرب (15 ستود) لأقرب بارت رقمي
             local distance = (part.Position - hrp.Position).Magnitude
             if distance <= 15 then
                 foundClose = true
-                break -- أول بارت قريب يكفي
+            end
+
+            -- يحسب البارتات اسمها Ball أو ball
+            if part.Name:lower() == "ball" then
+                ballCount = ballCount + 1
             end
         end
     end
 
+    -- تحديث النصوص
     if foundClose then
-        textLabel.Text = "قريب"
+        distanceLabel.Text = "قريب"
     else
-        textLabel.Text = "بعيد"
+        distanceLabel.Text = "بعيد"
     end
+
+    countLabel.Text = "عدد Ball: "..ballCount
 end)
