@@ -1,51 +1,49 @@
-local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local playerGui = player:WaitForChild("PlayerGui")
 
-local function addNameLabel(part)
-	if not part:IsA("BasePart") then return end
-	if part:FindFirstChild("NameBillboard") then return end
+-- إنشاء واجهة بسيطة
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = playerGui
 
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "NameBillboard"
-	billboard.Adornee = part
-	billboard.AlwaysOnTop = true
-	billboard.Size = UDim2.new(0, 70, 0, 14)
-	billboard.MaxDistance = 200
-	billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1, 0)
-	billboard.Parent = part
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(0, 200, 0, 50)
+textLabel.Position = UDim2.new(0.5, -100, 0, 50)
+textLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextScaled = true
+textLabel.Text = "في الانتظار..."
+textLabel.Parent = screenGui
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamSemibold
-	label.Text = part.Name
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.4
-	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-	label.Parent = billboard
-
-	part.Destroying:Connect(function()
-		if billboard then billboard:Destroy() end
-	end)
+-- دالة تتحقق إذا الاسم كله أرقام
+local function isNumberName(str)
+    return tonumber(str) ~= nil
 end
 
--- نضيف كل البارتات الموجودة
-for _, d in ipairs(Workspace:GetDescendants()) do
-	addNameLabel(d)
-end
+RunService.RenderStepped:Connect(function()
+    local closestPart = nil
+    local closestDistance = math.huge
 
-Workspace.DescendantAdded:Connect(addNameLabel)
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and isNumberName(part.Name) then
+            local distance = (part.Position - hrp.Position).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPart = part
+            end
+        end
+    end
 
--- تحديث النصوص كل ثانية بدون تكرار الـBillboard
-while true do
-	for _, part in ipairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") and part:FindFirstChild("NameBillboard") then
-			local label = part.NameBillboard:FindFirstChildOfClass("TextLabel")
-			if label then
-				label.Text = part.Name
-			end
-		end
-	end
-	wait(1)
-end
+    if closestPart then
+        if closestDistance <= 15 then
+            textLabel.Text = "البارت قريب"
+        else
+            textLabel.Text = "البارت بعيد"
+        end
+    else
+        textLabel.Text = "لا يوجد بارت مناسب"
+    end
+end)
