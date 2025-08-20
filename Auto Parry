@@ -1,56 +1,38 @@
-local Players = game:GetService("Players")  
-local Workspace = game:GetService("Workspace")  
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local playerGui = player:WaitForChild("PlayerGui")
 
-local player = Players.LocalPlayer  
-local character = player.Character or player.CharacterAdded:Wait()  
-local hrp = character:WaitForChild("HumanoidRootPart")  
-local playerGui = player:WaitForChild("PlayerGui")  
+-- دالة تتحقق إذا الاسم رقم بين 10 و1000
+local function isBall(part)
+	local num = tonumber(part.Name)
+	if not num then return false end
+	return num >= 10 and num <= 1000
+end
 
--- دالة تتحقق إذا الاسم رقم بين 10 و1000  
-local function isEligibleNumberName(name)  
-	local num = tonumber(name)  
-	if not num then return false end  
-	return num >= 10 and num <= 1000  
-end  
+-- دالة تضغط أي زر أو TextButton اسمه Parry أو Block
+local function pressParryBlock()
+	for _, gui in ipairs(playerGui:GetDescendants()) do
+		if gui:IsA("TextButton") and (gui.Name:lower() == "parry" or gui.Name:lower() == "block") then
+			gui:Activate() -- يضغط الزر
+		end
+	end
+end
 
--- واجهة بسيطة  
-local screenGui = Instance.new("ScreenGui")  
-screenGui.Parent = playerGui  
-
--- الدائرة  
-local circle = Instance.new("Frame")  
-circle.Size = UDim2.new(0, 25, 0, 25)  -- حجم أصغر
-circle.Position = UDim2.new(1, -60, 0.32, -12)  -- نزّلها قليل وحركها يمين قليل
-circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء  
-circle.BorderSizePixel = 0  
-circle.Parent = screenGui  
-
--- نخليها شكل دائري  
-local uiCorner = Instance.new("UICorner")  
-uiCorner.CornerRadius = UDim.new(1, 0)  
-uiCorner.Parent = circle  
-
--- التشييك كل 0.1 ثانية  
+-- الفحص المستمر
 task.spawn(function()
 	while true do
-		local isClose = false  
-
-		for _, part in ipairs(Workspace:GetDescendants()) do  
-			if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
-				local distance = (part.Position - hrp.Position).Magnitude  
-				if distance <= 30 then  
-					isClose = true  
-					break  
-				end  
-			end  
-		end  
-
-		if isClose then  
-			circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر  
-		else  
-			circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
-		end  
-
-		task.wait(0.1)
+		for _, part in ipairs(Workspace:GetDescendants()) do
+			if part:IsA("BasePart") and isBall(part) then
+				local distance = (part.Position - hrp.Position).Magnitude
+				if distance <= 30 then
+					pressParryBlock() -- إذا الكورة قريب، نفعل الباري
+					break
+				end
+			end
+		end
+		task.wait(0.02) -- فحص سريع
 	end
 end)
