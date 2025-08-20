@@ -2,14 +2,25 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- شاشة نعرض فيها الأسماء
+-- شاشة الأسماء
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "GuiNames"
 screenGui.Parent = playerGui
 
--- دالة تضيف اسم فوق أي عنصر GUI
+-- دالة تتحقق إذا الاسم فيه a/b/c/d/p
+local function hasWantedLetters(name)
+	name = string.lower(name) -- نخليها صغيرة عشان نتحقق صح
+	return string.find(name, "a") 
+		or string.find(name, "b") 
+		or string.find(name, "c") 
+		or string.find(name, "d") 
+		or string.find(name, "p")
+end
+
+-- دالة تضيف اسم
 local function addName(gui)
 	if not gui:IsA("GuiObject") then return end
+	if not hasWantedLetters(gui.Name) then return end
 	if screenGui:FindFirstChild("Name_" .. gui.Name) then return end
 
 	local label = Instance.new("TextLabel")
@@ -18,13 +29,14 @@ local function addName(gui)
 	label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
 	label.BackgroundTransparency = 1
 	label.Text = gui.Name
-	label.TextColor3 = Color3.fromRGB(0, 255, 0)
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
 	label.Font = Enum.Font.SourceSansBold
-	label.TextScaled = true
-	label.ZIndex = 9999 -- فوق كل شيء
+	label.TextScaled = false
+	label.TextSize = 10 -- 🔹 صغير مره
+	label.ZIndex = 9999
 	label.Parent = screenGui
 
-	-- يتحدث مكان الاسم إذا العنصر تحرك أو تغير حجمه
+	-- تحديث مكانه لو العنصر تحرك
 	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
 		label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
 	end)
@@ -33,7 +45,7 @@ local function addName(gui)
 	end)
 end
 
--- نضيف كل العناصر الموجودة
+-- نفحص كل شيء موجود
 local function scan(guiParent)
 	for _, gui in ipairs(guiParent:GetDescendants()) do
 		if gui:IsA("GuiObject") then
