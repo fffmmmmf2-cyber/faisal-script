@@ -1,66 +1,53 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local playerGui = player:WaitForChild("PlayerGui")
 
--- إنشاء ScreenGui صغير في يمين الشاشة
+-- دالة تتأكد إذا الاسم رقم بين 10 و1000
+local function isEligibleNumberName(name)
+	local num = tonumber(name)
+	if not num then return false end
+	return num >= 10 and num <= 1000
+end
+
+-- واجهة بسيطة
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 150, 0, 80) -- صغير
-frame.Position = UDim2.new(1, -160, 0.5, -40) -- على اليمين بالضبط
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+-- الدائرة
+local circle = Instance.new("Frame")
+circle.Size = UDim2.new(0, 40, 0, 40)
+circle.Position = UDim2.new(1, -50, 0.5, -20) -- يمين الشاشة
+circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء
+circle.BorderSizePixel = 0
+circle.Parent = screenGui
 
--- TextLabel لكتابة القريب / البعيد
-local distanceLabel = Instance.new("TextLabel")
-distanceLabel.Size = UDim2.new(1, -10, 0, 40)
-distanceLabel.Position = UDim2.new(0, 5, 0, 5)
-distanceLabel.BackgroundTransparency = 1
-distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-distanceLabel.TextScaled = true
-distanceLabel.Text = "في الانتظار..."
-distanceLabel.Parent = frame
+-- نخليها شكل دائري
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(1, 0)
+uiCorner.Parent = circle
 
--- TextLabel لكتابة عدد بارتات Ball
-local countLabel = Instance.new("TextLabel")
-countLabel.Size = UDim2.new(1, -10, 0, 30)
-countLabel.Position = UDim2.new(0, 5, 0, 45)
-countLabel.BackgroundTransparency = 1
-countLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-countLabel.TextScaled = true
-countLabel.Text = "عدد Ball: 0"
-countLabel.Parent = frame
-
+-- التشييك كل فريم
 RunService.RenderStepped:Connect(function()
-    local foundClose = false
-    local ballCount = 0
+	local isClose = false
 
-    for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") then
-            -- يفحص القرب (15 ستود) لأقرب بارت رقمي
-            local distance = (part.Position - hrp.Position).Magnitude
-            if distance <= 15 then
-                foundClose = true
-            end
+	for _, part in ipairs(Workspace:GetDescendants()) do
+		if part:IsA("BasePart") and isEligibleNumberName(part.Name) then
+			local distance = (part.Position - hrp.Position).Magnitude
+			if distance <= 15 then -- المسافة اللي تعتبر "قريب"
+				isClose = true
+				break
+			end
+		end
+	end
 
-            -- يحسب البارتات اسمها Ball أو ball
-            if part.Name:lower() == "ball" then
-                ballCount = ballCount + 1
-            end
-        end
-    end
-
-    -- تحديث النصوص
-    if foundClose then
-        distanceLabel.Text = "قريب"
-    else
-        distanceLabel.Text = "بعيد"
-    end
-
-    countLabel.Text = "عدد Ball: "..ballCount
+	if isClose then
+		circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر
+	else
+		circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر
+	end
 end)
