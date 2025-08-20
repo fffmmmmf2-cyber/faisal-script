@@ -9,7 +9,7 @@ screenGui.Parent = playerGui
 
 -- دالة تتحقق إذا الاسم فيه a/b/c/d/p
 local function hasWantedLetters(name)
-	name = string.lower(name) -- نخليها صغيرة عشان نتحقق صح
+	name = string.lower(name)
 	return string.find(name, "a") 
 		or string.find(name, "b") 
 		or string.find(name, "c") 
@@ -17,7 +17,7 @@ local function hasWantedLetters(name)
 		or string.find(name, "p")
 end
 
--- دالة تضيف اسم
+-- دالة تضيف اسم يسار العنصر
 local function addName(gui)
 	if not gui:IsA("GuiObject") then return end
 	if not hasWantedLetters(gui.Name) then return end
@@ -25,24 +25,25 @@ local function addName(gui)
 
 	local label = Instance.new("TextLabel")
 	label.Name = "Name_" .. gui.Name
-	label.Size = UDim2.new(0, gui.AbsoluteSize.X, 0, gui.AbsoluteSize.Y)
-	label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
+	label.Size = UDim2.new(0, 50, 0, 15) -- حجم صغير
 	label.BackgroundTransparency = 1
 	label.Text = gui.Name
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextColor3 = Color3.fromRGB(200, 200, 200) -- رمادي فاتح
 	label.Font = Enum.Font.SourceSansBold
 	label.TextScaled = false
-	label.TextSize = 10 -- 🔹 صغير مره
+	label.TextSize = 10
 	label.ZIndex = 9999
 	label.Parent = screenGui
 
-	-- تحديث مكانه لو العنصر تحرك
-	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-		label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
-	end)
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		label.Size = UDim2.new(0, gui.AbsoluteSize.X, 0, gui.AbsoluteSize.Y)
-	end)
+	-- تحديث مكانه يسار العنصر
+	local function updatePos()
+		local pos = gui.AbsolutePosition
+		label.Position = UDim2.fromOffset(pos.X - label.AbsoluteSize.X - 5, pos.Y + (gui.AbsoluteSize.Y/2) - (label.AbsoluteSize.Y/2))
+	end
+
+	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePos)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePos)
+	updatePos()
 end
 
 -- نفحص كل شيء موجود
