@@ -6,7 +6,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")  
 local playerGui = player:WaitForChild("PlayerGui")  
 
--- دالة تتأكد إذا الاسم رقم بين 10 و1000  
+-- دالة تتحقق إذا الاسم رقم بين 10 و1000  
 local function isEligibleNumberName(name)  
 	local num = tonumber(name)  
 	if not num then return false end  
@@ -19,8 +19,8 @@ screenGui.Parent = playerGui
 
 -- الدائرة  
 local circle = Instance.new("Frame")  
-circle.Size = UDim2.new(0, 25, 0, 25)  -- صغر الحجم من 40 إلى 25
-circle.Position = UDim2.new(1, -70, 0.3, -12)  -- رفع الدائرة أكثر (0.3) وتحريك جزئي لليسار
+circle.Size = UDim2.new(0, 25, 0, 25)  -- حجم أصغر
+circle.Position = UDim2.new(1, -60, 0.32, -12)  -- نزّلها قليل وحركها يمين قليل
 circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء  
 circle.BorderSizePixel = 0  
 circle.Parent = screenGui  
@@ -51,6 +51,6 @@ task.spawn(function()
 			circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
 		end  
 
-		task.wait(0.1) -- استراحة خفيفة
+		task.wait(0.1)
 	end
 end)
