@@ -1,9 +1,6 @@
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 
-local allParts = {}
-
--- دالة تضيف اسم فوق البارت
 local function addNameLabel(part)
 	if not part:IsA("BasePart") then return end
 	if part:FindFirstChild("NameBillboard") then return end
@@ -14,6 +11,7 @@ local function addNameLabel(part)
 	billboard.AlwaysOnTop = true
 	billboard.Size = UDim2.new(0, 70, 0, 14)
 	billboard.MaxDistance = 200
+	billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1, 0)
 	billboard.Parent = part
 
 	local label = Instance.new("TextLabel")
@@ -27,48 +25,27 @@ local function addNameLabel(part)
 	label.TextStrokeColor3 = Color3.new(0, 0, 0)
 	label.Parent = billboard
 
-	part:GetPropertyChangedSignal("Name"):Connect(function()
-		label.Text = part.Name
-	end)
-
 	part.Destroying:Connect(function()
 		if billboard then billboard:Destroy() end
-		allParts[part] = nil
 	end)
-
-	allParts[part] = {Part = part, Billboard = billboard, Label = label}
 end
 
--- تحديث ارتفاع الاسم فوق البارتات القريبة
-local function updatePositions()
-	local partsList = {}
-	for part,_ in pairs(allParts) do
-		table.insert(partsList, part)
-	end
-
-	for i, part in ipairs(partsList) do
-		if part and part.Parent then
-			local nearbyCount = 0
-			for j, other in ipairs(partsList) do
-				if other ~= part and (other.Position - part.Position).Magnitude <= 5 then
-					nearbyCount = nearbyCount + 1
-				end
-			end
-			local data = allParts[part]
-			if data then
-				data.Billboard.StudsOffset = Vector3.new(0, (part.Size.Y/2) + 1 + (nearbyCount * 0.5), 0)
-			end
-		end
-	end
-end
-
--- نضيف كل البارتات الموجودة أولاً
+-- نضيف كل البارتات الموجودة
 for _, d in ipairs(Workspace:GetDescendants()) do
 	addNameLabel(d)
 end
 
--- أي بارت جديد ينضاف
 Workspace.DescendantAdded:Connect(addNameLabel)
 
--- تحديث كل الإطارات
-RunService.Heartbeat:Connect(updatePositions)
+-- تحديث النصوص كل ثانية بدون تكرار الـBillboard
+while true do
+	for _, part in ipairs(Workspace:GetDescendants()) do
+		if part:IsA("BasePart") and part:FindFirstChild("NameBillboard") then
+			local label = part.NameBillboard:FindFirstChildOfClass("TextLabel")
+			if label then
+				label.Text = part.Name
+			end
+		end
+	end
+	wait(1)
+end
