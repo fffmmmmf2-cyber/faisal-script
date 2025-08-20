@@ -1,69 +1,52 @@
-local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- يتحقق إن الاسم عبارة عن رقم كامل ويتراوح بين 10 و 1000
-local function isEligibleNumberName(name)
-	local num = tonumber(name)
-	if not num then return false end
-	return num >= 10 and num <= 1000
-end
+-- شاشة نعرض فيها الأسماء
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "GuiNames"
+screenGui.Parent = playerGui
 
-local function addNameLabel(part)
-	if not part:IsA("BasePart") then return end
-	if not isEligibleNumberName(part.Name) then return end
-	if part:FindFirstChild("NameBillboard") then return end
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "NameBillboard"
-	billboard.Adornee = part
-	billboard.AlwaysOnTop = true
-	billboard.Size = UDim2.new(0, 70, 0, 14)
-	billboard.MaxDistance = 200
-	billboard.StudsOffset = Vector3.new(0, part.Size.Y/2 + 1, 0)
-	billboard.Parent = part
+-- دالة تضيف اسم فوق أي عنصر GUI
+local function addName(gui)
+	if not gui:IsA("GuiObject") then return end
+	if screenGui:FindFirstChild("Name_" .. gui.Name) then return end
 
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
+	label.Name = "Name_" .. gui.Name
+	label.Size = UDim2.new(0, gui.AbsoluteSize.X, 0, gui.AbsoluteSize.Y)
+	label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
 	label.BackgroundTransparency = 1
+	label.Text = gui.Name
+	label.TextColor3 = Color3.fromRGB(0, 255, 0)
+	label.Font = Enum.Font.SourceSansBold
 	label.TextScaled = true
-	label.Font = Enum.Font.GothamSemibold
-	label.Text = part.Name
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.4
-	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-	label.Parent = billboard
+	label.ZIndex = 9999 -- فوق كل شيء
+	label.Parent = screenGui
 
-	part.Destroying:Connect(function()
-		if billboard then billboard:Destroy() end
+	-- يتحدث مكان الاسم إذا العنصر تحرك أو تغير حجمه
+	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+		label.Position = UDim2.fromOffset(gui.AbsolutePosition.X, gui.AbsolutePosition.Y)
+	end)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		label.Size = UDim2.new(0, gui.AbsoluteSize.X, 0, gui.AbsoluteSize.Y)
 	end)
 end
 
--- أضف البيلبوردات للبارتات الحالية المؤهلة
-for _, d in ipairs(Workspace:GetDescendants()) do
-	addNameLabel(d)
-end
-
--- لو نزل بارت جديد يحط له بيلبورد اذا مؤهل
-Workspace.DescendantAdded:Connect(addNameLabel)
-
--- يحدث النصوص ويحسب عدد البارتات المؤهلة كل ثانية
-while true do
-	local count = 0
-	for _, part in ipairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") then
-			if isEligibleNumberName(part.Name) then
-				count = count + 1
-				if part:FindFirstChild("NameBillboard") then
-					local label = part.NameBillboard:FindFirstChildOfClass("TextLabel")
-					if label then
-						label.Text = part.Name
-					end
-				end
-			end
+-- نضيف كل العناصر الموجودة
+local function scan(guiParent)
+	for _, gui in ipairs(guiParent:GetDescendants()) do
+		if gui:IsA("GuiObject") then
+			addName(gui)
 		end
 	end
-
-	-- تطبع العدد في الـ Output
-	print("Eligible numeric parts (10..1000): " .. count)
-
-	task.wait(1)
 end
+
+scan(playerGui)
+
+-- أي عنصر جديد يضاف
+playerGui.DescendantAdded:Connect(function(gui)
+	if gui:IsA("GuiObject") then
+		addName(gui)
+	end
+end)
