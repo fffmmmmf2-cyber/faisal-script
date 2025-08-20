@@ -1,14 +1,15 @@
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
-local function isEligibleName(name)
-	-- اسم مكوّن من حروف وأرقام فقط + يحتوي على رقم واحد على الأقل
-	return name:match("^[A-Za-z0-9]+$") and name:match("%d") ~= nil
+-- يتحقق إن الاسم عبارة عن رقم كامل ويتراوح بين 10 و 1000
+local function isEligibleNumberName(name)
+	local num = tonumber(name)
+	if not num then return false end
+	return num >= 10 and num <= 1000
 end
 
 local function addNameLabel(part)
 	if not part:IsA("BasePart") then return end
-	if not isEligibleName(part.Name) then return end
+	if not isEligibleNumberName(part.Name) then return end
 	if part:FindFirstChild("NameBillboard") then return end
 
 	local billboard = Instance.new("BillboardGui")
@@ -36,21 +37,33 @@ local function addNameLabel(part)
 	end)
 end
 
+-- أضف البيلبوردات للبارتات الحالية المؤهلة
 for _, d in ipairs(Workspace:GetDescendants()) do
 	addNameLabel(d)
 end
 
+-- لو نزل بارت جديد يحط له بيلبورد اذا مؤهل
 Workspace.DescendantAdded:Connect(addNameLabel)
 
+-- يحدث النصوص ويحسب عدد البارتات المؤهلة كل ثانية
 while true do
+	local count = 0
 	for _, part in ipairs(Workspace:GetDescendants()) do
-		-- يحدث النص فقط إذا كان البارت مؤهل ومعه Billboard
-		if part:IsA("BasePart") and part:FindFirstChild("NameBillboard") and isEligibleName(part.Name) then
-			local label = part.NameBillboard:FindFirstChildOfClass("TextLabel")
-			if label then
-				label.Text = part.Name
+		if part:IsA("BasePart") then
+			if isEligibleNumberName(part.Name) then
+				count = count + 1
+				if part:FindFirstChild("NameBillboard") then
+					local label = part.NameBillboard:FindFirstChildOfClass("TextLabel")
+					if label then
+						label.Text = part.Name
+					end
+				end
 			end
 		end
 	end
+
+	-- تطبع العدد في الـ Output
+	print("Eligible numeric parts (10..1000): " .. count)
+
 	task.wait(1)
 end
