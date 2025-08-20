@@ -31,23 +31,27 @@ local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(1, 0)  
 uiCorner.Parent = circle  
 
--- التشييك المستمر بدون فترة انتظار
-RunService.RenderStepped:Connect(function()
-	local isClose = false  
+-- التشييك المستمر مع فترة راحة قصيرة 0.02 ثانية
+task.spawn(function()
+	while true do
+		local isClose = false  
 
-	for _, part in ipairs(Workspace:GetDescendants()) do  
-		if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
-			local distance = (part.Position - hrp.Position).Magnitude  
-			if distance <= 30 then  -- مسافة 30 ستود
-				isClose = true  
-				break  
+		for _, part in ipairs(Workspace:GetDescendants()) do  
+			if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
+				local distance = (part.Position - hrp.Position).Magnitude  
+				if distance <= 30 then  -- مسافة 30 ستود
+					isClose = true  
+					break  
+				end  
 			end  
 		end  
-	end  
 
-	if isClose then  
-		circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر  
-	else  
-		circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
-	end  
+		if isClose then  
+			circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر  
+		else  
+			circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
+		end  
+
+		task.wait(0.02) -- فترة راحة قصيرة
+	end
 end)
