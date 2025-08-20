@@ -1,26 +1,74 @@
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
--- دالة تضيف اسم فوق أي Part
-local function addNameAbove(part)
-	if part:IsA("BasePart") then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.new(0, 100, 0, 20)
-		billboard.Adornee = part
-		billboard.AlwaysOnTop = true
-		billboard.Parent = part
+local allParts = {}
 
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.BackgroundTransparency = 1
-		textLabel.TextScaled = true
-		textLabel.Font = Enum.Font.SourceSans
-		textLabel.Text = part.Name
-		textLabel.TextColor3 = Color3.new(1, 1, 1)
-		textLabel.Parent = billboard
+-- دالة تضيف اسم فوق البارت
+local function addNameLabel(part)
+	if not part:IsA("BasePart") then return end
+	if part:FindFirstChild("NameBillboard") then return end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "NameBillboard"
+	billboard.Adornee = part
+	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.new(0, 70, 0, 14)
+	billboard.MaxDistance = 200
+	billboard.Parent = part
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamSemibold
+	label.Text = part.Name
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.TextStrokeTransparency = 0.4
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.Parent = billboard
+
+	part:GetPropertyChangedSignal("Name"):Connect(function()
+		label.Text = part.Name
+	end)
+
+	part.Destroying:Connect(function()
+		if billboard then billboard:Destroy() end
+		allParts[part] = nil
+	end)
+
+	allParts[part] = {Part = part, Billboard = billboard, Label = label}
+end
+
+-- تحديث ارتفاع الاسم فوق البارتات القريبة
+local function updatePositions()
+	local partsList = {}
+	for part,_ in pairs(allParts) do
+		table.insert(partsList, part)
+	end
+
+	for i, part in ipairs(partsList) do
+		if part and part.Parent then
+			local nearbyCount = 0
+			for j, other in ipairs(partsList) do
+				if other ~= part and (other.Position - part.Position).Magnitude <= 5 then
+					nearbyCount = nearbyCount + 1
+				end
+			end
+			local data = allParts[part]
+			if data then
+				data.Billboard.StudsOffset = Vector3.new(0, (part.Size.Y/2) + 1 + (nearbyCount * 0.5), 0)
+			end
+		end
 	end
 end
 
--- نطبقها على كل البارتات الموجودة في الماب
-for _, part in ipairs(Workspace:GetDescendants()) do
-	addNameAbove(part)
+-- نضيف كل البارتات الموجودة أولاً
+for _, d in ipairs(Workspace:GetDescendants()) do
+	addNameLabel(d)
 end
+
+-- أي بارت جديد ينضاف
+Workspace.DescendantAdded:Connect(addNameLabel)
+
+-- تحديث كل الإطارات
+RunService.Heartbeat:Connect(updatePositions)
