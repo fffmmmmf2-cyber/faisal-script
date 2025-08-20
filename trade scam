@@ -1,77 +1,26 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
 
--- يجمع عناصر GUI المصممة من الماب
-local function collectGuis()
-    local list = {}
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if obj:IsA("GuiObject") and obj:FindFirstAncestorWhichIsA("ScreenGui") and obj:FindFirstAncestorWhichIsA("ScreenGui").Parent == playerGui then
-            table.insert(list, obj)
-        end
-    end
-    return list
+-- دالة تضيف اسم فوق أي Part
+local function addNameAbove(part)
+	if part:IsA("BasePart") then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 100, 0, 20)
+		billboard.Adornee = part
+		billboard.AlwaysOnTop = true
+		billboard.Parent = part
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.TextScaled = true
+		textLabel.Font = Enum.Font.SourceSans
+		textLabel.Text = part.Name
+		textLabel.TextColor3 = Color3.new(1, 1, 1)
+		textLabel.Parent = billboard
+	end
 end
 
-local guis = collectGuis()
-
--- دالة تضيف لابل داخل العنصر لو ما فيه واحد بالفعل
-local function createLabelIfMissing(guiObject)
-    if not guiObject or not guiObject:IsA("GuiObject") then return nil end
-    if guiObject:FindFirstChild("GuiNameLabel") then
-        return guiObject:FindFirstChild("GuiNameLabel")
-    end
-    local label = Instance.new("TextLabel")
-    label.Name = "GuiNameLabel"
-    label.Text = guiObject.Name
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 14
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.new(1, 0, 1, 0) -- جوا العنصر
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.ZIndex = guiObject.ZIndex + 1
-    label.LayoutOrder = 9999
-    label.Parent = guiObject
-    return label
+-- نطبقها على كل البارتات الموجودة في الماب
+for _, part in ipairs(Workspace:GetDescendants()) do
+	addNameAbove(part)
 end
-
--- لو ظهر عنصر جديد بعد التجميع نضيفه للقائمة تلقائي
-playerGui.DescendantAdded:Connect(function(child)
-    if child:IsA("GuiObject") and child:FindFirstAncestorWhichIsA("ScreenGui") and child:FindFirstAncestorWhichIsA("ScreenGui").Parent == playerGui then
-        table.insert(guis, child)
-    end
-end)
-
--- عرض الأسماء مجموعة مجموعة لكن بدون حذفها بعد العرض
-spawn(function()
-    if #guis == 0 then return end
-    local index = 1
-    local groupSize = 10 -- عدد كل مجموعة، تقدر تغيّره
-    local shownCount = 0
-    local total = #guis
-    local shownSet = {} -- يتذكر أي عناصر انعرضت بالفعل
-
-    while shownCount < total do
-        local shownThisRound = 0
-        for i = 1, groupSize do
-            local gui = guis[index]
-            index = index + 1
-            if index > #guis then index = 1 end
-
-            if gui and not shownSet[gui] then
-                createLabelIfMissing(gui)
-                shownSet[gui] = true
-                shownThisRound = shownThisRound + 1
-                shownCount = shownCount + 1
-                -- إذا انعرضنا كل العناصر نقدر نوقف
-                if shownCount >= total then break end
-            end
-        end
-
-        -- إذا ما انعرض شيء في هالجولة (مثلاً كلها انعرضت) نكسر
-        if shownThisRound == 0 then break end
-
-        wait(5) -- وقت ظهور كل مجموعة (تقدر تغيره)
-    end
-end)
