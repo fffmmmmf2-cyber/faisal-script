@@ -1,53 +1,56 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")  
+local Workspace = game:GetService("Workspace")  
 
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local playerGui = player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer  
+local character = player.Character or player.CharacterAdded:Wait()  
+local hrp = character:WaitForChild("HumanoidRootPart")  
+local playerGui = player:WaitForChild("PlayerGui")  
 
--- دالة تتأكد إذا الاسم رقم بين 10 و1000
-local function isEligibleNumberName(name)
-	local num = tonumber(name)
-	if not num then return false end
-	return num >= 10 and num <= 1000
-end
+-- دالة تتأكد إذا الاسم رقم بين 10 و1000  
+local function isEligibleNumberName(name)  
+	local num = tonumber(name)  
+	if not num then return false end  
+	return num >= 10 and num <= 1000  
+end  
 
--- واجهة بسيطة
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = playerGui
+-- واجهة بسيطة  
+local screenGui = Instance.new("ScreenGui")  
+screenGui.Parent = playerGui  
 
--- الدائرة
-local circle = Instance.new("Frame")
-circle.Size = UDim2.new(0, 40, 0, 40)
-circle.Position = UDim2.new(1, -50, 0.5, -20) -- يمين الشاشة
-circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء
-circle.BorderSizePixel = 0
-circle.Parent = screenGui
+-- الدائرة  
+local circle = Instance.new("Frame")  
+circle.Size = UDim2.new(0, 40, 0, 40)  
+circle.Position = UDim2.new(1, -50, 0.5, -20) -- يمين الشاشة  
+circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- تبدأ حمراء  
+circle.BorderSizePixel = 0  
+circle.Parent = screenGui  
 
--- نخليها شكل دائري
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(1, 0)
-uiCorner.Parent = circle
+-- نخليها شكل دائري  
+local uiCorner = Instance.new("UICorner")  
+uiCorner.CornerRadius = UDim.new(1, 0)  
+uiCorner.Parent = circle  
 
--- التشييك كل فريم
-RunService.RenderStepped:Connect(function()
-	local isClose = false
+-- التشييك كل 0.1 ثانية  
+task.spawn(function()
+	while true do
+		local isClose = false  
 
-	for _, part in ipairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") and isEligibleNumberName(part.Name) then
-			local distance = (part.Position - hrp.Position).Magnitude
-			if distance <= 15 then -- المسافة اللي تعتبر "قريب"
-				isClose = true
-				break
-			end
-		end
-	end
+		for _, part in ipairs(Workspace:GetDescendants()) do  
+			if part:IsA("BasePart") and isEligibleNumberName(part.Name) then  
+				local distance = (part.Position - hrp.Position).Magnitude  
+				if distance <= 15 then  
+					isClose = true  
+					break  
+				end  
+			end  
+		end  
 
-	if isClose then
-		circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر
-	else
-		circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر
+		if isClose then  
+			circle.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- أخضر  
+		else  
+			circle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- أحمر  
+		end  
+
+		task.wait(0.1) -- استراحة خفيفة
 	end
 end)
