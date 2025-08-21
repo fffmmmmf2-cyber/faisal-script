@@ -5,18 +5,31 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local Workspace = game:GetService("Workspace")
 local playerGui = player:WaitForChild("PlayerGui")
 
--- انتبه، هذا يفترض أن الزر موجود في GUI اللاعب
-local blockerButton = playerGui:FindFirstChild("BLOCKER", true) -- يبحث داخل كل GUI
-
 local triggerDistance = 30 -- المسافة للتفعيل
 
+-- دالة للتحقق إذا الاسم رقم من 10 إلى 1000
 local function isNumberName(name)
     local num = tonumber(name)
     return num and num >= 10 and num <= 1000
 end
 
+-- دالة لإيجاد أي زر اسمه BLOCKER أو block داخل PlayerGui
+local function findBlockerButton()
+    for _, guiObject in pairs(playerGui:GetDescendants()) do
+        if guiObject:IsA("GuiButton") then
+            local lowerName = guiObject.Name:lower()
+            if lowerName == "blocker" or lowerName == "block" then
+                return guiObject
+            end
+        end
+    end
+    return nil
+end
+
 game:GetService("RunService").RenderStepped:Connect(function()
+    local blockerButton = findBlockerButton()
     if not blockerButton then return end
+
     for _, part in pairs(Workspace:GetDescendants()) do
         if part:IsA("BasePart") and isNumberName(part.Name) then
             local distance = (hrp.Position - part.Position).Magnitude
