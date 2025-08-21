@@ -1,65 +1,46 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
 
--- شاشة الأسماء
+-- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GuiNames"
+screenGui.Name = "RemoteEventsViewer"
 screenGui.Parent = playerGui
 
--- دالة تتحقق إذا الاسم فيه a/b/c/d/p
-local function hasWantedLetters(name)
-	name = string.lower(name)
-	return string.find(name, "a") 
-		or string.find(name, "b") 
-		or string.find(name, "c") 
-		or string.find(name, "d") 
-		or string.find(name, "p")
+-- إنشاء ScrollFrame يغطي الشاشة كاملة
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, 0) -- يغطي كامل الشاشة
+scrollFrame.Position = UDim2.new(0, 0, 0, 0)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- أزرق
+scrollFrame.BackgroundTransparency = 0.5 -- نصف شفاف
+scrollFrame.ScrollBarThickness = 10
+scrollFrame.Parent = screenGui
+
+-- إنشاء UIListLayout لترتيب العناصر تحت بعض
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 5)
+listLayout.Parent = scrollFrame
+
+-- دالة لإضافة أسماء RemoteEvents
+local function addRemoteNames(parent)
+    for _, obj in pairs(parent:GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 0, 25)
+            textLabel.BackgroundTransparency = 0.5
+            textLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textLabel.Font = Enum.Font.SourceSans
+            textLabel.TextSize = 18
+            textLabel.Text = obj.Name
+            textLabel.Parent = scrollFrame
+        end
+    end
+    -- تحديث حجم الـ ScrollFrame حسب عدد العناصر
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
 end
 
--- دالة تضيف اسم يسار العنصر
-local function addName(gui)
-	if not gui:IsA("GuiObject") then return end
-	if not hasWantedLetters(gui.Name) then return end
-	if screenGui:FindFirstChild("Name_" .. gui.Name) then return end
-
-	local label = Instance.new("TextLabel")
-	label.Name = "Name_" .. gui.Name
-	label.Size = UDim2.new(0, 50, 0, 15) -- حجم صغير
-	label.BackgroundTransparency = 1
-	label.Text = gui.Name
-	label.TextColor3 = Color3.fromRGB(200, 200, 200) -- رمادي فاتح
-	label.Font = Enum.Font.SourceSansBold
-	label.TextScaled = false
-	label.TextSize = 10
-	label.ZIndex = 9999
-	label.Parent = screenGui
-
-	-- تحديث مكانه يسار العنصر
-	local function updatePos()
-		local pos = gui.AbsolutePosition
-		label.Position = UDim2.fromOffset(pos.X - label.AbsoluteSize.X - 5, pos.Y + (gui.AbsoluteSize.Y/2) - (label.AbsoluteSize.Y/2))
-	end
-
-	gui:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePos)
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePos)
-	updatePos()
-end
-
--- نفحص كل شيء موجود
-local function scan(guiParent)
-	for _, gui in ipairs(guiParent:GetDescendants()) do
-		if gui:IsA("GuiObject") then
-			addName(gui)
-		end
-	end
-end
-
-scan(playerGui)
-
--- أي عنصر جديد يضاف
-playerGui.DescendantAdded:Connect(function(gui)
-	if gui:IsA("GuiObject") then
-		addName(gui)
-	end
-end)
+-- ينادي الدالة على Workspace كله
+addRemoteNames(Workspace)
