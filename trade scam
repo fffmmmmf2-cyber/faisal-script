@@ -1,16 +1,15 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local Workspace = game:GetService("Workspace")
 
 -- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RemoteEventsViewer"
+screenGui.Name = "GUIViewer"
 screenGui.Parent = playerGui
 
 -- إنشاء ScrollFrame يغطي الشاشة كاملة
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, 0, 1, 0) -- يغطي كامل الشاشة
+scrollFrame.Size = UDim2.new(1, 0, 1, 0) -- كامل الشاشة
 scrollFrame.Position = UDim2.new(0, 0, 0, 0)
 scrollFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- أزرق
 scrollFrame.BackgroundTransparency = 0.5 -- نصف شفاف
@@ -23,10 +22,10 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 5)
 listLayout.Parent = scrollFrame
 
--- دالة لإضافة أسماء RemoteEvents
-local function addRemoteNames(parent)
+-- دالة لإضافة كل اسم GUI حقيقي داخل PlayerGui
+local function addGuiNames(parent)
     for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("RemoteEvent") then
+        if obj:IsA("GuiObject") then
             local textLabel = Instance.new("TextLabel")
             textLabel.Size = UDim2.new(1, 0, 0, 25)
             textLabel.BackgroundTransparency = 0.5
@@ -38,9 +37,9 @@ local function addRemoteNames(parent)
             textLabel.Parent = scrollFrame
         end
     end
-    -- تحديث حجم الـ ScrollFrame حسب عدد العناصر
+    -- تحديث حجم ScrollFrame حسب عدد العناصر
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
 end
 
--- ينادي الدالة على Workspace كله
-addRemoteNames(Workspace)
+-- ينادي الدالة على PlayerGui كله
+addGuiNames(playerGui)
