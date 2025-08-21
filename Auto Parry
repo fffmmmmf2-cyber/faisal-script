@@ -13,28 +13,31 @@ local function isNumberName(name)
     return num and num >= 10 and num <= 1000
 end
 
--- دالة لإيجاد أي زر اسمه BLOCKER أو block داخل PlayerGui
-local function findBlockerButton()
+-- دالة لإيجاد كل الأزرار اللي اسمها BLOCKER أو block أو parry داخل PlayerGui
+local function findAllTargetButtons()
+    local buttons = {}
     for _, guiObject in pairs(playerGui:GetDescendants()) do
         if guiObject:IsA("GuiButton") then
             local lowerName = guiObject.Name:lower()
-            if lowerName == "blocker" or lowerName == "block" then
-                return guiObject
+            if lowerName == "blocker" or lowerName == "block" or lowerName == "parry" then
+                table.insert(buttons, guiObject)
             end
         end
     end
-    return nil
+    return buttons
 end
 
 game:GetService("RunService").RenderStepped:Connect(function()
-    local blockerButton = findBlockerButton()
-    if not blockerButton then return end
+    local buttons = findAllTargetButtons()
+    if #buttons == 0 then return end
 
     for _, part in pairs(Workspace:GetDescendants()) do
         if part:IsA("BasePart") and isNumberName(part.Name) then
             local distance = (hrp.Position - part.Position).Magnitude
             if distance <= triggerDistance then
-                blockerButton:Activate() -- يضغط الزر تلقائي
+                for _, btn in pairs(buttons) do
+                    btn:Activate() -- يضغط كل الأزرار تلقائي
+                end
             end
         end
     end
