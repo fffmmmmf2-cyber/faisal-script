@@ -4,28 +4,61 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- إنشاء ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GUIViewer"
+screenGui.Name = "MyGUIViewer"
 screenGui.Parent = playerGui
 
--- إنشاء ScrollFrame يغطي الشاشة كاملة
+-- مربع البحث
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(0, 300, 0, 30)
+searchBox.Position = UDim2.new(0, 50, 0, 20)
+searchBox.PlaceholderText = "ابحث هنا..."
+searchBox.ClearTextOnFocus = false
+searchBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+searchBox.Font = Enum.Font.SourceSans
+searchBox.TextSize = 18
+searchBox.Parent = screenGui
+
+-- ScrollFrame
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, 0, 1, 0) -- كامل الشاشة
-scrollFrame.Position = UDim2.new(0, 0, 0, 0)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- أزرق
-scrollFrame.BackgroundTransparency = 0.5 -- نصف شفاف
+scrollFrame.Size = UDim2.new(1, -100, 1, -70)
+scrollFrame.Position = UDim2.new(0, 50, 0, 60)
+scrollFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+scrollFrame.BackgroundTransparency = 0.5
 scrollFrame.ScrollBarThickness = 10
 scrollFrame.Parent = screenGui
 
--- إنشاء UIListLayout لترتيب العناصر تحت بعض
+-- UIListLayout
 local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 5)
 listLayout.Parent = scrollFrame
 
--- دالة لإضافة كل اسم GUI حقيقي داخل PlayerGui
+local allLabels = {}
+
+-- لائحة الـ Default GUI اللي نبي نستبعدها
+local defaultGUI = {
+    "Backpack",
+    "PlayerList",
+    "Chat",
+    "Health",
+    "PlayerScripts",
+    "RobloxGui"
+}
+
+local function isDefaultGui(name)
+    for _, v in pairs(defaultGUI) do
+        if name == v then
+            return true
+        end
+    end
+    return false
+end
+
+-- إضافة أسماء GUI غير الافتراضية
 local function addGuiNames(parent)
     for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("GuiObject") then
+        if obj:IsA("GuiObject") and not isDefaultGui(obj.Name) then
             local textLabel = Instance.new("TextLabel")
             textLabel.Size = UDim2.new(1, 0, 0, 25)
             textLabel.BackgroundTransparency = 0.5
@@ -35,11 +68,23 @@ local function addGuiNames(parent)
             textLabel.TextSize = 18
             textLabel.Text = obj.Name
             textLabel.Parent = scrollFrame
+            table.insert(allLabels, textLabel)
         end
     end
-    -- تحديث حجم ScrollFrame حسب عدد العناصر
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
 end
 
--- ينادي الدالة على PlayerGui كله
 addGuiNames(playerGui)
+
+-- فلترة البحث
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = searchBox.Text:lower()
+    for _, label in pairs(allLabels) do
+        if string.find(label.Text:lower(), query) then
+            label.Visible = true
+        else
+            label.Visible = false
+        end
+    end
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+end)
