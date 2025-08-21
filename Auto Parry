@@ -1,52 +1,28 @@
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
+local Workspace = game:GetService("Workspace")
 local playerGui = player:WaitForChild("PlayerGui")
 
--- دالة تتحقق إذا الاسم رقم بين 10 و1000
-local function isBall(part)
-	local num = tonumber(part.Name)
-	if not num then return false end
-	return num >= 10 and num <= 1000
+-- انتبه، هذا يفترض أن الزر موجود في GUI اللاعب
+local blockerButton = playerGui:FindFirstChild("BLOCKER", true) -- يبحث داخل كل GUI
+
+local triggerDistance = 30 -- المسافة للتفعيل
+
+local function isNumberName(name)
+    local num = tonumber(name)
+    return num and num >= 10 and num <= 1000
 end
 
--- إنشاء Frame صغير (يمكن وضعه على أي زر على الجوال)
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = playerGui
-
-local autoFrame = Instance.new("Frame")
-autoFrame.Size = UDim2.new(0, 50, 0, 50)  -- حجم صغير
-autoFrame.Position = UDim2.new(0.8, 0, 0.8, 0) -- تحطه على أي مكان باليد
-autoFrame.BackgroundTransparency = 1 -- شفاف
-autoFrame.Parent = screenGui
-
--- دالة تضغط تلقائي
-local function pressAutoFrame()
-	for _, gui in ipairs(playerGui:GetDescendants()) do
-		if gui:IsA("TextButton") and (gui.Name:lower() == "parry" or gui.Name:lower() == "block") then
-			gui:Activate()
-		end
-	end
-end
-
--- الفحص المستمر للكورة
-task.spawn(function()
-	while true do
-		local isClose = false
-		for _, part in ipairs(Workspace:GetDescendants()) do
-			if part:IsA("BasePart") and isBall(part) then
-				local distance = (part.Position - hrp.Position).Magnitude
-				if distance <= 30 then
-					isClose = true
-					break
-				end
-			end
-		end
-		if isClose then
-			pressAutoFrame()
-		end
-		task.wait(0.02)
-	end
+game:GetService("RunService").RenderStepped:Connect(function()
+    if not blockerButton then return end
+    for _, part in pairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and isNumberName(part.Name) then
+            local distance = (hrp.Position - part.Position).Magnitude
+            if distance <= triggerDistance then
+                blockerButton:Activate() -- يضغط الزر تلقائي
+            end
+        end
+    end
 end)
