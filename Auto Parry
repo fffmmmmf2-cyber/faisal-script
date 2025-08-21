@@ -1,44 +1,38 @@
+-- حذف كل شيء اسمه "abilitycooldown" من Workspace
+for _, obj in pairs(workspace:GetDescendants()) do
+    if obj.Name == "abilitycooldown" then
+        obj:Destroy()
+    end
+end
+
+-- حذف كل شيء اسمه "abilitycooldown" من كل Players
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local Workspace = game:GetService("Workspace")
-local playerGui = player:WaitForChild("PlayerGui")
 
-local triggerDistance = 30 -- المسافة للتفعيل
-
--- دالة للتحقق إذا الاسم رقم من 10 إلى 1000
-local function isNumberName(name)
-    local num = tonumber(name)
-    return num and num >= 10 and num <= 1000
-end
-
--- دالة لإيجاد كل الأزرار اللي اسمها BLOCKER أو block أو parry داخل PlayerGui
-local function findAllTargetButtons()
-    local buttons = {}
-    for _, guiObject in pairs(playerGui:GetDescendants()) do
-        if guiObject:IsA("GuiButton") then
-            local lowerName = guiObject.Name:lower()
-            if lowerName == "blocker" or lowerName == "block" or lowerName == "parry" then
-                table.insert(buttons, guiObject)
+for _, player in pairs(Players:GetPlayers()) do
+    if player:FindFirstChild("PlayerGui") then
+        for _, gui in pairs(player.PlayerGui:GetDescendants()) do
+            if gui.Name == "abilitycooldown" then
+                gui:Destroy()
             end
         end
     end
-    return buttons
 end
 
-game:GetService("RunService").RenderStepped:Connect(function()
-    local buttons = findAllTargetButtons()
-    if #buttons == 0 then return end
+-- مراقبة أي عناصر جديدة تظهر أثناء اللعب
+workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name == "abilitycooldown" then
+        obj:Destroy()
+    end
+end)
 
-    for _, part in pairs(Workspace:GetDescendants()) do
-        if part:IsA("BasePart") and isNumberName(part.Name) then
-            local distance = (hrp.Position - part.Position).Magnitude
-            if distance <= triggerDistance then
-                for _, btn in pairs(buttons) do
-                    btn:Activate() -- يضغط كل الأزرار تلقائي
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if player:FindFirstChild("PlayerGui") then
+            player.PlayerGui.DescendantAdded:Connect(function(gui)
+                if gui.Name == "abilitycooldown" then
+                    gui:Destroy()
                 end
-            end
+            end)
         end
-    end
+    end)
 end)
