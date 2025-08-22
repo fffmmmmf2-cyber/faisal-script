@@ -1,24 +1,15 @@
--- LocalScript (StarterGui)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- RemoteEvent
-local killEvent = ReplicatedStorage:FindFirstChild("KillPlayerEvent")
-if not killEvent then
-	local evt = Instance.new("RemoteEvent")
-	evt.Name = "KillPlayerEvent"
-	evt.Parent = ReplicatedStorage
-	killEvent = evt
-end
+local killEvent = ReplicatedStorage:WaitForChild("KillPlayerEvent")
+local jailEvent = ReplicatedStorage:WaitForChild("JailPlayerEvent")
 
--- إنشاء GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
+-- GUI
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,250,0,150)
-frame.Position = UDim2.new(0,20,0.5,-75)
+frame.Size = UDim2.new(0,260,0,180)
+frame.Position = UDim2.new(0,20,0.5,-90)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -27,7 +18,7 @@ frame.Parent = screenGui
 
 local textbox = Instance.new("TextBox")
 textbox.Size = UDim2.new(0,220,0,50)
-textbox.Position = UDim2.new(0,15,0,20)
+textbox.Position = UDim2.new(0,20,0,10)
 textbox.PlaceholderText = "اكتب اسم اللاعب"
 textbox.TextColor3 = Color3.fromRGB(0,0,0)
 textbox.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -35,19 +26,36 @@ textbox.Font = Enum.Font.SourceSans
 textbox.TextSize = 18
 textbox.Parent = frame
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,220,0,50)
-button.Position = UDim2.new(0,15,0,80)
-button.BackgroundColor3 = Color3.fromRGB(70,70,70)
-button.TextColor3 = Color3.fromRGB(255,255,255)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 18
-button.Text = "قتل اللاعب"
-button.Parent = frame
+-- زر القتل
+local killButton = Instance.new("TextButton")
+killButton.Size = UDim2.new(0,220,0,50)
+killButton.Position = UDim2.new(0,20,0,70)
+killButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+killButton.TextColor3 = Color3.fromRGB(255,255,255)
+killButton.Font = Enum.Font.SourceSansBold
+killButton.TextSize = 18
+killButton.Text = "قتل اللاعب"
+killButton.Parent = frame
 
-button.MouseButton1Click:Connect(function()
-	local targetName = textbox.Text
-	if targetName ~= "" then
-		killEvent:FireServer(targetName)
+killButton.MouseButton1Click:Connect(function()
+	if textbox.Text ~= "" then
+		killEvent:FireServer(textbox.Text)
+	end
+end)
+
+-- زر السجن
+local jailButton = Instance.new("TextButton")
+jailButton.Size = UDim2.new(0,220,0,50)
+jailButton.Position = UDim2.new(0,20,0,130)
+jailButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+jailButton.TextColor3 = Color3.fromRGB(255,255,255)
+jailButton.Font = Enum.Font.SourceSansBold
+jailButton.TextSize = 18
+jailButton.Text = "سجن اللاعب"
+jailButton.Parent = frame
+
+jailButton.MouseButton1Click:Connect(function()
+	if textbox.Text ~= "" then
+		jailEvent:FireServer(textbox.Text)
 	end
 end)
