@@ -1,0 +1,61 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- انشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- انشاء الفريم
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 300)
+frame.Position = UDim2.new(0, 20, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- يسمح بسحب الفريم
+frame.Active = true
+frame.Draggable = true
+
+-- ترتيب الأزرار
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = frame
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- دالة لتحديث قائمة اللاعبين
+local function refreshPlayers()
+	frame:ClearAllChildren()
+	UIListLayout.Parent = frame
+	
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local button = Instance.new("TextButton")
+			button.Size = UDim2.new(1, -10, 0, 30)
+			button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+			button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			button.Font = Enum.Font.SourceSansBold
+			button.TextSize = 18
+			button.Text = player.Name
+			button.Parent = frame
+			
+			-- عند الضغط على الزر
+			button.MouseButton1Click:Connect(function()
+				if player.Character and player.Character:FindFirstChild("Humanoid") then
+					player.Character.Humanoid.Health = 0
+					
+					-- إشعار أنه مات
+					game.StarterGui:SetCore("SendNotification", {
+						Title = "تم القتل ✅";
+						Text = player.Name .. " مات";
+						Duration = 3
+					})
+				end
+			end)
+		end
+	end
+end
+
+-- تحديث الأسماء
+Players.PlayerAdded:Connect(refreshPlayers)
+Players.PlayerRemoving:Connect(refreshPlayers)
+refreshPlayers()
