@@ -1,95 +1,59 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
 
 -- إنشاء RemoteEvent لو ما موجود
 local killEvent = ReplicatedStorage:FindFirstChild("KillPlayerEvent")
 if not killEvent then
-	killEvent = Instance.new("RemoteEvent")
-	killEvent.Name = "KillPlayerEvent"
-	killEvent.Parent = ReplicatedStorage
+	local evt = Instance.new("RemoteEvent")
+	evt.Name = "KillPlayerEvent"
+	evt.Parent = ReplicatedStorage
+	killEvent = evt
 end
 
--- التعامل مع الحدث على السيرفر
-killEvent.OnServerEvent:Connect(function(sender, targetName)
-	local target = Players:FindFirstChild(targetName)
-	if target and target.Character and target.Character:FindFirstChild("Humanoid") then
-		local humanoid = target.Character.Humanoid
-		local function onDied()
-			sender:WaitForChild("PlayerGui"):SetCore("SendNotification", {
-				Title = "تم القتل ✅",
-				Text = target.Name .. " مات بالفعل",
-				Duration = 3
-			})
-			humanoid.Died:Disconnect()
+-- إنشاء GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,220,0,300)
+frame.Position = UDim2.new(0,20,0.5,-150)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = frame
+UIListLayout.Padding = UDim.new(0,5)
+
+-- إضافة أزرار لكل لاعب
+local function refreshPlayers()
+	for _, c in pairs(frame:GetChildren()) do
+		if c:IsA("TextButton") then
+			c:Destroy()
 		end
-		humanoid.Died:Connect(onDied)
-		humanoid.Health = 0
 	end
-end)
-
--- GUI لكل لاعب عند دخوله
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function()
-		local screenGui = Instance.new("ScreenGui")
-		screenGui.Parent = player:WaitForChild("PlayerGui")
-
-		local frame = Instance.new("Frame")
-		frame.Size = UDim2.new(0, 220, 0, 320)
-		frame.Position = UDim2.new(0, 20, 0.5, -160)
-		frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-		frame.BorderSizePixel = 0
-		frame.Active = true
-		frame.Draggable = true
-		frame.Parent = screenGui
-
-		local title = Instance.new("TextLabel")
-		title.Size = UDim2.new(1, 0, 0, 30)
-		title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-		title.Text = "قائمة اللاعبين"
-		title.Font = Enum.Font.SourceSansBold
-		title.TextColor3 = Color3.fromRGB(255,255,255)
-		title.TextSize = 20
-		title.Parent = frame
-
-		local listFrame = Instance.new("Frame")
-		listFrame.Size = UDim2.new(1, 0, 1, -30)
-		listFrame.Position = UDim2.new(0,0,0,30)
-		listFrame.BackgroundTransparency = 1
-		listFrame.Parent = frame
-
-		local UIListLayout = Instance.new("UIListLayout")
-		UIListLayout.Parent = listFrame
-		UIListLayout.Padding = UDim.new(0,5)
-
-		-- دالة تحديث قائمة اللاعبين
-		local function refreshPlayers()
-			for _, c in pairs(listFrame:GetChildren()) do
-				if c:IsA("TextButton") then
-					c:Destroy()
-				end
-			end
-
-			for _, p in pairs(Players:GetPlayers()) do
-				if p ~= player then
-					local button = Instance.new("TextButton")
-					button.Size = UDim2.new(1, -10, 0, 30)
-					button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-					button.TextColor3 = Color3.fromRGB(255, 255, 255)
-					button.Font = Enum.Font.SourceSansBold
-					button.TextSize = 18
-					button.Text = p.Name
-					button.Parent = listFrame
-
-					button.MouseButton1Click:Connect(function()
-						killEvent:FireServer(p.Name)
-					end)
-				end
-			end
+	
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer then
+			local btn = Instance.new("TextButton")
+			btn.Size = UDim2.new(1, -10, 0, 30)
+			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			btn.TextColor3 = Color3.fromRGB(255,255,255)
+			btn.Font = Enum.Font.SourceSansBold
+			btn.TextSize = 18
+			btn.Text = p.Name
+			btn.Parent = frame
+			
+			btn.MouseButton1Click:Connect(function()
+				killEvent:FireServer(p.Name)
+			end)
 		end
+	end
+end
 
-		player:GetPropertyChangedSignal("Parent"):Connect(refreshPlayers)
-		Players.PlayerAdded:Connect(refreshPlayers)
-		Players.PlayerRemoving:Connect(refreshPlayers)
-		refreshPlayers()
-	end)
-end)
+Players.PlayerAdded:Connect(refreshPlayers)
+Players.PlayerRemoving:Connect(refreshPlayers)
+refreshPlayers()
