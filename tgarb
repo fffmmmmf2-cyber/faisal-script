@@ -1,31 +1,48 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- انشاء ScreenGui
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- انشاء الفريم
+-- Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 300)
-frame.Position = UDim2.new(0, 20, 0.5, -150)
+frame.Size = UDim2.new(0, 220, 0, 320)
+frame.Position = UDim2.new(0, 20, 0.5, -160)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
--- يسمح بسحب الفريم
 frame.Active = true
 frame.Draggable = true
+frame.Parent = screenGui
 
--- ترتيب الأزرار
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.Text = "قائمة اللاعبين"
+title.Font = Enum.Font.SourceSansBold
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextSize = 20
+title.Parent = frame
+
+-- Holder
+local listFrame = Instance.new("Frame")
+listFrame.Size = UDim2.new(1, 0, 1, -30)
+listFrame.Position = UDim2.new(0,0,0,30)
+listFrame.BackgroundTransparency = 1
+listFrame.Parent = frame
+
 local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Parent = frame
-UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = listFrame
+UIListLayout.Padding = UDim.new(0,5)
 
--- دالة لتحديث قائمة اللاعبين
+-- تحديث اللاعبين
 local function refreshPlayers()
-	frame:ClearAllChildren()
-	UIListLayout.Parent = frame
+	for _, c in pairs(listFrame:GetChildren()) do
+		if c:IsA("TextButton") then
+			c:Destroy()
+		end
+	end
 	
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
@@ -36,14 +53,11 @@ local function refreshPlayers()
 			button.Font = Enum.Font.SourceSansBold
 			button.TextSize = 18
 			button.Text = player.Name
-			button.Parent = frame
+			button.Parent = listFrame
 			
-			-- عند الضغط على الزر
 			button.MouseButton1Click:Connect(function()
 				if player.Character and player.Character:FindFirstChild("Humanoid") then
 					player.Character.Humanoid.Health = 0
-					
-					-- إشعار أنه مات
 					game.StarterGui:SetCore("SendNotification", {
 						Title = "تم القتل ✅";
 						Text = player.Name .. " مات";
@@ -55,7 +69,6 @@ local function refreshPlayers()
 	end
 end
 
--- تحديث الأسماء
 Players.PlayerAdded:Connect(refreshPlayers)
 Players.PlayerRemoving:Connect(refreshPlayers)
 refreshPlayers()
