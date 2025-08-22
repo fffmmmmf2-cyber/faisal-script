@@ -1,0 +1,20 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local killEvent = ReplicatedStorage:WaitForChild("KillPlayerEvent")
+
+killEvent.OnServerEvent:Connect(function(sender, targetName)
+	local target = Players:FindFirstChild(targetName)
+	if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+		local humanoid = target.Character.Humanoid
+		humanoid.Died:Connect(function()
+			-- اشعار للضاغط بعد موت اللاعب
+			sender:WaitForChild("PlayerGui"):SetCore("SendNotification", {
+				Title = "تم القتل ✅",
+				Text = target.Name.." مات فعليًا",
+				Duration = 3
+			})
+		end)
+		humanoid.Health = 0
+	end
+end)
