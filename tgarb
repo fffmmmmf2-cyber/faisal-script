@@ -1,12 +1,23 @@
+-- LocalScript (StarterGui)
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+
+-- RemoteEvent
+local killEvent = ReplicatedStorage:FindFirstChild("KillPlayerEvent")
+if not killEvent then
+	local evt = Instance.new("RemoteEvent")
+	evt.Name = "KillPlayerEvent"
+	evt.Parent = ReplicatedStorage
+	killEvent = evt
+end
 
 -- إنشاء GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,220,0,150)
+frame.Size = UDim2.new(0,250,0,150)
 frame.Position = UDim2.new(0,20,0.5,-75)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.BorderSizePixel = 0
@@ -14,18 +25,29 @@ frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
--- زر لتشغيل السكربت
-local loadButton = Instance.new("TextButton")
-loadButton.Size = UDim2.new(0, 200, 0, 50)
-loadButton.Position = UDim2.new(0, 10, 0, 50)
-loadButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
-loadButton.TextColor3 = Color3.fromRGB(255,255,255)
-loadButton.Font = Enum.Font.SourceSansBold
-loadButton.TextSize = 18
-loadButton.Text = "تشغيل سكربت القتل"
-loadButton.Parent = frame
+local textbox = Instance.new("TextBox")
+textbox.Size = UDim2.new(0,220,0,50)
+textbox.Position = UDim2.new(0,15,0,20)
+textbox.PlaceholderText = "اكتب اسم اللاعب"
+textbox.TextColor3 = Color3.fromRGB(0,0,0)
+textbox.BackgroundColor3 = Color3.fromRGB(255,255,255)
+textbox.Font = Enum.Font.SourceSans
+textbox.TextSize = 18
+textbox.Parent = frame
 
--- عند الضغط على الزر
-loadButton.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/kill%20player"))()
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,220,0,50)
+button.Position = UDim2.new(0,15,0,80)
+button.BackgroundColor3 = Color3.fromRGB(70,70,70)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 18
+button.Text = "قتل اللاعب"
+button.Parent = frame
+
+button.MouseButton1Click:Connect(function()
+	local targetName = textbox.Text
+	if targetName ~= "" then
+		killEvent:FireServer(targetName)
+	end
 end)
