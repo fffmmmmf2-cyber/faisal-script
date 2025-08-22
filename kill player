@@ -1,14 +1,19 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local killEvent = ReplicatedStorage:WaitForChild("KillPlayerEvent")
+-- إنشاء RemoteEvents
+local killEvent = ReplicatedStorage:FindFirstChild("KillPlayerEvent") or Instance.new("RemoteEvent", ReplicatedStorage)
+killEvent.Name = "KillPlayerEvent"
 
+local jailEvent = ReplicatedStorage:FindFirstChild("JailPlayerEvent") or Instance.new("RemoteEvent", ReplicatedStorage)
+jailEvent.Name = "JailPlayerEvent"
+
+-- قتل اللاعب
 killEvent.OnServerEvent:Connect(function(sender, targetName)
 	local target = Players:FindFirstChild(targetName)
 	if target and target.Character and target.Character:FindFirstChild("Humanoid") then
 		local humanoid = target.Character.Humanoid
 		humanoid.Died:Connect(function()
-			-- اشعار للضاغط بعد موت اللاعب
 			sender:WaitForChild("PlayerGui"):SetCore("SendNotification", {
 				Title = "تم القتل ✅",
 				Text = target.Name.." مات فعليًا",
@@ -16,5 +21,31 @@ killEvent.OnServerEvent:Connect(function(sender, targetName)
 			})
 		end)
 		humanoid.Health = 0
+	end
+end)
+
+-- سجن اللاعب
+jailEvent.OnServerEvent:Connect(function(sender, targetName)
+	local target = Players:FindFirstChild(targetName)
+	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = target.Character.HumanoidRootPart
+		local size = 10
+		local height = 10
+
+		local positions = {
+			Vector3.new(size/2, height/2, 0),
+			Vector3.new(-size/2, height/2, 0),
+			Vector3.new(0, height/2, size/2),
+			Vector3.new(0, height/2, -size/2)
+		}
+
+		for i, pos in pairs(positions) do
+			local wall = Instance.new("Part")
+			wall.Size = Vector3.new((i <= 2 and 1 or size), height, (i <= 2 and size or 1))
+			wall.Anchored = true
+			wall.CanCollide = true
+			wall.Position = hrp.Position + pos
+			wall.Parent = workspace
+		end
 	end
 end)
