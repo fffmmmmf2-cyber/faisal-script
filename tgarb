@@ -1,4 +1,5 @@
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- إنشاء ScreenGui
@@ -31,7 +32,7 @@ profileImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 profileImage.ScaleType = Enum.ScaleType.Fit
 profileImage.Parent = mainFrame
 
--- زر برتقالي ينقل اللاعب وراك
+-- زر برتقالي
 local followButton = Instance.new("TextButton")
 followButton.Size = UDim2.new(0, 150, 0, 50)
 followButton.Position = UDim2.new(0.5, -75, 0, 210)
@@ -40,28 +41,29 @@ followButton.Text = "تابعه"
 followButton.TextScaled = true
 followButton.Parent = mainFrame
 
--- تحديث صورة اللاعب بناءً على الاسم (تستخدم Thumbnail)
+-- تحديث صورة اللاعب بناءً على الاسم
 nameBox.Changed:Connect(function()
     local targetName = nameBox.Text
-    local targetPlayer = game.Players:FindFirstChild(targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
     if targetPlayer then
         local thumbType = Enum.ThumbnailType.HeadShot
         local thumbSize = Enum.ThumbnailSize.Size100x100
-        local content, isReady = game.Players:GetUserThumbnailAsync(targetPlayer.UserId, thumbType, thumbSize)
+        local content, isReady = Players:GetUserThumbnailAsync(targetPlayer.UserId, thumbType, thumbSize)
         profileImage.Image = content
     else
         profileImage.Image = ""
     end
 end)
 
--- وظيفة الزر: ينقل اللاعب وراك
+-- وظيفة الزر: ينقل اللاعب الهدف وراك فجأة
 followButton.MouseButton1Click:Connect(function()
     local targetName = nameBox.Text
-    local targetPlayer = game.Players:FindFirstChild(targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            -- ينقل اللاعب الهدف فجأة وراك
+            targetPlayer.Character.HumanoidRootPart.CFrame = myHRP.CFrame * CFrame.new(0, 0, -3)
         end
     end
 end)
