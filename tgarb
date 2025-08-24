@@ -1,11 +1,25 @@
--- ServerScript كامل
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
--- إنشاء RemoteEvent داخلي
-local followEvent = Instance.new("RemoteEvent")
-followEvent.Name = "FollowEvent"
-followEvent.Parent = ReplicatedStorage
+-- إنشاء RemoteEvent إذا ما كان موجود
+local followEvent = ReplicatedStorage:FindFirstChild("FollowEvent")
+if not followEvent then
+    followEvent = Instance.new("RemoteEvent")
+    followEvent.Name = "FollowEvent"
+    followEvent.Parent = ReplicatedStorage
+end
+
+-- التعامل مع النقل الفعلي عند ضغط الزر
+followEvent.OnServerEvent:Connect(function(player, targetName)
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            targetPlayer.Character.HumanoidRootPart.CFrame = myHRP.CFrame * CFrame.new(0, 0, -3)
+        end
+    end
+end)
 
 -- عند دخول أي لاعب، نضيف له GUI
 Players.PlayerAdded:Connect(function(player)
@@ -14,13 +28,12 @@ Players.PlayerAdded:Connect(function(player)
         local screenGui = Instance.new("ScreenGui", playerGui)
         screenGui.Name = "FollowGUI"
 
-        local mainFrame = Instance.new("Frame")
-        mainFrame.Size = UDim2.new(0, 250, 0, 200)
-        mainFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
+        local mainFrame = Instance.new("Frame", screenGui)
+        mainFrame.Size = UDim2.new(0, 250, 0, 250)
+        mainFrame.Position = UDim2.new(0.5, -125, 0.5, -125)
         mainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
         mainFrame.BackgroundTransparency = 0.3
         mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-        mainFrame.Parent = screenGui
 
         -- جعل الفريم قابل للسحب
         local dragging, dragInput, dragStart, startPos
@@ -48,13 +61,13 @@ Players.PlayerAdded:Connect(function(player)
             end
         end)
 
-        game:GetService("UserInputService").InputChanged:Connect(function(input)
+        UserInputService.InputChanged:Connect(function(input)
             if input == dragInput and dragging then
                 update(input)
             end
         end)
 
-        -- TextBox
+        -- TextBox لكتابة الاسم
         local nameBox = Instance.new("TextBox", mainFrame)
         nameBox.Size = UDim2.new(0, 200, 0, 40)
         nameBox.Position = UDim2.new(0.5, -100, 0, 10)
@@ -68,15 +81,15 @@ Players.PlayerAdded:Connect(function(player)
         profileImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         profileImage.ScaleType = Enum.ScaleType.Fit
 
-        -- زر برتقالي
-        local followButton = Instance.new("TextButton", mainFrame)
-        followButton.Size = UDim2.new(0, 120, 0, 40)
-        followButton.Position = UDim2.new(0.5, -60, 0, 150)
-        followButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-        followButton.Text = "تابعه"
-        followButton.TextScaled = true
+        -- زر التفعيل (ينقل اللاعب وراك)
+        local activateButton = Instance.new("TextButton", mainFrame)
+        activateButton.Size = UDim2.new(0, 120, 0, 40)
+        activateButton.Position = UDim2.new(0.5, -60, 0, 150)
+        activateButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+        activateButton.Text = "تفعيل النقل"
+        activateButton.TextScaled = true
 
-        -- تحديث صورة اللاعب
+        -- تحديث صورة اللاعب تلقائي
         nameBox.Changed:Connect(function()
             local targetName = nameBox.Text
             local targetPlayer = Players:FindFirstChild(targetName)
@@ -88,15 +101,11 @@ Players.PlayerAdded:Connect(function(player)
             end
         end)
 
-        -- عند الضغط نرسل للسيرفر (هو نفسه السيرفر هنا)
-        followButton.MouseButton1Click:Connect(function()
+        -- عند الضغط على الزر نرسل للسيرفر
+        activateButton.MouseButton1Click:Connect(function()
             local targetName = nameBox.Text
-            local targetPlayer = Players:FindFirstChild(targetName)
-            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if myHRP then
-                    targetPlayer.Character.HumanoidRootPart.CFrame = myHRP.CFrame * CFrame.new(0, 0, -3)
-                end
+            if targetName ~= "" then
+                followEvent:FireServer(targetName)
             end
         end)
     end)
