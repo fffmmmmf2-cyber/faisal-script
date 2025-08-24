@@ -1,61 +1,67 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local killEvent = ReplicatedStorage:WaitForChild("KillPlayerEvent")
-local jailEvent = ReplicatedStorage:WaitForChild("JailPlayerEvent")
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = playerGui
+screenGui.Name = "FollowGUI"
 
--- GUI
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,260,0,180)
-frame.Position = UDim2.new(0,20,0.5,-90)
-frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
+-- إنشاء الفريم الكبير الرمادي
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Parent = screenGui
 
-local textbox = Instance.new("TextBox")
-textbox.Size = UDim2.new(0,220,0,50)
-textbox.Position = UDim2.new(0,20,0,10)
-textbox.PlaceholderText = "اكتب اسم اللاعب"
-textbox.TextColor3 = Color3.fromRGB(0,0,0)
-textbox.BackgroundColor3 = Color3.fromRGB(255,255,255)
-textbox.Font = Enum.Font.SourceSans
-textbox.TextSize = 18
-textbox.Parent = frame
+-- TextBox لكتابة اسم اللاعب
+local nameBox = Instance.new("TextBox")
+nameBox.Size = UDim2.new(0, 200, 0, 50)
+nameBox.Position = UDim2.new(0.5, -100, 0, 20)
+nameBox.PlaceholderText = "اكتب الاسم هنا"
+nameBox.Text = ""
+nameBox.TextScaled = true
+nameBox.Parent = mainFrame
 
--- زر القتل
-local killButton = Instance.new("TextButton")
-killButton.Size = UDim2.new(0,220,0,50)
-killButton.Position = UDim2.new(0,20,0,70)
-killButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
-killButton.TextColor3 = Color3.fromRGB(255,255,255)
-killButton.Font = Enum.Font.SourceSansBold
-killButton.TextSize = 18
-killButton.Text = "قتل اللاعب"
-killButton.Parent = frame
+-- صورة البروفايل / السكن
+local profileImage = Instance.new("ImageLabel")
+profileImage.Size = UDim2.new(0, 100, 0, 100)
+profileImage.Position = UDim2.new(0.5, -50, 0, 90)
+profileImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+profileImage.ScaleType = Enum.ScaleType.Fit
+profileImage.Parent = mainFrame
 
-killButton.MouseButton1Click:Connect(function()
-	if textbox.Text ~= "" then
-		killEvent:FireServer(textbox.Text)
-	end
+-- زر برتقالي ينقل اللاعب وراك
+local followButton = Instance.new("TextButton")
+followButton.Size = UDim2.new(0, 150, 0, 50)
+followButton.Position = UDim2.new(0.5, -75, 0, 210)
+followButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+followButton.Text = "تابعه"
+followButton.TextScaled = true
+followButton.Parent = mainFrame
+
+-- تحديث صورة اللاعب بناءً على الاسم (تستخدم Thumbnail)
+nameBox.Changed:Connect(function()
+    local targetName = nameBox.Text
+    local targetPlayer = game.Players:FindFirstChild(targetName)
+    if targetPlayer then
+        local thumbType = Enum.ThumbnailType.HeadShot
+        local thumbSize = Enum.ThumbnailSize.Size100x100
+        local content, isReady = game.Players:GetUserThumbnailAsync(targetPlayer.UserId, thumbType, thumbSize)
+        profileImage.Image = content
+    else
+        profileImage.Image = ""
+    end
 end)
 
--- زر السجن
-local jailButton = Instance.new("TextButton")
-jailButton.Size = UDim2.new(0,220,0,50)
-jailButton.Position = UDim2.new(0,20,0,130)
-jailButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
-jailButton.TextColor3 = Color3.fromRGB(255,255,255)
-jailButton.Font = Enum.Font.SourceSansBold
-jailButton.TextSize = 18
-jailButton.Text = "سجن اللاعب"
-jailButton.Parent = frame
-
-jailButton.MouseButton1Click:Connect(function()
-	if textbox.Text ~= "" then
-		jailEvent:FireServer(textbox.Text)
-	end
+-- وظيفة الزر: ينقل اللاعب وراك
+followButton.MouseButton1Click:Connect(function()
+    local targetName = nameBox.Text
+    local targetPlayer = game.Players:FindFirstChild(targetName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        end
+    end
 end)
