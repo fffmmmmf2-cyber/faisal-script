@@ -7,18 +7,52 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 screenGui.Name = "FollowGUI"
 
--- إنشاء الفريم الكبير الرمادي
+-- إنشاء الفريم الرمادي الصغير والشبه شفاف
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.Size = UDim2.new(0, 250, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
 mainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+mainFrame.BackgroundTransparency = 0.3
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.Parent = screenGui
 
+-- جعل الفريم قابل للسحب
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
 -- TextBox لكتابة اسم اللاعب
 local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(0, 200, 0, 50)
-nameBox.Position = UDim2.new(0.5, -100, 0, 20)
+nameBox.Size = UDim2.new(0, 200, 0, 40)
+nameBox.Position = UDim2.new(0.5, -100, 0, 10)
 nameBox.PlaceholderText = "اكتب الاسم هنا"
 nameBox.Text = ""
 nameBox.TextScaled = true
@@ -26,16 +60,16 @@ nameBox.Parent = mainFrame
 
 -- صورة البروفايل / السكن
 local profileImage = Instance.new("ImageLabel")
-profileImage.Size = UDim2.new(0, 100, 0, 100)
-profileImage.Position = UDim2.new(0.5, -50, 0, 90)
+profileImage.Size = UDim2.new(0, 80, 0, 80)
+profileImage.Position = UDim2.new(0.5, -40, 0, 60)
 profileImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 profileImage.ScaleType = Enum.ScaleType.Fit
 profileImage.Parent = mainFrame
 
 -- زر برتقالي
 local followButton = Instance.new("TextButton")
-followButton.Size = UDim2.new(0, 150, 0, 50)
-followButton.Position = UDim2.new(0.5, -75, 0, 210)
+followButton.Size = UDim2.new(0, 120, 0, 40)
+followButton.Position = UDim2.new(0.5, -60, 0, 150)
 followButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
 followButton.Text = "تابعه"
 followButton.TextScaled = true
