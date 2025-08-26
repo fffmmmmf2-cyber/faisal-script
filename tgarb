@@ -1,40 +1,20 @@
 -- LocalScript في StarterPlayerScripts
 
 local player = game.Players.LocalPlayer
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "BombGui"
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart") -- مركز اللاعب
+local workspace = game:GetService("Workspace")
 
--- زر إخفاء/إظهار الفريم
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 100, 0, 40)
-toggleBtn.Position = UDim2.new(1, -110, 0.5, -20)
-toggleBtn.Text = "قائمة BombHandle"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 18
+local distanceThreshold = 15 -- نصف القطر بالستود
 
--- الفريم
-local Frame = Instance.new("Frame", gui)
-Frame.Size = UDim2.new(0, 180, 0, 250)
-Frame.Position = UDim2.new(1, -290, 0.5, -125)
-Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Frame.Visible = true
-
-local UIListLayout = Instance.new("UIListLayout", Frame)
-UIListLayout.Padding = UDim.new(0,4)
-
-local selectedObj = nil
-local buttons = {}
-
--- دالة مطابقة الاسم
+-- دالة مطابقة الاسم بدون فرق بين الحروف والمسافات
 local function matchName(name)
 	name = string.lower(name)
 	name = string.gsub(name,"%s+","")
 	return name == "bombhandle"
 end
 
--- دالة لتكبير أي بارت أو موديل
+-- دالة لتكبير البارت أو الموديل
 local function enlarge(obj)
 	if obj then
 		if obj:IsA("BasePart") then
@@ -48,60 +28,23 @@ local function enlarge(obj)
 	end
 end
 
--- دالة لتحديث قائمة البارتات مع الحفاظ على الاختيار
-local function updateList()
-	local existingObjs = {}
-	for _, btn in pairs(buttons) do
-		existingObjs[btn.Obj] = btn
-	end
-
-	-- إزالة أزرار غير موجودة حالياً
-	for obj, btn in pairs(existingObjs) do
-		if not obj or not obj.Parent then
-			btn:Destroy()
-			buttons[obj] = nil
-			if selectedObj == obj then
-				selectedObj = nil
-			end
-		end
-	end
-
-	-- إضافة أزرار جديدة
+-- تحقق كل نص ثانية
+while true do
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
-			if not buttons[obj] then
-				local btn = Instance.new("TextButton", Frame)
-				btn.Size = UDim2.new(1,0,0,30)
-				btn.Text = obj.Name
-				btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-				btn.TextColor3 = Color3.new(1,1,1)
-				btn.TextScaled = true
-				btn.Obj = obj
-
-				btn.MouseButton1Click:Connect(function()
-					selectedObj = obj
-					enlarge(obj) -- يكبر مباشرة عند الضغط على اسمه
-					btn.BackgroundColor3 = Color3.fromRGB(0,170,0)
-					for _, otherBtn in pairs(buttons) do
-						if otherBtn ~= btn then
-							otherBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-						end
-					end
-				end)
-
-				buttons[obj] = btn
+			local objPosition
+			if obj:IsA("BasePart") then
+				objPosition = obj.Position
+			elseif obj:IsA("Model") then
+				local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+				if primary then
+					objPosition = primary.Position
+				end
+			end
+			if objPosition and (hrp.Position - objPosition).Magnitude <= distanceThreshold then
+				enlarge(obj)
 			end
 		end
 	end
-end
-
--- حدث الزر لإظهار/إخفاء الفريم
-toggleBtn.MouseButton1Click:Connect(function()
-	Frame.Visible = not Frame.Visible
-end)
-
--- تحديث القائمة كل نص ثانية
-while true do
-	updateList()
 	task.wait(0.5)
 end
