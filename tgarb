@@ -1,86 +1,87 @@
+-- LocalScript في StarterPlayerScripts
+
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local workspace = game:GetService("Workspace")
+local players = game.Players
 
-local mainDistance = 15
-local nearbyDistance = 3
-local minDistance = 0.5 -- أقل مسافة عن اللاعب
-local enlargedParts = {}
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "ChaseGui"
 
--- أسماء أجزاء جسم اللاعب لتجاهلها
-local playerParts = {}
-for _, part in pairs(character:GetDescendants()) do
-	if part:IsA("BasePart") then
-		playerParts[part] = true
-	end
-end
+-- الفريم الرئيسي
+local Frame = Instance.new("Frame", gui)
+Frame.Size = UDim2.new(0,200,0,150)
+Frame.Position = UDim2.new(0,20,0.5,-75)
+Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-local function matchName(name)
-	name = string.lower(name)
-	name = string.gsub(name,"%s+","")
-	return name == "bombhandle"
-end
+-- زر اختيار اللاعب التالي
+local NextPlayerBtn = Instance.new("TextButton", Frame)
+NextPlayerBtn.Size = UDim2.new(1,0,0,50)
+NextPlayerBtn.Position = UDim2.new(0,0,0,10)
+NextPlayerBtn.Text = "التالي"
+NextPlayerBtn.Font = Enum.Font.SourceSansBold
+NextPlayerBtn.TextSize = 20
+NextPlayerBtn.TextColor3 = Color3.new(1,1,1)
+NextPlayerBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
 
-local function isPlayerPart(obj)
-	if obj:IsDescendantOf(character) then
-		return true
-	end
-	return false
-end
+-- زر الانتقال خلف اللاعب
+local TeleportBtn = Instance.new("TextButton", Frame)
+TeleportBtn.Size = UDim2.new(1,0,0,50)
+TeleportBtn.Position = UDim2.new(0,0,0,70)
+TeleportBtn.Text = "روح وراه"
+TeleportBtn.Font = Enum.Font.SourceSansBold
+TeleportBtn.TextSize = 20
+TeleportBtn.TextColor3 = Color3.new(1,1,1)
+TeleportBtn.BackgroundColor3 = Color3.fromRGB(200,100,100)
 
-local function enlarge(obj)
-	if obj and not enlargedParts[obj] and not isPlayerPart(obj) then
-		if obj:IsA("BasePart") then
-			obj.Size = obj.Size * 2
-		elseif obj:IsA("Model") then
-			local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-			if primary then
-				obj:ScaleTo(2)
-			end
-		end
-		enlargedParts[obj] = true
-	end
-end
+local playerList = {}
+local index = 0
+local targetPlayer = nil
 
-while true do
-	for _, obj in pairs(workspace:GetDescendants()) do
-		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
-			local objPos
-			if obj:IsA("BasePart") then
-				objPos = obj.Position
-			elseif obj:IsA("Model") then
-				local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-				if primary then
-					objPos = primary.Position
-				end
-			end
-
-			if objPos then
-				local dist = (hrp.Position - objPos).Magnitude
-				if dist >= minDistance and dist <= mainDistance then
-					enlarge(obj)
-
-					-- نكبر أي بارث قريب جداً من هذا البارت (2–3 ستود)
-					for _, nearby in pairs(workspace:GetDescendants()) do
-						if (nearby:IsA("BasePart") or nearby:IsA("Model")) and not enlargedParts[nearby] then
-							local nearbyPos
-							if nearby:IsA("BasePart") then
-								nearbyPos = nearby.Position
-							elseif nearby:IsA("Model") then
-								local primary = nearby.PrimaryPart or nearby:FindFirstChildWhichIsA("BasePart")
-								if primary then
-									nearbyPos = primary.Position
-								end
-							end
-							if nearbyPos and (objPos - nearbyPos).Magnitude <= nearbyDistance and not isPlayerPart(nearby) then
-								enlarge(nearby)
-							end
-						end
-					end
-				end
-			end
+-- تحديث قائمة اللاعبين
+local function updatePlayers()
+	playerList = {}
+	for _, p in pairs(players:GetPlayers()) do
+		if p ~= player then
+			table.insert(playerList, p)
 		end
 	end
-	task.wait(0.5)
+	if #playerList > 0 then
+		index = (index % #playerList) + 1
+		targetPlayer = playerList[index]
+		NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
+	else
+		targetPlayer = nil
+		NextPlayerBtn.Text = "لا يوجد لاعب"
+	end
 end
+
+updatePlayers()
+
+players.PlayerAdded:Connect(updatePlayers)
+players.PlayerRemoving:Connect(updatePlayers)
+
+-- تغيير اللاعب عند الضغط على الزر
+NextPlayerBtn.MouseButton1Click:Connect(function()
+	if #playerList > 0 then
+		index = (index % #playerList) + 1
+		targetPlayer = playerList[index]
+		NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
+	end
+end)
+
+-- الانتقال خلف اللاعب لمدة 0.65 ثانية
+TeleportBtn.MouseButton1Click:Connect(function()
+	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local originalCFrame = hrp.CFrame
+			local targetHRP = targetPlayer.Character.HumanoidRootPart
+			-- موقع خلف اللاعب (1 ستود خلفه على محور lookVector)
+			local behindPos = targetHRP.CFrame.Position - targetHRP.CFrame.LookVector * 3
+			hrp.CFrame = CFrame.new(behindPos, targetHRP.Position)
+			wait(0.65)
+			if hrp then
+				hrp.CFrame = originalCFrame
+			end
+		end
+	end
+end)في مقال قرأته وهو ان احيانا نشعر بالارتياب من وجيه الروبوتات وهذا الخوف نابع من كونها تشبه الإنسان لحد ما،احد العلماء اليابانيين حط نسبة شبه معينة لنفترض 95% هذي النسبة الإنسان يبدا شعر بالارتياب بس اذا شبه الروبوت اقل من هذي النسبة نشوفه كا اقل من بشر وما نخاف واذا اكثر يصير انسان طبيعي والذاكرة والنواقل العصبية تستجيب على انه انسان طبيعي من نفس فصيلتنا..المغزى ان العلماء طرحوا تساؤل وهو "هل كان في اشباه بشر صادف وجودهم اسلافنا؟" لان الخوف ذا نابع من الذاكرة الوراثية زي مثلا ماتحس بخوف من حنش او عقرب او مكان مرتفع هذي أشياء وراثية نتناقلها عشان نكون اكثر حذر ونستمر على البقاء سبحان الله ، فا هل الخوف من هذي النسبة في الشبه تدل ان في انسان كان يشبهنا إلى حد معين واحتك مع أجدادنا قد يكون النياندرتال او فصائل بشرية أخرى في أفريقيا بس الان كل البشر من جنس الهوموسابيان وفي جينات امومية للنياندرتال عند الاوروبيين وشرق آسيا وشوي الشرق الأوسط
