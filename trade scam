@@ -1,32 +1,37 @@
--- LocalScript: يُظهر أسماء كل الأجزاء في الماب (باستثناء جسم اللاعب)
+-- LocalScript: يظهر أسماء كل الأجزاء في اللعبة (بدون أي حماية)
 
 local Players = game:GetService("Players")
 local LOCAL_PLAYER = Players.LocalPlayer
+local LABEL_NAME = "PartNameBillboard"
 
--- نجيب شخصيتك
 local function getCharacter()
 	return LOCAL_PLAYER.Character or LOCAL_PLAYER.CharacterAdded:Wait()
 end
 
 local function isPartAllowed(part)
-	-- لازم يكون BasePart + ما يكون من جسم اللاعب
 	if not part:IsA("BasePart") then
 		return false
 	end
-
 	local char = getCharacter()
 	if char and part:IsDescendantOf(char) then
 		return false
 	end
-
 	return true
 end
 
-local function makeBillboard(part)
-	if part:FindFirstChild("PartNameBillboard") then return end
+local function ensureBillboard(part)
+	if part:FindFirstChild(LABEL_NAME) then
+		-- حدّث النص لو تغير الاسم
+		local tl = part[LABEL_NAME]:FindFirstChildOfClass("TextLabel")
+		if tl and tl.Text ~= part.Name then
+			tl.Text = part.Name
+		end
+		return
+	end
 
+	-- إنشاء BillboardGui جديد
 	local bb = Instance.new("BillboardGui")
-	bb.Name = "PartNameBillboard"
+	bb.Name = LABEL_NAME
 	bb.Adornee = part
 	bb.Size = UDim2.new(0, 90, 0, 16)
 	bb.StudsOffset = Vector3.new(0, part.Size.Y * 0.5 + 0.6, 0)
@@ -42,20 +47,33 @@ local function makeBillboard(part)
 	tl.Font = Enum.Font.SourceSansBold
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextStrokeTransparency = 0.4
-	tl.TextSize = 8 -- صغير
+	tl.TextSize = 8
 	tl.Parent = bb
 end
 
--- نطبق على كل البارتات الموجودة
-for _, obj in ipairs(workspace:GetDescendants()) do
-	if isPartAllowed(obj) then
-		makeBillboard(obj)
+-- يفحص كل ثانية كل الأجزاء
+task.spawn(function()
+	while true do
+		task.wait(1)
+		for _, obj in ipairs(workspace:GetDescendants()) do
+			if isPartAllowed(obj) then
+				ensureBillboard(obj)
+			end
+		end
 	end
-end
+end)
 
--- لأي بارت جديد ينضاف
+-- عند إضافة بارت جديد
 workspace.DescendantAdded:Connect(function(obj)
 	if isPartAllowed(obj) then
-		makeBillboard(obj)
+		ensureBillboard(obj)
+	end
+end)
+
+-- عند حذف بارت
+workspace.DescendantRemoving:Connect(function(obj)
+	if obj:IsA("BasePart") then
+		local bb = obj:FindFirstChild(LABEL_NAME)
+		if bb then bb:Destroy() end
 	end
 end)
