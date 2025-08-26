@@ -24,15 +24,6 @@ Frame.Visible = true
 local UIListLayout = Instance.new("UIListLayout", Frame)
 UIListLayout.Padding = UDim.new(0,4)
 
--- زر لتكبير المحدد
-local enlargeBtn = Instance.new("TextButton", Frame)
-enlargeBtn.Size = UDim2.new(1,0,0,35)
-enlargeBtn.Text = "كبر المحدد"
-enlargeBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
-enlargeBtn.TextColor3 = Color3.new(1,1,1)
-enlargeBtn.Font = Enum.Font.SourceSansBold
-enlargeBtn.TextSize = 18
-
 local selectedObj = nil
 local buttons = {}
 
@@ -43,51 +34,66 @@ local function matchName(name)
 	return name == "bombhandle"
 end
 
--- دالة لتحديث قائمة البارتات
-local function updateList()
-	-- أولاً نحذف الأزرار القديمة غير زر التكبير
-	for _, btn in pairs(buttons) do
-		btn:Destroy()
-	end
-	buttons = {}
-
-	for _, obj in pairs(workspace:GetDescendants()) do
-		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
-			local btn = Instance.new("TextButton", Frame)
-			btn.Size = UDim2.new(1,0,0,30)
-			btn.Text = obj.Name
-			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-			btn.TextColor3 = Color3.new(1,1,1)
-			btn.TextScaled = true
-
-			btn.MouseButton1Click:Connect(function()
-				selectedObj = obj
-				btn.BackgroundColor3 = Color3.fromRGB(0,170,0)
-				for _,other in pairs(buttons) do
-					if other ~= btn then
-						other.BackgroundColor3 = Color3.fromRGB(70,70,70)
-					end
-				end
-			end)
-
-			table.insert(buttons, btn)
+-- دالة لتكبير أي بارت أو موديل
+local function enlarge(obj)
+	if obj then
+		if obj:IsA("BasePart") then
+			obj.Size = obj.Size * 2
+		elseif obj:IsA("Model") then
+			local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+			if primary then
+				obj:ScaleTo(2)
+			end
 		end
 	end
 end
 
--- حدث الزر لتكبير المحدد
-enlargeBtn.MouseButton1Click:Connect(function()
-	if selectedObj then
-		if selectedObj:IsA("BasePart") then
-			selectedObj.Size = selectedObj.Size * 2
-		elseif selectedObj:IsA("Model") then
-			local primary = selectedObj.PrimaryPart or selectedObj:FindFirstChildWhichIsA("BasePart")
-			if primary then
-				selectedObj:ScaleTo(2)
+-- دالة لتحديث قائمة البارتات مع الحفاظ على الاختيار
+local function updateList()
+	local existingObjs = {}
+	for _, btn in pairs(buttons) do
+		existingObjs[btn.Obj] = btn
+	end
+
+	-- إزالة أزرار غير موجودة حالياً
+	for obj, btn in pairs(existingObjs) do
+		if not obj or not obj.Parent then
+			btn:Destroy()
+			buttons[obj] = nil
+			if selectedObj == obj then
+				selectedObj = nil
 			end
 		end
 	end
-end)
+
+	-- إضافة أزرار جديدة
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
+			if not buttons[obj] then
+				local btn = Instance.new("TextButton", Frame)
+				btn.Size = UDim2.new(1,0,0,30)
+				btn.Text = obj.Name
+				btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+				btn.TextColor3 = Color3.new(1,1,1)
+				btn.TextScaled = true
+				btn.Obj = obj
+
+				btn.MouseButton1Click:Connect(function()
+					selectedObj = obj
+					enlarge(obj) -- يكبر مباشرة عند الضغط على اسمه
+					btn.BackgroundColor3 = Color3.fromRGB(0,170,0)
+					for _, otherBtn in pairs(buttons) do
+						if otherBtn ~= btn then
+							otherBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+						end
+					end
+				end)
+
+				buttons[obj] = btn
+			end
+		end
+	end
+end
 
 -- حدث الزر لإظهار/إخفاء الفريم
 toggleBtn.MouseButton1Click:Connect(function()
