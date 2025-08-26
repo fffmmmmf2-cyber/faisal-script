@@ -1,5 +1,4 @@
 -- LocalScript
-
 local player = game.Players.LocalPlayer
 local players = game.Players
 local RunService = game:GetService("RunService")
@@ -11,10 +10,10 @@ gui.Name = "ChaseGui"
 -- ======== GUI الرئيسي ========
 local Frame = Instance.new("Frame", gui)
 Frame.Size = UDim2.new(0,250,0,300)
-Frame.Position = UDim2.new(0.5,-125,0.5,-150) -- منتصف الشاشة
+Frame.Position = UDim2.new(0.5,-125,0.5,-150)
 Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Frame.Active = true
-Frame.Draggable = true -- قابل للسحب
+Frame.Draggable = true
 
 -- زر لإظهار/إخفاء الفريم
 local ToggleBtn = Instance.new("TextButton", gui)
@@ -23,11 +22,11 @@ ToggleBtn.Position = UDim2.new(0,10,0.5,-15)
 ToggleBtn.Text = "+"
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.TextSize = 20
-ToggleBtn.TextColor3 = Color3.fromRGB(1,1,1)
-ToggleBtn.BackgroundColor3 = Color3.fromHSV(0,1,1) -- يبدأ أحمر
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.BackgroundColor3 = Color3.fromHSV(0,1,1)
 ToggleBtn.AutoButtonColor = false
 
--- عمل رينبو للزر
+-- رينبو للزر
 spawn(function()
 	local hue = 0
 	while true do
@@ -39,10 +38,14 @@ end)
 
 ToggleBtn.MouseButton1Click:Connect(function()
 	Frame.Visible = not Frame.Visible
+	for _, btn in pairs(gui:GetChildren()) do
+		if btn:IsA("TextButton") and btn.Name:find("PlayerBtn") then
+			btn.Visible = Frame.Visible
+		end
+	end
 end)
 
 -- ======== Frame محتويات ========
--- اختيار نوع المباراة
 local MatchTypeBtn = Instance.new("TextButton", Frame)
 MatchTypeBtn.Size = UDim2.new(1,0,0,50)
 MatchTypeBtn.Position = UDim2.new(0,0,0,10)
@@ -52,7 +55,6 @@ MatchTypeBtn.TextSize = 20
 MatchTypeBtn.TextColor3 = Color3.new(1,1,1)
 MatchTypeBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
 
--- Frame لقائمة اختيار اللاعبين
 local SelectionFrame = Instance.new("ScrollingFrame", Frame)
 SelectionFrame.Size = UDim2.new(1,0,0,200)
 SelectionFrame.Position = UDim2.new(0,0,0,70)
@@ -64,7 +66,6 @@ local UIListLayout = Instance.new("UIListLayout", SelectionFrame)
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0,5)
 
--- زر "اعطيه القنبلة"
 local ActionBtn = Instance.new("TextButton", Frame)
 ActionBtn.Size = UDim2.new(1,0,0,50)
 ActionBtn.Position = UDim2.new(0,0,1,-60)
@@ -79,8 +80,9 @@ local selectedPlayers = {}
 local maxSelection = 1
 local targetQueue = {}
 local isRunning = false
+local playerButtons = {}
 
--- ======== أسماء اللاعبين فوق الرأس ========
+-- ======== أسماء اللاعبين ========
 local function createBillboard(p)
 	if not p.Character then return end
 	if p.Character:FindFirstChild("NameTag") then p.Character.NameTag:Destroy() end
@@ -98,10 +100,7 @@ local function createBillboard(p)
 	label.TextScaled = true
 end
 
-for _, p in pairs(players:GetPlayers()) do
-	createBillboard(p)
-end
-
+for _, p in pairs(players:GetPlayers()) do createBillboard(p) end
 players.PlayerAdded:Connect(createBillboard)
 
 -- ======== اختيار نوع المباراة ========
@@ -123,11 +122,15 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 			local num = tonumber(t:sub(1,1))
 			maxSelection = num
 			selectedPlayers = {}
-			-- اظهر قائمة اللاعبين لاختيارهم
+			-- مسح أزرار اللاعبين القديمة
+			for _, b in pairs(playerButtons) do b:Destroy() end
+			playerButtons = {}
+
 			SelectionFrame:ClearAllChildren()
 			local layout = Instance.new("UIListLayout", SelectionFrame)
 			layout.SortOrder = Enum.SortOrder.LayoutOrder
 			layout.Padding = UDim.new(0,5)
+
 			for _, p in pairs(players:GetPlayers()) do
 				if p ~= player then
 					local plBtn = Instance.new("TextButton", SelectionFrame)
@@ -141,6 +144,24 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 						if #selectedPlayers < maxSelection and not table.find(selectedPlayers,p) then
 							table.insert(selectedPlayers,p)
 							plBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+
+							-- إنشاء زر منسوخ لكل لاعب
+							local cloneBtn = ActionBtn:Clone()
+							cloneBtn.Parent = gui
+							cloneBtn.Name = "PlayerBtn_"..p.UserId
+							cloneBtn.Position = UDim2.new(0.5, -125 + (#playerButtons)*130,1,-60)
+							cloneBtn.Visible = Frame.Visible
+							cloneBtn.Text = "اعطيه القنبلة: "..p.DisplayName
+							table.insert(playerButtons, cloneBtn)
+
+							cloneBtn.MouseButton1Click:Connect(function()
+								if not p.Parent or not p.Character then cloneBtn.Visible=false return end
+								local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+								if hrp and p.Character:FindFirstChild("HumanoidRootPart") then
+									local targetHRP = p.Character.HumanoidRootPart
+									hrp.CFrame = CFrame.new(targetHRP.Position - targetHRP.CFrame.LookVector, targetHRP.Position)
+								end
+							end)
 						end
 					end)
 				end
@@ -152,25 +173,11 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 	SelectionFrame.Visible = true
 end)
 
--- ======== تحديث تلقائي لإزالة اللاعبين الميتين كل ثانية ========
-spawn(function()
-	while true do
-		for i=#selectedPlayers,1,-1 do
-			local p = selectedPlayers[i]
-			if not p or not p.Character or p.Character:FindFirstChild("Humanoid").Health<=0 then
-				table.remove(selectedPlayers,i)
-			end
-		end
-		wait(1)
-	end
-end)
-
--- ======== زر "اعطيه القنبلة" ========
+-- ======== زر "اعطيه القنبلة" الأصلي ========
 ActionBtn.MouseButton1Click:Connect(function()
 	if isRunning or #selectedPlayers == 0 then return end
 	isRunning = true
 	targetQueue = {table.unpack(selectedPlayers)}
-
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not hrp then isRunning=false return end
 	local originalCFrame = hrp.CFrame
