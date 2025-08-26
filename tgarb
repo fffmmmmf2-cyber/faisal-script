@@ -74,28 +74,33 @@ NextPlayerBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- الانتقال خلف اللاعب لمدة 1 ثانية مع دوران مرتين
+-- الانتقال خلف اللاعب لمدة 1 ثانية مع دوران مرتين والعودة لمكانك الأصلي
 ActionBtn.MouseButton1Click:Connect(function()
 	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
 		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		local targetHRP = targetPlayer.Character.HumanoidRootPart
 		if hrp then
+			local originalCFrame = hrp.CFrame
 			local duration = 1 -- ثانية
 			local spins = 2 -- دورتين كاملتين
 			local startTime = tick()
+			local distanceBehind = 1 -- ستود خلف اللاعب
 
 			local conn
 			conn = RunService.RenderStepped:Connect(function()
 				local elapsed = tick() - startTime
 				if elapsed > duration then
 					conn:Disconnect()
+					hrp.CFrame = originalCFrame -- ارجع لمكانك الأصلي
 					return
 				end
-				-- لاصق خلف اللاعب
-				hrp.CFrame = targetHRP.CFrame - targetHRP.CFrame.LookVector * 3
+				-- لاصق خلف اللاعب بشكل طبيعي
+				local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceBehind
+				local lookAt = targetHRP.Position
+				hrp.CFrame = CFrame.new(behindPos, lookAt)
 				-- دوران الجسم حول Y axis
 				local angle = math.rad(360 * spins * (elapsed / duration))
-				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, angle, 0)
+				hrp.CFrame = CFrame.new(behindPos) * CFrame.Angles(0, angle, 0)
 			end)
 		end
 	end
