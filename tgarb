@@ -2,10 +2,12 @@
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart") -- مركز اللاعب
+local hrp = character:WaitForChild("HumanoidRootPart")
 local workspace = game:GetService("Workspace")
 
-local distanceThreshold = 15 -- نصف القطر بالستود
+local mainDistance = 15 -- نصف قطر للبارت الرئيسي
+local nearbyDistance = 3 -- نصف قطر للبارت القريب
+local enlargedParts = {} -- لتخزين البارتات المكبرة مسبقاً
 
 -- دالة مطابقة الاسم بدون فرق بين الحروف والمسافات
 local function matchName(name)
@@ -16,7 +18,7 @@ end
 
 -- دالة لتكبير البارت أو الموديل
 local function enlarge(obj)
-	if obj then
+	if obj and not enlargedParts[obj] then
 		if obj:IsA("BasePart") then
 			obj.Size = obj.Size * 2
 		elseif obj:IsA("Model") then
@@ -25,6 +27,7 @@ local function enlarge(obj)
 				obj:ScaleTo(2)
 			end
 		end
+		enlargedParts[obj] = true
 	end
 end
 
@@ -32,17 +35,36 @@ end
 while true do
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
-			local objPosition
+			local objPos
 			if obj:IsA("BasePart") then
-				objPosition = obj.Position
+				objPos = obj.Position
 			elseif obj:IsA("Model") then
 				local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
 				if primary then
-					objPosition = primary.Position
+					objPos = primary.Position
 				end
 			end
-			if objPosition and (hrp.Position - objPosition).Magnitude <= distanceThreshold then
+
+			if objPos and (hrp.Position - objPos).Magnitude <= mainDistance then
 				enlarge(obj)
+
+				-- نكبر أي بارث قريب جداً من هذا البارت (2–3 ستود)
+				for _, nearby in pairs(workspace:GetDescendants()) do
+					if (nearby:IsA("BasePart") or nearby:IsA("Model")) and not enlargedParts[nearby] then
+						local nearbyPos
+						if nearby:IsA("BasePart") then
+							nearbyPos = nearby.Position
+						elseif nearby:IsA("Model") then
+							local primary = nearby.PrimaryPart or nearby:FindFirstChildWhichIsA("BasePart")
+							if primary then
+								nearbyPos = primary.Position
+							end
+						end
+						if nearbyPos and (objPos - nearbyPos).Magnitude <= nearbyDistance then
+							enlarge(nearby)
+						end
+					end
+				end
 			end
 		end
 	end
