@@ -11,9 +11,37 @@ gui.Name = "ChaseGui"
 -- ======== GUI الرئيسي ========
 local Frame = Instance.new("Frame", gui)
 Frame.Size = UDim2.new(0,250,0,300)
-Frame.Position = UDim2.new(0,20,0.5,-150)
+Frame.Position = UDim2.new(0.5,-125,0.5,-150) -- منتصف الشاشة
 Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Frame.Active = true
+Frame.Draggable = true -- قابل للسحب
 
+-- زر لإظهار/إخفاء الفريم
+local ToggleBtn = Instance.new("TextButton", gui)
+ToggleBtn.Size = UDim2.new(0,30,0,30)
+ToggleBtn.Position = UDim2.new(0,10,0.5,-15)
+ToggleBtn.Text = "+"
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 20
+ToggleBtn.TextColor3 = Color3.fromRGB(1,1,1)
+ToggleBtn.BackgroundColor3 = Color3.fromHSV(0,1,1) -- يبدأ أحمر
+ToggleBtn.AutoButtonColor = false
+
+-- عمل رينبو للزر
+spawn(function()
+	local hue = 0
+	while true do
+		hue = (hue + 0.01) % 1
+		ToggleBtn.BackgroundColor3 = Color3.fromHSV(hue,1,1)
+		wait(0.03)
+	end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+	Frame.Visible = not Frame.Visible
+end)
+
+-- ======== Frame محتويات ========
 -- اختيار نوع المباراة
 local MatchTypeBtn = Instance.new("TextButton", Frame)
 MatchTypeBtn.Size = UDim2.new(1,0,0,50)
@@ -124,6 +152,19 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 	SelectionFrame.Visible = true
 end)
 
+-- ======== تحديث تلقائي لإزالة اللاعبين الميتين كل ثانية ========
+spawn(function()
+	while true do
+		for i=#selectedPlayers,1,-1 do
+			local p = selectedPlayers[i]
+			if not p or not p.Character or p.Character:FindFirstChild("Humanoid").Health<=0 then
+				table.remove(selectedPlayers,i)
+			end
+		end
+		wait(1)
+	end
+end)
+
 -- ======== زر "اعطيه القنبلة" ========
 ActionBtn.MouseButton1Click:Connect(function()
 	if isRunning or #selectedPlayers == 0 then return end
@@ -134,7 +175,6 @@ ActionBtn.MouseButton1Click:Connect(function()
 	if not hrp then isRunning=false return end
 	local originalCFrame = hrp.CFrame
 
-	-- وظيفة النقل مع الدوران
 	local function moveToTarget(target)
 		if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
 		local targetHRP = target.Character.HumanoidRootPart
@@ -158,7 +198,6 @@ ActionBtn.MouseButton1Click:Connect(function()
 		return true
 	end
 
-	-- حلقة لكل لاعب مختار
 	while #targetQueue>0 do
 		local t = table.remove(targetQueue,1)
 		if t.Parent then
@@ -166,7 +205,6 @@ ActionBtn.MouseButton1Click:Connect(function()
 		end
 	end
 
-	-- اذا ماتوا كلهم، اعادة تلقائية
 	isRunning=false
 	targetQueue = {}
 	selectedPlayers = {}
