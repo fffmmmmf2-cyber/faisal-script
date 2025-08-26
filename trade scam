@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local LOCAL_PLAYER = Players.LocalPlayer
-local RANGE = 100 -- المسافة بالستود
+local RANGE = 100 -- المسافة بالستود (تقدر تغيّرها)
 local UPDATE_INTERVAL = 0.25 -- كل كم ثانية نحدّث
 local MAX_LABELS = 200 -- حد أقصى للّيبيلات المفتوحة (حماية أداء)
 local MAX_CREATE_PER_TICK = 50 -- أقصى عدد إنشاء/حذف في التحديث الواحد
@@ -12,8 +12,7 @@ local MAX_CREATE_PER_TICK = 50 -- أقصى عدد إنشاء/حذف في الت�
 -- تهيئة فلترة الاستعلام المكاني
 local overlap = OverlapParams.new()
 overlap.FilterType = Enum.RaycastFilterType.Include
-overlap.FilterDescendantsInstances = { workspace } -- الكل
-overlap.CollisionGroup = nil
+overlap.FilterDescendantsInstances = { workspace }
 
 -- كاش للأجسام اللي عليها لابل حاليًا
 local active = {}      -- [BasePart] = BillboardGui
@@ -25,10 +24,9 @@ end
 
 local function makeBillboard(part)
 	if not part or not part.Parent then return end
-	-- لو موجود، رجّعه
 	if active[part] and active[part].Parent then return active[part] end
 
-	-- نظّف لو فيه نسخة قديمة
+	-- لو فيه نسخة قديمة نحذفها
 	local old = part:FindFirstChild("PartNameBillboard")
 	if old then old:Destroy() end
 
@@ -74,18 +72,15 @@ end
 
 -- لوب تحديث ذكي
 task.spawn(function()
-	local createdThisTick, removedThisTick
-
 	while true do
 		task.wait(UPDATE_INTERVAL)
 
 		local root = getRoot()
 		if not root then continue end
 
-		-- استعلام مكاني سريع: كل الأجزاء داخل نصف قطر RANGE
+		-- استعلام: كل الأجزاء داخل نصف قطر RANGE
 		local near = workspace:GetPartBoundsInRadius(root.Position, RANGE, overlap)
 
-		-- نحطهم في مجموعة للسرعة
 		local nearSet = {}
 		local createBudget = MAX_CREATE_PER_TICK
 		local removeBudget = MAX_CREATE_PER_TICK
