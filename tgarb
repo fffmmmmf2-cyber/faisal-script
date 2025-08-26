@@ -1,112 +1,87 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+-- LocalScript في StarterPlayerScripts
 
--- إنشاء RemoteEvent إذا ما كان موجود
-local followEvent = ReplicatedStorage:FindFirstChild("FollowEvent")
-if not followEvent then
-    followEvent = Instance.new("RemoteEvent")
-    followEvent.Name = "FollowEvent"
-    followEvent.Parent = ReplicatedStorage
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "BombGui"
+
+-- إطار رئيسي
+local Frame = Instance.new("Frame", gui)
+Frame.Size = UDim2.new(0, 220, 0, 300)
+Frame.Position = UDim2.new(0, 20, 0.5, -150)
+Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+local UIListLayout = Instance.new("UIListLayout", Frame)
+UIListLayout.Padding = UDim.new(0,5)
+
+-- زر للتكبير
+local enlargeBtn = Instance.new("TextButton", Frame)
+enlargeBtn.Size = UDim2.new(1,0,0,40)
+enlargeBtn.Text = "🔍 كبر المحدد"
+enlargeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+enlargeBtn.TextColor3 = Color3.new(1,1,1)
+enlargeBtn.Font = Enum.Font.SourceSansBold
+enlargeBtn.TextSize = 20
+
+-- متغير يخزن البارت اللي اخترته
+local selectedObj = nil
+
+-- وظيفة لإضافة زر لأي BombHandle
+local function addButtonFor(obj)
+	local btn = Instance.new("TextButton", Frame)
+	btn.Size = UDim2.new(1,0,0,30)
+	btn.Text = obj.Name .. " (" .. obj:GetFullName() .. ")"
+	btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextScaled = true
+
+	btn.MouseButton1Click:Connect(function()
+		selectedObj = obj
+		btn.BackgroundColor3 = Color3.fromRGB(0,170,0) -- يوضح انه هو المحدد
+		-- يرجع باقي الأزرار للون عادي
+		for _,other in pairs(Frame:GetChildren()) do
+			if other:IsA("TextButton") and other ~= enlargeBtn and other ~= btn then
+				other.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			end
+		end
+	end)
 end
 
--- التعامل مع النقل الفعلي عند ضغط الزر
-followEvent.OnServerEvent:Connect(function(player, targetName)
-    local targetPlayer = Players:FindFirstChild(targetName)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if myHRP then
-            targetPlayer.Character.HumanoidRootPart.CFrame = myHRP.CFrame * CFrame.new(0, 0, -3)
-        end
-    end
-end)
+-- وظيفة تبحث عن كل BombHandle
+local function matchName(name)
+	name = string.lower(name)
+	name = string.gsub(name,"%s+","")
+	return name == "bombhandle"
+end
 
--- عند دخول أي لاعب، نضيف له GUI
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function()
-        local playerGui = player:WaitForChild("PlayerGui")
-        local screenGui = Instance.new("ScreenGui", playerGui)
-        screenGui.Name = "FollowGUI"
+for _, obj in pairs(workspace:GetDescendants()) do
+	if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
+		addButtonFor(obj)
+	end
+end
 
-        local mainFrame = Instance.new("Frame", screenGui)
-        mainFrame.Size = UDim2.new(0, 250, 0, 250)
-        mainFrame.Position = UDim2.new(0.5, -125, 0.5, -125)
-        mainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-        mainFrame.BackgroundTransparency = 0.3
-        mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-
-        -- جعل الفريم قابل للسحب
-        local dragging, dragInput, dragStart, startPos
-        local function update(input)
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-
-        mainFrame.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = mainFrame.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragging = false
-                    end
-                end)
-            end
-        end)
-
-        mainFrame.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                dragInput = input
-            end
-        end)
-
-        UserInputService.InputChanged:Connect(function(input)
-            if input == dragInput and dragging then
-                update(input)
-            end
-        end)
-
-        -- TextBox لكتابة الاسم
-        local nameBox = Instance.new("TextBox", mainFrame)
-        nameBox.Size = UDim2.new(0, 200, 0, 40)
-        nameBox.Position = UDim2.new(0.5, -100, 0, 10)
-        nameBox.PlaceholderText = "اكتب الاسم هنا"
-        nameBox.TextScaled = true
-
-        -- صورة البروفايل
-        local profileImage = Instance.new("ImageLabel", mainFrame)
-        profileImage.Size = UDim2.new(0, 80, 0, 80)
-        profileImage.Position = UDim2.new(0.5, -40, 0, 60)
-        profileImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        profileImage.ScaleType = Enum.ScaleType.Fit
-
-        -- زر التفعيل (ينقل اللاعب وراك)
-        local activateButton = Instance.new("TextButton", mainFrame)
-        activateButton.Size = UDim2.new(0, 120, 0, 40)
-        activateButton.Position = UDim2.new(0.5, -60, 0, 150)
-        activateButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-        activateButton.Text = "تفعيل النقل"
-        activateButton.TextScaled = true
-
-        -- تحديث صورة اللاعب تلقائي
-        nameBox.Changed:Connect(function()
-            local targetName = nameBox.Text
-            local targetPlayer = Players:FindFirstChild(targetName)
-            if targetPlayer then
-                local content, ready = Players:GetUserThumbnailAsync(targetPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
-                profileImage.Image = content
-            else
-                profileImage.Image = ""
-            end
-        end)
-
-        -- عند الضغط على الزر نرسل للسيرفر
-        activateButton.MouseButton1Click:Connect(function()
-            local targetName = nameBox.Text
-            if targetName ~= "" then
-                followEvent:FireServer(targetName)
-            end
-        end)
-    end)
+-- لما اضغط زر التكبير
+enlargeBtn.MouseButton1Click:Connect(function()
+	if selectedObj then
+		if selectedObj:IsA("BasePart") then
+			local oldSize = selectedObj.Size
+			selectedObj.Size = selectedObj.Size * 2
+			task.delay(4,function()
+				if selectedObj then
+					selectedObj.Size = oldSize
+				end
+			end)
+		elseif selectedObj:IsA("Model") then
+			local primary = selectedObj.PrimaryPart or selectedObj:FindFirstChildWhichIsA("BasePart")
+			if primary then
+				local oldCFrame = selectedObj:GetPrimaryPartCFrame()
+				selectedObj:ScaleTo(2)
+				task.delay(4,function()
+					if selectedObj then
+						selectedObj:ScaleTo(1)
+						selectedObj:SetPrimaryPartCFrame(oldCFrame)
+					end
+				end)
+			end
+		end
+	end
 end)
