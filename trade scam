@@ -1,90 +1,39 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+-- LocalScript
 
--- إنشاء ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MyGUIViewer"
-screenGui.Parent = playerGui
+local function addBillboard(part)
+	if part:IsA("BasePart") then
+		-- لو فيه BillboardGui قديم نحذفه
+		if part:FindFirstChild("PartNameBillboard") then
+			part.PartNameBillboard:Destroy()
+		end
 
--- مربع البحث
-local searchBox = Instance.new("TextBox")
-searchBox.Size = UDim2.new(0, 300, 0, 30)
-searchBox.Position = UDim2.new(0, 50, 0, 20)
-searchBox.PlaceholderText = "ابحث هنا..."
-searchBox.ClearTextOnFocus = false
-searchBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-searchBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-searchBox.Font = Enum.Font.SourceSans
-searchBox.TextSize = 18
-searchBox.Parent = screenGui
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "PartNameBillboard"
+		billboard.Adornee = part
+		billboard.Size = UDim2.new(0, 100, 0, 20)
+		billboard.StudsOffset = Vector3.new(0, part.Size.Y + 0.5, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Parent = part
 
--- ScrollFrame
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -100, 1, -70)
-scrollFrame.Position = UDim2.new(0, 50, 0, 60)
-scrollFrame.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-scrollFrame.BackgroundTransparency = 0.5
-scrollFrame.ScrollBarThickness = 10
-scrollFrame.Parent = screenGui
-
--- UIListLayout
-local listLayout = Instance.new("UIListLayout")
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 5)
-listLayout.Parent = scrollFrame
-
-local allLabels = {}
-
--- لائحة الـ Default GUI اللي نبي نستبعدها
-local defaultGUI = {
-    "Backpack",
-    "PlayerList",
-    "Chat",
-    "Health",
-    "PlayerScripts",
-    "RobloxGui"
-}
-
-local function isDefaultGui(name)
-    for _, v in pairs(defaultGUI) do
-        if name == v then
-            return true
-        end
-    end
-    return false
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Text = part.Name
+		textLabel.TextScaled = true
+		textLabel.TextColor3 = Color3.new(1, 1, 1)
+		textLabel.Font = Enum.Font.SourceSansBold
+		textLabel.TextStrokeTransparency = 0.5
+		textLabel.TextSize = 8 -- حجم صغير
+		textLabel.Parent = billboard
+	end
 end
 
--- إضافة أسماء GUI غير الافتراضية
-local function addGuiNames(parent)
-    for _, obj in pairs(parent:GetDescendants()) do
-        if obj:IsA("GuiObject") and not isDefaultGui(obj.Name) then
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 0, 25)
-            textLabel.BackgroundTransparency = 0.5
-            textLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            textLabel.Font = Enum.Font.SourceSans
-            textLabel.TextSize = 18
-            textLabel.Text = obj.Name
-            textLabel.Parent = scrollFrame
-            table.insert(allLabels, textLabel)
-        end
-    end
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+-- نضيف للبارتات اللي موجودة
+for _, part in ipairs(workspace:GetDescendants()) do
+	addBillboard(part)
 end
 
-addGuiNames(playerGui)
-
--- فلترة البحث
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local query = searchBox.Text:lower()
-    for _, label in pairs(allLabels) do
-        if string.find(label.Text:lower(), query) then
-            label.Visible = true
-        else
-            label.Visible = false
-        end
-    end
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+-- نضيف لأي بارت جديد يدخل للـ Workspace
+workspace.DescendantAdded:Connect(function(obj)
+	addBillboard(obj)
 end)
