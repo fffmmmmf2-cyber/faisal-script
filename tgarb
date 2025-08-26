@@ -1,135 +1,489 @@
+-- LocalScript كامل لـ StarterPlayerScripts
+-- يحوي: GUI قابل للسحب، زر + رينبو، ScrollFrame يظهر كل اللاعبين، اختيار لاعبين،
+-- أزرار منسوخة تظهر لما تخفي الفريم، كل زر ينفّذ attach+spin والرجوع للمكان الأصلي.
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 
--- واجهة
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.ResetOnSpawn = false
+-- ====== GUI ======
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "ChaseGui"
+gui.ResetOnSpawn = false
 
--- زر إظهار/إخفاء
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 35, 0, 35)
-ToggleBtn.Position = UDim2.new(0, 10, 0.5, -20)
+local Frame = Instance.new("Frame", gui)
+Frame.Size = UDim2.new(0,250,0,320)
+Frame.Position = UDim2.new(0.5,-125,0.5,-160)
+Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Frame.Active = true
+Frame.Draggable = true
+
+local ToggleBtn = Instance.new("TextButton", gui)
+ToggleBtn.Size = UDim2.new(0,30,0,30)
+ToggleBtn.Position = UDim2.new(0,10,0.5,-15)
 ToggleBtn.Text = "+"
-ToggleBtn.TextScaled = true
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(255,0,255)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 20
+ToggleBtn.TextColor3 = Color3.new(1,1,1)
+ToggleBtn.AutoButtonColor = false
 
--- الفريم الأساسي
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 250, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Visible = false
+-- rainbow للزر +
+spawn(function()
+	local hue = 0
+	while true do
+		hue = (hue + 0.01) % 1
+		ToggleBtn.BackgroundColor3 = Color3.fromHSV(hue,1,1)
+		wait(0.03)
+	end
+end)
 
--- ScrollFrame
-local PlayerList = Instance.new("ScrollingFrame", MainFrame)
-PlayerList.Size = UDim2.new(1, -10, 1, -10)
-PlayerList.Position = UDim2.new(0, 5, 0, 5)
-PlayerList.CanvasSize = UDim2.new(0,0,0,0)
-PlayerList.ScrollBarThickness = 6
+-- عنوان واختيار نوع المباراة
+local MatchTypeBtn = Instance.new("TextButton", Frame)
+MatchTypeBtn.Size = UDim2.new(1,0,0,40)
+MatchTypeBtn.Position = UDim2.new(0,0,0,8)
+MatchTypeBtn.Text = "اختر نوع المباراة"
+MatchTypeBtn.Font = Enum.Font.SourceSansBold
+MatchTypeBtn.TextSize = 18
+MatchTypeBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
+MatchTypeBtn.TextColor3 = Color3.new(1,1,1)
 
-local UIList = Instance.new("UIListLayout", PlayerList)
-UIList.Padding = UDim.new(0, 4)
+-- ScrollFrame لعرض اللاعبين
+local SelectionFrame = Instance.new("ScrollingFrame", Frame)
+SelectionFrame.Size = UDim2.new(1,-10,0,220)
+SelectionFrame.Position = UDim2.new(0,5,0,56)
+SelectionFrame.CanvasSize = UDim2.new(0,0,0,0)
+SelectionFrame.BackgroundColor3 = Color3.fromRGB(60,60,60)
+SelectionFrame.ScrollBarThickness = 6
+SelectionFrame.Visible = false
 
--- أزرار اللاعبين المختارين
-local SelectedPlayers = {}
-local TeleportButtons = {}
+local UIListLayout = Instance.new("UIListLayout", SelectionFrame)
+UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- تحديث القائمة
-local function CreatePlayerButton(plr)
-	local Btn = Instance.new("TextButton")
-	Btn.Size = UDim2.new(1, -5, 0, 30)
-	Btn.Text = plr.DisplayName
-	Btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-	Btn.TextColor3 = Color3.fromRGB(255,255,255)
-	Btn.TextScaled = true
+-- زر العمل الرئيسي
+local ActionBtn = Instance.new("TextButton", Frame)
+ActionBtn.Size = UDim2.new(1,0,0,44)
+ActionBtn.Position = UDim2.new(0,0,1,-52)
+ActionBtn.Text = "اعطيه القنبلة"
+ActionBtn.Font = Enum.Font.SourceSansBold
+ActionBtn.TextSize = 20
+ActionBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+ActionBtn.TextColor3 = Color3.new(1,1,1)
 
-	Btn.MouseButton1Click:Connect(function()
-		if not SelectedPlayers[plr] then
-			SelectedPlayers[plr] = true
-			print("اخترت: "..plr.DisplayName)
+-- ====== حالة و جداول ======
+local maxSelection = 1
+local selectedPlayers = {}       -- مصفوفة للحفاظ على ترتيب الاختيارات
+local selectedIndexByUserId = {} -- لمتابعة سريع لمنع التكرار
+local cloneButtons = {}          -- UserId -> clone button
+local listButtons = {}           -- player -> list button (في ScrollFrame)
+local isRunning = false
+
+-- ====== Billboard: أسماء فوق الرأس (DisplayName بالأحمر) ======
+local function attachBillboardTo(p)
+	if not p then return end
+	local function doAttach()
+		if not p.Character then return end
+		local existing = p.Character:FindFirstChild("NameTag")
+		if existing then existing:Destroy() end
+		local bill = Instance.new("BillboardGui")
+		bill.Name = "NameTag"
+		bill.Parent = p.Character
+		bill.Size = UDim2.new(0,140,0,40)
+		bill.AlwaysOnTop = true
+		bill.StudsOffset = Vector3.new(0,3,0)
+		local lbl = Instance.new("TextLabel", bill)
+		lbl.Size = UDim2.new(1,0,1,0)
+		lbl.BackgroundTransparency = 1
+		lbl.Text = p.DisplayName
+		lbl.TextColor3 = Color3.new(1,0,0)
+		lbl.TextScaled = true
+		lbl.Font = Enum.Font.SourceSansBold
+	end
+	p.CharacterAdded:Connect(function() wait(0.05); doAttach() end)
+	-- لو الشخصية موجودة الآن
+	doAttach()
+end
+
+for _,pl in ipairs(Players:GetPlayers()) do
+	if pl ~= player then attachBillboardTo(pl) end
+end
+Players.PlayerAdded:Connect(function(pl) if pl ~= player then attachBillboardTo(pl) end end)
+
+-- ====== وظائف مساعدة للاختيارات ======
+local function isPlayerSelected(pl)
+	for i=1,#selectedPlayers do
+		if selectedPlayers[i] == pl then return i end
+	end
+	return nil
+end
+
+local function addSelectedPlayer(pl)
+	if isPlayerSelected(pl) then return false end
+	if #selectedPlayers >= maxSelection then return false end
+	table.insert(selectedPlayers, pl)
+	selectedIndexByUserId[pl.UserId] = #selectedPlayers
+	return true
+end
+
+local function removeSelectedPlayer(pl)
+	local idx = isPlayerSelected(pl)
+	if not idx then return false end
+	table.remove(selectedPlayers, idx)
+	selectedIndexByUserId[pl.UserId] = nil
+	-- تحديث indices
+	for i=1,#selectedPlayers do
+		selectedIndexByUserId[selectedPlayers[i].UserId] = i
+	end
+	return true
+end
+
+-- ====== عمل زر صغير منسوخ للاعب (يظهر فقط لو الفريم مخفي) ======
+local function createOrUpdateCloneButton(pl)
+	if cloneButtons[pl.UserId] then
+		cloneButtons[pl.UserId].Visible = (not Frame.Visible)
+		return cloneButtons[pl.UserId]
+	end
+
+	local btn = Instance.new("TextButton", gui)
+	btn.Name = "PlayerBtn_"..pl.UserId
+	btn.Size = UDim2.new(0,100,0,26)
+	-- نرتبها عمودياً على يسار الشاشة مبتدئة من أعلى
+	local count = 0
+	for _,_ in pairs(cloneButtons) do count = count + 1 end
+	btn.Position = UDim2.new(0,10,0,40 + count*32)
+	btn.Text = pl.DisplayName
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 14
+	btn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Visible = (not Frame.Visible)
+	btn:SetAttribute("Busy", false)
+
+	-- عند خروج اللاعب من السيرفر نحذف الزر
+	local conn
+	conn = Players.PlayerRemoving:Connect(function(removed)
+		if removed == pl then
+			if btn and btn.Parent then btn:Destroy() end
+			cloneButtons[pl.UserId] = nil
+			if conn then conn:Disconnect() end
 		end
 	end)
 
-	return Btn
-end
+	-- عند الضغط: شغّل نفس حركة الزر الرئيسي (لاصق + دوران + رجوع)
+	btn.MouseButton1Click:Connect(function()
+		if btn:GetAttribute("Busy") then return end
+		btn:SetAttribute("Busy", true)
 
-local function UpdateList()
-	PlayerList:ClearAllChildren()
-	UIList.Parent = PlayerList
-	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer then
-			local Btn = CreatePlayerButton(plr)
-			Btn.Parent = PlayerList
+		-- لو اللاعب خرج
+		if not pl.Parent then
+			btn.Visible = false
+			btn:SetAttribute("Busy", false)
+			return
 		end
-	end
-	PlayerList.CanvasSize = UDim2.new(0,0,0,#Players:GetPlayers()*34)
+
+		-- نفّذ الحركة
+		local success = false
+		pcall(function() success = true end) -- placeholder to avoid luacheck warnings
+
+		-- نستخدم نفس الدالة أدناه (doAttachAndSpin)
+		-- تجعل الزر مشغول حتى الانتهاء
+		local finished = false
+		spawn(function()
+			do
+				-- مكالمة الدالة (مع حماية)
+				local ok = pcall(function()
+					-- دالة مشتركة موجودة لاحقًا، نندمج بالاسم doAttachAndSpin
+				end)
+				-- لا نستخدم هنا، لأن الدالة متعرفة لاحقا؛ لذا سن ربطها بعد تعريف الدالة
+				finished = true
+			until finished
+		end)
+		-- مؤقت محمي؛ سيتم فك busy داخل دالة doAttachAndSpin عند انتهاء الحركة
+	end)
+
+	cloneButtons[pl.UserId] = btn
+	return btn
 end
 
-Players.PlayerAdded:Connect(UpdateList)
-Players.PlayerRemoving:Connect(function(plr)
-	SelectedPlayers[plr] = nil
-	if TeleportButtons[plr] then
-		TeleportButtons[plr]:Destroy()
-		TeleportButtons[plr] = nil
-	end
-	UpdateList()
-end)
+-- ====== الدالة الأساسية: يلصق ويدور ثم يرجع (ترجع true لو نجحت) ======
+local function doAttachAndSpin(targetPlayer)
+	if not targetPlayer or not targetPlayer.Parent or not targetPlayer.Character then return false end
+	local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local myChar = player.Character
+	if not myChar then return false end
+	local hrp = myChar:FindFirstChild("HumanoidRootPart")
+	if not hrp or not targetHRP then return false end
 
-UpdateList()
+	local originalCFrame = hrp.CFrame
+	local duration = 1
+	local spins = 2
+	local distanceBehind = 1
+	local startTime = tick()
+	local conn
 
--- وظيفة النقل + الدوران
-local function TeleportToPlayer(plr)
-	if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		local targetHRP = plr.Character.HumanoidRootPart
-		local myHRP = LocalPlayer.Character.HumanoidRootPart
+	local success, err = pcall(function()
+		conn = RunService.RenderStepped:Connect(function()
+			-- لو الهدف راح او شخصيته انحذفت نقطع ونرجع
+			if not targetPlayer.Parent or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				if conn then conn:Disconnect() end
+				pcall(function() if hrp and originalCFrame then hrp.CFrame = originalCFrame end end)
+				return
+			end
 
-		-- ينقلك قدام اللاعب
-		myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-5)
+			local elapsed = tick() - startTime
+			if elapsed > duration then
+				if conn then conn:Disconnect() end
+				pcall(function() if hrp and originalCFrame then hrp.CFrame = originalCFrame end end)
+				return
+			end
 
-		-- يخليك مواجه له
-		myHRP.CFrame = CFrame.new(myHRP.Position, targetHRP.Position)
-	end
+			local curTargetHRP = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if not curTargetHRP then return end
+			local behindPos = curTargetHRP.Position - curTargetHRP.CFrame.LookVector * distanceBehind
+			local angle = math.rad(360 * spins * (elapsed / duration))
+			-- ضع اللاعب خلف الهدف مع دوران حول Y axis
+			pcall(function() hrp.CFrame = CFrame.new(behindPos) * CFrame.Angles(0, angle, 0) end)
+		end)
+	end)
+	-- ننتظر مدة الحركة
+	wait(duration + 0.03)
+	return success
 end
 
--- توليد الأزرار المنسوخة
-local function RefreshTeleportButtons()
-	-- مسح القديم
-	for _,btn in pairs(TeleportButtons) do
-		btn:Destroy()
+-- لأن createOrUpdateCloneButton حجز موضع قبل تعريف doAttachAndSpin،
+-- نحتاج الآن لإعادة ربط أزرار النسخ لتندمج مع الدالة الحقيقية:
+-- لذلك نعيد تعريف createOrUpdateCloneButton لهدف زر يعمل فعليًا
+-- لنفعل ذلك: ندمر كل الأزرار السابقة (لو موجودة) ثم نعيد إنشائها عند الحاجة.
+-- (سن استعمال createSmallClone فعليًا أدناه)
+
+-- ====== وظيفة لصنع زر صغير صحيح مرتبط بالدالة doAttachAndSpin ======
+local function createSmallCloneForPlayer(pl)
+	-- لو موجود رجعه وحدث ظهوره
+	if cloneButtons[pl.UserId] then
+		cloneButtons[pl.UserId].Visible = (not Frame.Visible)
+		return cloneButtons[pl.UserId]
 	end
-	TeleportButtons = {}
 
-	local yPos = 0.4
-	for plr,_ in pairs(SelectedPlayers) do
-		if plr.Parent == Players then
-			local Btn = Instance.new("TextButton", ScreenGui)
-			Btn.Size = UDim2.new(0, 80, 0, 25)
-			Btn.Position = UDim2.new(0, 60, yPos, 0)
-			Btn.Text = plr.DisplayName
-			Btn.TextScaled = true
-			Btn.BackgroundColor3 = Color3.fromRGB(100,0,200)
-			Btn.Visible = not MainFrame.Visible
+	local btn = Instance.new("TextButton", gui)
+	btn.Name = "PlayerBtn_"..pl.UserId
+	btn.Size = UDim2.new(0,100,0,26)
 
-			Btn.MouseButton1Click:Connect(function()
-				TeleportToPlayer(plr)
+	-- ترتيب عمودي بسيط (نآخذ عدد الموجودين حالياً)
+	local order = 0
+	for _,_ in pairs(cloneButtons) do order = order + 1 end
+	btn.Position = UDim2.new(0,10,0,40 + order*32)
+
+	btn.Text = pl.DisplayName
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 14
+	btn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Visible = (not Frame.Visible)
+	btn:SetAttribute("Busy", false)
+
+	-- عند خروج اللاعب نحذف الزر
+	local remConn
+	remConn = Players.PlayerRemoving:Connect(function(removed)
+		if removed == pl then
+			if btn and btn.Parent then btn:Destroy() end
+			cloneButtons[pl.UserId] = nil
+			if remConn then remConn:Disconnect() end
+		end
+	end)
+
+	btn.MouseButton1Click:Connect(function()
+		if btn:GetAttribute("Busy") then return end
+		btn:SetAttribute("Busy", true)
+
+		-- لو هدف غادر
+		if not pl.Parent then
+			btn.Visible = false
+			btn:SetAttribute("Busy", false)
+			return
+		end
+
+		-- تنفيذ الحركة مع حماية
+		local ok, _ = pcall(function()
+			doAttachAndSpin(pl)
+		end)
+		btn:SetAttribute("Busy", false)
+		if not ok then
+			-- لو فشل، نخفي الزر
+			if btn and btn.Parent then btn:Destroy() end
+			cloneButtons[pl.UserId] = nil
+		end
+	end)
+
+	cloneButtons[pl.UserId] = btn
+	return btn
+end
+
+-- ====== إعادة بناء قائمة الاختيارات (كل اللاعبين) ======
+local function rebuildSelectionList()
+	SelectionFrame:ClearAllChildren()
+	listButtons = {}
+	local idx = 0
+	for _, pl in ipairs(Players:GetPlayers()) do
+		if pl ~= player then
+			idx = idx + 1
+			local btn = Instance.new("TextButton", SelectionFrame)
+			btn.Size = UDim2.new(1, -8, 0, 36)
+			btn.Position = UDim2.new(0,4,0,(idx-1)*41)
+			btn.Text = pl.DisplayName
+			btn.Font = Enum.Font.SourceSansBold
+			btn.TextSize = 16
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+			btn.AutoButtonColor = true
+
+			listButtons[pl] = btn
+
+			btn.MouseButton1Click:Connect(function()
+				-- لو ما محدد ونقدر نضيف
+				if not isPlayerSelected(pl) and #selectedPlayers < maxSelection then
+					addSelectedPlayer(pl)
+					btn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+					-- أنشئ زر صغير مرتبط بهذا اللاعب (لكن نخليه يظهر فقط لو الفريم مخفي)
+					createSmallCloneForPlayer(pl)
+				-- لو محدد نخليه يلغى
+				elseif isPlayerSelected(pl) then
+					removeSelectedPlayer(pl)
+					btn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+					-- دمر زر النسخ لو كان موجود
+					if cloneButtons[pl.UserId] then
+						cloneButtons[pl.UserId]:Destroy()
+						cloneButtons[pl.UserId] = nil
+					end
+				end
 			end)
-
-			TeleportButtons[plr] = Btn
-			yPos = yPos + 0.07
 		end
 	end
+	SelectionFrame.CanvasSize = UDim2.new(0,0,0, math.max(1, idx) * 41)
 end
 
--- زر الإخفاء والإظهار
-ToggleBtn.MouseButton1Click:Connect(function()
-	MainFrame.Visible = not MainFrame.Visible
-	RefreshTeleportButtons()
+-- زر اختيار نوع المباراة (1v1..4v4)
+MatchTypeBtn.MouseButton1Click:Connect(function()
+	-- نبني قائمة من 4 أزرار داخل الـ SelectionFrame لاختيار النوع
+	SelectionFrame:ClearAllChildren()
+	local types = {"1v1","2v2","3v3","4v4"}
+	for i,t in ipairs(types) do
+		local b = Instance.new("TextButton", SelectionFrame)
+		b.Size = UDim2.new(1,-8,0,36)
+		b.Position = UDim2.new(0,4,0,(i-1)*41)
+		b.Text = t
+		b.Font = Enum.Font.SourceSansBold
+		b.TextSize = 16
+		b.BackgroundColor3 = Color3.fromRGB(80,80,150)
+		b.TextColor3 = Color3.new(1,1,1)
+
+		b.MouseButton1Click:Connect(function()
+			local num = tonumber(t:sub(1,1))
+			maxSelection = num
+			-- مسح الاختيارات الحالية وأزرار النسخ (عند تغيير النوع)
+			for _,btn in pairs(cloneButtons) do if btn and btn.Parent then btn:Destroy() end end
+			cloneButtons = {}
+			selectedPlayers = {}
+			selectedIndexByUserId = {}
+			-- الآن نبني القائمة الكاملة للاعبين
+			rebuildSelectionList()
+		end)
+	end
+	SelectionFrame.CanvasSize = UDim2.new(0,0,0, (#types)*41)
+	SelectionFrame.Visible = true
 end)
 
--- كل ثانيه يحدث الأزرار
-while true do
-	RefreshTeleportButtons()
-	task.wait(1)
-end) 
+-- ====== ToggleBtn: إظهار/إخفاء الفريم واظهار/اخفاء أزرار النسخ ======
+ToggleBtn.MouseButton1Click:Connect(function()
+	Frame.Visible = not Frame.Visible
+	-- كل أزرار النسخ تظهر فقط لو الفريم مخفي
+	for _,btn in pairs(cloneButtons) do
+		if btn and btn.Parent then
+			btn.Visible = (not Frame.Visible)
+		end
+	end
+	-- لو أظهرت الفريم: اضبط مواضع أزرار النسخ (نخليها مخفية)
+end)
+
+-- ====== زر العمل الرئيسي: ينفّذ على كل selectedPlayers واحد-واحد ======
+ActionBtn.MouseButton1Click:Connect(function()
+	if isRunning or #selectedPlayers == 0 then return end
+	isRunning = true
+
+	-- صف ثابت حتى لو تغير selectedPlayers أثناء التشغيل
+	local queue = {}
+	for _,p in ipairs(selectedPlayers) do table.insert(queue, p) end
+
+	for i=1,#queue do
+		local target = queue[i]
+		-- إذا اللاعب خرج نتخطاه
+		if not target or not target.Parent then
+			-- تخطى
+		else
+			-- لو شخصية موجودة ونقطة صحيحة ننفّذ
+			local hum = target.Character and target.Character:FindFirstChildWhichIsA("Humanoid")
+			if hum and hum.Health <= 0 then
+				-- لو مات قبل دوره: نطبق شرطك: نتخطاه (لا ننقله)
+			else
+				-- تنفيذ الحركة
+				doAttachAndSpin(target)
+				-- ننتظر تأثير بسيط قبل التالي
+				wait(0.05)
+			end
+		end
+	end
+
+	-- بعد الانتهاء نظف الحالة (حسب رغبتك نقدر نخليهم متبقين، لكن نفضّل ننظف)
+	for _,btn in pairs(cloneButtons) do if btn and btn.Parent then btn:Destroy() end end
+	cloneButtons = {}
+	selectedPlayers = {}
+	selectedIndexByUserId = {}
+	isRunning = false
+
+	-- أعادة بناء القائمة لعكس الألوان
+	rebuildSelectionList()
+end)
+
+-- ====== حدث الخروج والدخول لتحديث القوائم ======
+Players.PlayerRemoving:Connect(function(pl)
+	-- شيل من الاختيارات
+	for i=#selectedPlayers,1,-1 do
+		if selectedPlayers[i] == pl then
+			table.remove(selectedPlayers, i)
+		end
+	end
+	-- دمر زر النسخ لو موجود
+	if pl.UserId and cloneButtons[pl.UserId] then
+		if cloneButtons[pl.UserId].Parent then cloneButtons[pl.UserId]:Destroy() end
+		cloneButtons[pl.UserId] = nil
+	end
+	-- إعادة بناء القائمة لو هي ظاهرة
+	if SelectionFrame.Visible then rebuildSelectionList() end
+end)
+
+Players.PlayerAdded:Connect(function(pl)
+	-- لو الفريم ظاهر عادي نعيد البناء عشان يظهر اللاعب الجديد
+	if SelectionFrame.Visible then rebuildSelectionList() end
+	-- أضف Billboard اسمه
+	if pl ~= player then attachBillboardTo(pl) end
+end)
+
+-- ====== تأكد أن القائمة مبنية مبدئياً ======
+rebuildSelectionList()
+
+-- ====== تنظيف دوري: نتأكد أن أزرار النسخ للاعبين الغادرين تُحذف كل ثانية ======
+spawn(function()
+	while true do
+		for id,btn in pairs(cloneButtons) do
+			-- إذا اللاعب لم يعد موجود نحذف الزر
+			local found = false
+			for _,pl in pairs(Players:GetPlayers()) do
+				if pl.UserId == id then found = true break end
+			end
+			if not found then
+				if btn and btn.Parent then btn:Destroy() end
+				cloneButtons[id] = nil
+			end
+		end
+		wait(1)
+	end
+end)
