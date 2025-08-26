@@ -1,24 +1,36 @@
--- LocalScript في StarterPlayerScripts
-
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local workspace = game:GetService("Workspace")
 
-local mainDistance = 15 -- نصف قطر للبارت الرئيسي
-local nearbyDistance = 3 -- نصف قطر للبارت القريب
-local enlargedParts = {} -- لتخزين البارتات المكبرة مسبقاً
+local mainDistance = 15
+local nearbyDistance = 3
+local minDistance = 0.5 -- أقل مسافة عن اللاعب
+local enlargedParts = {}
 
--- دالة مطابقة الاسم بدون فرق بين الحروف والمسافات
+-- أسماء أجزاء جسم اللاعب لتجاهلها
+local playerParts = {}
+for _, part in pairs(character:GetDescendants()) do
+	if part:IsA("BasePart") then
+		playerParts[part] = true
+	end
+end
+
 local function matchName(name)
 	name = string.lower(name)
 	name = string.gsub(name,"%s+","")
 	return name == "bombhandle"
 end
 
--- دالة لتكبير البارت أو الموديل
+local function isPlayerPart(obj)
+	if obj:IsDescendantOf(character) then
+		return true
+	end
+	return false
+end
+
 local function enlarge(obj)
-	if obj and not enlargedParts[obj] then
+	if obj and not enlargedParts[obj] and not isPlayerPart(obj) then
 		if obj:IsA("BasePart") then
 			obj.Size = obj.Size * 2
 		elseif obj:IsA("Model") then
@@ -31,7 +43,6 @@ local function enlarge(obj)
 	end
 end
 
--- تحقق كل نص ثانية
 while true do
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
@@ -45,23 +56,26 @@ while true do
 				end
 			end
 
-			if objPos and (hrp.Position - objPos).Magnitude <= mainDistance then
-				enlarge(obj)
+			if objPos then
+				local dist = (hrp.Position - objPos).Magnitude
+				if dist >= minDistance and dist <= mainDistance then
+					enlarge(obj)
 
-				-- نكبر أي بارث قريب جداً من هذا البارت (2–3 ستود)
-				for _, nearby in pairs(workspace:GetDescendants()) do
-					if (nearby:IsA("BasePart") or nearby:IsA("Model")) and not enlargedParts[nearby] then
-						local nearbyPos
-						if nearby:IsA("BasePart") then
-							nearbyPos = nearby.Position
-						elseif nearby:IsA("Model") then
-							local primary = nearby.PrimaryPart or nearby:FindFirstChildWhichIsA("BasePart")
-							if primary then
-								nearbyPos = primary.Position
+					-- نكبر أي بارث قريب جداً من هذا البارت (2–3 ستود)
+					for _, nearby in pairs(workspace:GetDescendants()) do
+						if (nearby:IsA("BasePart") or nearby:IsA("Model")) and not enlargedParts[nearby] then
+							local nearbyPos
+							if nearby:IsA("BasePart") then
+								nearbyPos = nearby.Position
+							elseif nearby:IsA("Model") then
+								local primary = nearby.PrimaryPart or nearby:FindFirstChildWhichIsA("BasePart")
+								if primary then
+									nearbyPos = primary.Position
+								end
 							end
-						end
-						if nearbyPos and (objPos - nearbyPos).Magnitude <= nearbyDistance then
-							enlarge(nearby)
+							if nearbyPos and (objPos - nearbyPos).Magnitude <= nearbyDistance and not isPlayerPart(nearby) then
+								enlarge(nearby)
+							end
 						end
 					end
 				end
