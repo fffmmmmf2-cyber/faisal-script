@@ -142,7 +142,7 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 							cloneBtn.Text = p.DisplayName
 							table.insert(playerButtons, cloneBtn)
 
-							-- وظيفة الزر: Teleport + Attach + Spin + Return
+							-- وظيفة الزر: Teleport + Attach + Spin + Return خلف اللاعب
 							cloneBtn.MouseButton1Click:Connect(function()
 								if not p.Parent or not p.Character or not player.Character then
 									cloneBtn.Visible = false
@@ -155,24 +155,18 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 
 								local originalCFrame = hrp.CFrame
 								local duration = 0.80
-								local spinDuration = 0.70
-								local spinTime = 0.30
-								local spins = 3
-
 								local elapsed = 0
-								local spinElapsed = 0
+
 								local connection
-								
 								connection = RunService.RenderStepped:Connect(function(dt)
 									if elapsed < duration then
-										hrp.CFrame = targetHRP.CFrame * CFrame.new(0,0,-2) -- تلصق وراءه
+										-- لصق خلف اللاعب بمسافة 2 ستود
+										local backOffset = -2
+										hrp.CFrame = targetHRP.CFrame * CFrame.new(0,0,backOffset)
+										-- دوران كامل 365 درجة خلال الـ 0.80 ثانية
+										local angle = math.rad(365) * (dt/duration)
+										hrp.CFrame = hrp.CFrame * CFrame.Angles(0,angle,0)
 										elapsed = elapsed + dt
-										
-										if spinElapsed < spinDuration then
-											local angle = math.rad((365/spinTime)*dt)
-											hrp.CFrame = hrp.CFrame * CFrame.Angles(0,angle,0)
-											spinElapsed = spinElapsed + dt
-										end
 									else
 										connection:Disconnect()
 										hrp.CFrame = originalCFrame
