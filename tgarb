@@ -1,107 +1,173 @@
--- LocalScript في StarterPlayerScripts
+-- LocalScript
 
 local player = game.Players.LocalPlayer
 local players = game.Players
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "ChaseGui"
 
--- الفريم الرئيسي
+-- ======== GUI الرئيسي ========
 local Frame = Instance.new("Frame", gui)
-Frame.Size = UDim2.new(0,200,0,150)
-Frame.Position = UDim2.new(0,20,0.5,-75)
+Frame.Size = UDim2.new(0,250,0,300)
+Frame.Position = UDim2.new(0,20,0.5,-150)
 Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
--- زر اختيار اللاعب التالي
-local NextPlayerBtn = Instance.new("TextButton", Frame)
-NextPlayerBtn.Size = UDim2.new(1,0,0,50)
-NextPlayerBtn.Position = UDim2.new(0,0,0,10)
-NextPlayerBtn.Text = "التالي"
-NextPlayerBtn.Font = Enum.Font.SourceSansBold
-NextPlayerBtn.TextSize = 20
-NextPlayerBtn.TextColor3 = Color3.new(1,1,1)
-NextPlayerBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
+-- اختيار نوع المباراة
+local MatchTypeBtn = Instance.new("TextButton", Frame)
+MatchTypeBtn.Size = UDim2.new(1,0,0,50)
+MatchTypeBtn.Position = UDim2.new(0,0,0,10)
+MatchTypeBtn.Text = "اختر نوع المباراة"
+MatchTypeBtn.Font = Enum.Font.SourceSansBold
+MatchTypeBtn.TextSize = 20
+MatchTypeBtn.TextColor3 = Color3.new(1,1,1)
+MatchTypeBtn.BackgroundColor3 = Color3.fromRGB(100,100,200)
 
--- زر الانتقال خلف اللاعب مع الدوران
+-- Frame لقائمة اختيار اللاعبين
+local SelectionFrame = Instance.new("ScrollingFrame", Frame)
+SelectionFrame.Size = UDim2.new(1,0,0,200)
+SelectionFrame.Position = UDim2.new(0,0,0,70)
+SelectionFrame.CanvasSize = UDim2.new(0,0,0,0)
+SelectionFrame.BackgroundColor3 = Color3.fromRGB(60,60,60)
+SelectionFrame.Visible = false
+
+local UIListLayout = Instance.new("UIListLayout", SelectionFrame)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0,5)
+
+-- زر "اعطيه القنبلة"
 local ActionBtn = Instance.new("TextButton", Frame)
 ActionBtn.Size = UDim2.new(1,0,0,50)
-ActionBtn.Position = UDim2.new(0,0,0,70)
+ActionBtn.Position = UDim2.new(0,0,1,-60)
 ActionBtn.Text = "اعطيه القنبلة"
 ActionBtn.Font = Enum.Font.SourceSansBold
 ActionBtn.TextSize = 20
 ActionBtn.TextColor3 = Color3.new(1,1,1)
 ActionBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 
-local playerList = {}
-local index = 0
-local targetPlayer = nil
+-- ======== متغيرات ========
+local selectedPlayers = {}
+local maxSelection = 1
+local targetQueue = {}
+local isRunning = false
 
--- تحديث قائمة اللاعبين
-local function updatePlayers()
-	playerList = {}
-	for _, p in pairs(players:GetPlayers()) do
-		if p ~= player then
-			table.insert(playerList, p)
-		end
-	end
-	if targetPlayer == nil or not targetPlayer.Parent then
-		if #playerList > 0 then
-			index = (index % #playerList) + 1
-			targetPlayer = playerList[index]
-			NextPlayerBtn.Text = "التالي: "..targetPlayer.DisplayName
-		else
-			targetPlayer = nil
-			NextPlayerBtn.Text = "لا يوجد لاعب"
-		end
-	end
+-- ======== أسماء اللاعبين فوق الرأس ========
+local function createBillboard(p)
+	if not p.Character then return end
+	if p.Character:FindFirstChild("NameTag") then p.Character.NameTag:Destroy() end
+	local bill = Instance.new("BillboardGui", p.Character)
+	bill.Name = "NameTag"
+	bill.Size = UDim2.new(0,100,0,50)
+	bill.AlwaysOnTop = true
+	bill.StudsOffset = Vector3.new(0,3,0)
+	local label = Instance.new("TextLabel", bill)
+	label.Size = UDim2.new(1,0,1,0)
+	label.Text = p.DisplayName
+	label.TextColor3 = Color3.new(1,0,0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.SourceSansBold
+	label.TextScaled = true
 end
 
-updatePlayers()
-players.PlayerAdded:Connect(updatePlayers)
-players.PlayerRemoving:Connect(function(p)
-	if p == targetPlayer then
-		updatePlayers()
-	end
-end)
+for _, p in pairs(players:GetPlayers()) do
+	createBillboard(p)
+end
 
--- تغيير اللاعب عند الضغط على الزر
-NextPlayerBtn.MouseButton1Click:Connect(function()
-	if #playerList > 0 then
-		index = (index % #playerList) + 1
-		targetPlayer = playerList[index]
-		NextPlayerBtn.Text = "التالي: "..targetPlayer.DisplayName
-	end
-end)
+players.PlayerAdded:Connect(createBillboard)
 
--- الانتقال خلف اللاعب لمدة 1 ثانية مع دوران مرتين والعودة لمكانك الأصلي
-ActionBtn.MouseButton1Click:Connect(function()
-	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		local targetHRP = targetPlayer.Character.HumanoidRootPart
-		if hrp then
-			local originalCFrame = hrp.CFrame
-			local duration = 1 -- ثانية
-			local spins = 2 -- دورتين كاملتين
-			local startTime = tick()
-			local distanceBehind = 1 -- ستود خلف اللاعب
+-- ======== اختيار نوع المباراة ========
+MatchTypeBtn.MouseButton1Click:Connect(function()
+	local types = {"1v1","2v2","3v3","4v4"}
+	SelectionFrame.Visible = false
+	SelectionFrame:ClearAllChildren()
+	for i, t in ipairs(types) do
+		local btn = Instance.new("TextButton", SelectionFrame)
+		btn.Size = UDim2.new(1,0,0,40)
+		btn.Position = UDim2.new(0,0,0,(i-1)*45)
+		btn.Text = t
+		btn.Font = Enum.Font.SourceSansBold
+		btn.TextSize = 20
+		btn.TextColor3 = Color3.new(1,1,1)
+		btn.BackgroundColor3 = Color3.fromRGB(80,80,150)
 
-			local conn
-			conn = RunService.RenderStepped:Connect(function()
-				local elapsed = tick() - startTime
-				if elapsed > duration then
-					conn:Disconnect()
-					hrp.CFrame = originalCFrame -- ارجع لمكانك الأصلي
-					return
+		btn.MouseButton1Click:Connect(function()
+			local num = tonumber(t:sub(1,1))
+			maxSelection = num
+			selectedPlayers = {}
+			-- اظهر قائمة اللاعبين لاختيارهم
+			SelectionFrame:ClearAllChildren()
+			local layout = Instance.new("UIListLayout", SelectionFrame)
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Padding = UDim.new(0,5)
+			for _, p in pairs(players:GetPlayers()) do
+				if p ~= player then
+					local plBtn = Instance.new("TextButton", SelectionFrame)
+					plBtn.Size = UDim2.new(1,0,0,40)
+					plBtn.Text = p.DisplayName
+					plBtn.Font = Enum.Font.SourceSansBold
+					plBtn.TextSize = 18
+					plBtn.TextColor3 = Color3.new(1,1,1)
+					plBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+					plBtn.MouseButton1Click:Connect(function()
+						if #selectedPlayers < maxSelection and not table.find(selectedPlayers,p) then
+							table.insert(selectedPlayers,p)
+							plBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+						end
+					end)
 				end
-				-- لاصق خلف اللاعب بشكل طبيعي
-				local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceBehind
-				local lookAt = targetHRP.Position
-				hrp.CFrame = CFrame.new(behindPos, lookAt)
-				-- دوران الجسم حول Y axis
-				local angle = math.rad(360 * spins * (elapsed / duration))
-				hrp.CFrame = CFrame.new(behindPos) * CFrame.Angles(0, angle, 0)
-			end)
+			end
+			SelectionFrame.CanvasSize = UDim2.new(0,0,0,#players:GetPlayers()*45)
+			SelectionFrame.Visible = true
+		end)
+	end
+	SelectionFrame.Visible = true
+end)
+
+-- ======== زر "اعطيه القنبلة" ========
+ActionBtn.MouseButton1Click:Connect(function()
+	if isRunning or #selectedPlayers == 0 then return end
+	isRunning = true
+	targetQueue = {table.unpack(selectedPlayers)}
+
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then isRunning=false return end
+	local originalCFrame = hrp.CFrame
+
+	-- وظيفة النقل مع الدوران
+	local function moveToTarget(target)
+		if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
+		local targetHRP = target.Character.HumanoidRootPart
+		local duration = 1
+		local spins = 2
+		local startTime = tick()
+		local distanceBehind = 1
+		local conn
+		conn = RunService.RenderStepped:Connect(function()
+			local elapsed = tick() - startTime
+			if elapsed > duration then
+				conn:Disconnect()
+				hrp.CFrame = originalCFrame
+				return
+			end
+			local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceBehind
+			local angle = math.rad(360*spins*(elapsed/duration))
+			hrp.CFrame = CFrame.new(behindPos) * CFrame.Angles(0,angle,0)
+		end)
+		wait(duration)
+		return true
+	end
+
+	-- حلقة لكل لاعب مختار
+	while #targetQueue>0 do
+		local t = table.remove(targetQueue,1)
+		if t.Parent then
+			moveToTarget(t)
 		end
 	end
+
+	-- اذا ماتوا كلهم، اعادة تلقائية
+	isRunning=false
+	targetQueue = {}
+	selectedPlayers = {}
 end)
