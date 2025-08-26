@@ -48,7 +48,7 @@ local function updatePlayers()
 		if #playerList > 0 then
 			index = (index % #playerList) + 1
 			targetPlayer = playerList[index]
-			NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
+			NextPlayerBtn.Text = "التالي: "..targetPlayer.DisplayName -- استخدم Nickname هنا
 		else
 			targetPlayer = nil
 			NextPlayerBtn.Text = "لا يوجد لاعب"
@@ -70,11 +70,11 @@ NextPlayerBtn.MouseButton1Click:Connect(function()
 	if #playerList > 0 then
 		index = (index % #playerList) + 1
 		targetPlayer = playerList[index]
-		NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
+		NextPlayerBtn.Text = "التالي: "..targetPlayer.DisplayName -- Nickname
 	end
 end)
 
--- الانتقال خلف اللاعب لمدة 0.65 ثانية
+-- الانتقال خلف اللاعب لمدة 1 ثانية
 TeleportBtn.MouseButton1Click:Connect(function()
 	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
 		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -83,7 +83,7 @@ TeleportBtn.MouseButton1Click:Connect(function()
 			local targetHRP = targetPlayer.Character.HumanoidRootPart
 			local behindPos = targetHRP.CFrame.Position - targetHRP.CFrame.LookVector * 3
 			hrp.CFrame = CFrame.new(behindPos, targetHRP.Position)
-			wait(0.65)
+			wait(1) -- مدة ثانية كاملة
 			if hrp then
 				hrp.CFrame = originalCFrame
 			end
