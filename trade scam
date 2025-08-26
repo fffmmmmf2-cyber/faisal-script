@@ -1,39 +1,34 @@
--- LocalScript: يُظهر أسماء الأجزاء القريبة فقط لتخفيف الضغط
+-- LocalScript: يُظهر أسماء كل الأجزاء في الماب (باستثناء جسم اللاعب)
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local LOCAL_PLAYER = Players.LocalPlayer
-local RANGE = 100 -- المسافة بالستود (تقدر تغيّرها)
-local UPDATE_INTERVAL = 0.25 -- كل كم ثانية نحدّث
-local MAX_LABELS = 200 -- حد أقصى للّيبيلات المفتوحة (حماية أداء)
-local MAX_CREATE_PER_TICK = 50 -- أقصى عدد إنشاء/حذف في التحديث الواحد
 
--- تهيئة فلترة الاستعلام المكاني
-local overlap = OverlapParams.new()
-overlap.FilterType = Enum.RaycastFilterType.Include
-overlap.FilterDescendantsInstances = { workspace }
+-- نجيب شخصيتك
+local function getCharacter()
+	return LOCAL_PLAYER.Character or LOCAL_PLAYER.CharacterAdded:Wait()
+end
 
--- كاش للأجسام اللي عليها لابل حاليًا
-local active = {}      -- [BasePart] = BillboardGui
-local activeCount = 0
+local function isPartAllowed(part)
+	-- لازم يكون BasePart + ما يكون من جسم اللاعب
+	if not part:IsA("BasePart") then
+		return false
+	end
 
-local function isBasePart(obj)
-	return obj:IsA("BasePart")
+	local char = getCharacter()
+	if char and part:IsDescendantOf(char) then
+		return false
+	end
+
+	return true
 end
 
 local function makeBillboard(part)
-	if not part or not part.Parent then return end
-	if active[part] and active[part].Parent then return active[part] end
-
-	-- لو فيه نسخة قديمة نحذفها
-	local old = part:FindFirstChild("PartNameBillboard")
-	if old then old:Destroy() end
+	if part:FindFirstChild("PartNameBillboard") then return end
 
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "PartNameBillboard"
 	bb.Adornee = part
-	bb.Size = UDim2.new(0, 90, 0, 16) -- صغير
+	bb.Size = UDim2.new(0, 90, 0, 16)
 	bb.StudsOffset = Vector3.new(0, part.Size.Y * 0.5 + 0.6, 0)
 	bb.AlwaysOnTop = true
 	bb.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -47,69 +42,20 @@ local function makeBillboard(part)
 	tl.Font = Enum.Font.SourceSansBold
 	tl.TextColor3 = Color3.new(1, 1, 1)
 	tl.TextStrokeTransparency = 0.4
-	tl.TextSize = 8 -- صغير جداً
+	tl.TextSize = 8 -- صغير
 	tl.Parent = bb
-
-	active[part] = bb
-	activeCount += 1
-	return bb
 end
 
-local function removeBillboard(part)
-	local bb = active[part]
-	if bb then
-		if bb.Parent then bb:Destroy() end
-		active[part] = nil
-		activeCount -= 1
-		if activeCount < 0 then activeCount = 0 end
+-- نطبق على كل البارتات الموجودة
+for _, obj in ipairs(workspace:GetDescendants()) do
+	if isPartAllowed(obj) then
+		makeBillboard(obj)
 	end
 end
 
-local function getRoot()
-	local char = LOCAL_PLAYER.Character or LOCAL_PLAYER.CharacterAdded:Wait()
-	return char:FindFirstChild("HumanoidRootPart")
-end
-
--- لوب تحديث ذكي
-task.spawn(function()
-	while true do
-		task.wait(UPDATE_INTERVAL)
-
-		local root = getRoot()
-		if not root then continue end
-
-		-- استعلام: كل الأجزاء داخل نصف قطر RANGE
-		local near = workspace:GetPartBoundsInRadius(root.Position, RANGE, overlap)
-
-		local nearSet = {}
-		local createBudget = MAX_CREATE_PER_TICK
-		local removeBudget = MAX_CREATE_PER_TICK
-
-		for _, part in ipairs(near) do
-			if createBudget <= 0 then break end
-			if isBasePart(part) and activeCount < MAX_LABELS then
-				nearSet[part] = true
-				if not active[part] then
-					makeBillboard(part)
-					createBudget -= 1
-				end
-			end
-		end
-
-		-- امسح أي لابل لأجزاء خرجت من النطاق
-		for part, _ in pairs(active) do
-			if removeBudget <= 0 then break end
-			if not nearSet[part] or not part.Parent then
-				removeBillboard(part)
-				removeBudget -= 1
-			end
-		end
-	end
-end)
-
--- تنظيف عند حذف البارتات
-workspace.DescendantRemoving:Connect(function(obj)
-	if active[obj] then
-		removeBillboard(obj)
+-- لأي بارت جديد ينضاف
+workspace.DescendantAdded:Connect(function(obj)
+	if isPartAllowed(obj) then
+		makeBillboard(obj)
 	end
 end)
