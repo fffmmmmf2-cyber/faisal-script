@@ -44,20 +44,26 @@ local function updatePlayers()
 			table.insert(playerList, p)
 		end
 	end
-	if #playerList > 0 then
-		index = (index % #playerList) + 1
-		targetPlayer = playerList[index]
-		NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
-	else
-		targetPlayer = nil
-		NextPlayerBtn.Text = "لا يوجد لاعب"
+	if targetPlayer == nil or not targetPlayer.Parent then
+		if #playerList > 0 then
+			index = (index % #playerList) + 1
+			targetPlayer = playerList[index]
+			NextPlayerBtn.Text = "التالي: "..targetPlayer.Name
+		else
+			targetPlayer = nil
+			NextPlayerBtn.Text = "لا يوجد لاعب"
+		end
 	end
 end
 
 updatePlayers()
 
 players.PlayerAdded:Connect(updatePlayers)
-players.PlayerRemoving:Connect(updatePlayers)
+players.PlayerRemoving:Connect(function(p)
+	if p == targetPlayer then
+		updatePlayers()
+	end
+end)
 
 -- تغيير اللاعب عند الضغط على الزر
 NextPlayerBtn.MouseButton1Click:Connect(function()
@@ -75,7 +81,6 @@ TeleportBtn.MouseButton1Click:Connect(function()
 		if hrp then
 			local originalCFrame = hrp.CFrame
 			local targetHRP = targetPlayer.Character.HumanoidRootPart
-			-- موقع خلف اللاعب (1 ستود خلفه على محور lookVector)
 			local behindPos = targetHRP.CFrame.Position - targetHRP.CFrame.LookVector * 3
 			hrp.CFrame = CFrame.new(behindPos, targetHRP.Position)
 			wait(0.65)
