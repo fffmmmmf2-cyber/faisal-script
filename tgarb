@@ -2,7 +2,6 @@
 local player = game.Players.LocalPlayer
 local players = game.Players
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "ChaseGui"
@@ -15,7 +14,7 @@ Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 Frame.Active = true
 Frame.Draggable = true
 
--- زر لإظهار/إخفاء الفريم
+-- زر إظهار/إخفاء الفريم
 local ToggleBtn = Instance.new("TextButton", gui)
 ToggleBtn.Size = UDim2.new(0,30,0,30)
 ToggleBtn.Position = UDim2.new(0,10,0.5,-15)
@@ -36,16 +35,7 @@ spawn(function()
 	end
 end)
 
-ToggleBtn.MouseButton1Click:Connect(function()
-	Frame.Visible = not Frame.Visible
-	for _, btn in pairs(gui:GetChildren()) do
-		if btn:IsA("TextButton") and btn.Name:find("PlayerBtn") then
-			btn.Visible = Frame.Visible
-		end
-	end
-end)
-
--- ======== Frame محتويات ========
+-- Frame محتويات
 local MatchTypeBtn = Instance.new("TextButton", Frame)
 MatchTypeBtn.Size = UDim2.new(1,0,0,50)
 MatchTypeBtn.Position = UDim2.new(0,0,0,10)
@@ -75,14 +65,14 @@ ActionBtn.TextSize = 20
 ActionBtn.TextColor3 = Color3.new(1,1,1)
 ActionBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 
--- ======== متغيرات ========
+-- متغيرات
 local selectedPlayers = {}
 local maxSelection = 1
 local targetQueue = {}
 local isRunning = false
 local playerButtons = {}
 
--- ======== أسماء اللاعبين ========
+-- أسماء اللاعبين
 local function createBillboard(p)
 	if not p.Character then return end
 	if p.Character:FindFirstChild("NameTag") then p.Character.NameTag:Destroy() end
@@ -103,7 +93,7 @@ end
 for _, p in pairs(players:GetPlayers()) do createBillboard(p) end
 players.PlayerAdded:Connect(createBillboard)
 
--- ======== اختيار نوع المباراة ========
+-- اختيار نوع المباراة
 MatchTypeBtn.MouseButton1Click:Connect(function()
 	local types = {"1v1","2v2","3v3","4v4"}
 	SelectionFrame.Visible = false
@@ -145,21 +135,25 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 							table.insert(selectedPlayers,p)
 							plBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
 
-							-- إنشاء زر منسوخ لكل لاعب
+							-- إنشاء زر صغير منسوخ للاعب
 							local cloneBtn = ActionBtn:Clone()
+							cloneBtn.Size = UDim2.new(0,120,0,30) -- صغير
 							cloneBtn.Parent = gui
 							cloneBtn.Name = "PlayerBtn_"..p.UserId
-							cloneBtn.Position = UDim2.new(0.5, -125 + (#playerButtons)*130,1,-60)
-							cloneBtn.Visible = Frame.Visible
-							cloneBtn.Text = "اعطيه القنبلة: "..p.DisplayName
+							cloneBtn.Position = UDim2.new(0,10,0,50 + (#playerButtons)*40)
+							cloneBtn.Visible = not Frame.Visible
+							cloneBtn.Text = p.DisplayName
 							table.insert(playerButtons, cloneBtn)
 
 							cloneBtn.MouseButton1Click:Connect(function()
-								if not p.Parent or not p.Character then cloneBtn.Visible=false return end
-								local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-								if hrp and p.Character:FindFirstChild("HumanoidRootPart") then
-									local targetHRP = p.Character.HumanoidRootPart
-									hrp.CFrame = CFrame.new(targetHRP.Position - targetHRP.CFrame.LookVector, targetHRP.Position)
+								if not p.Parent or not p.Character then
+									cloneBtn.Visible = false
+									return
+								end
+								local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+								local targetHRP = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+								if hrp and targetHRP then
+									hrp.CFrame = targetHRP.CFrame
 								end
 							end)
 						end
@@ -173,46 +167,10 @@ MatchTypeBtn.MouseButton1Click:Connect(function()
 	SelectionFrame.Visible = true
 end)
 
--- ======== زر "اعطيه القنبلة" الأصلي ========
-ActionBtn.MouseButton1Click:Connect(function()
-	if isRunning or #selectedPlayers == 0 then return end
-	isRunning = true
-	targetQueue = {table.unpack(selectedPlayers)}
-	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then isRunning=false return end
-	local originalCFrame = hrp.CFrame
-
-	local function moveToTarget(target)
-		if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return false end
-		local targetHRP = target.Character.HumanoidRootPart
-		local duration = 1
-		local spins = 2
-		local startTime = tick()
-		local distanceBehind = 1
-		local conn
-		conn = RunService.RenderStepped:Connect(function()
-			local elapsed = tick() - startTime
-			if elapsed > duration then
-				conn:Disconnect()
-				hrp.CFrame = originalCFrame
-				return
-			end
-			local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceBehind
-			local angle = math.rad(360*spins*(elapsed/duration))
-			hrp.CFrame = CFrame.new(behindPos) * CFrame.Angles(0,angle,0)
-		end)
-		wait(duration)
-		return true
+-- زر + لإظهار/إخفاء الفريم وأزرار اللاعبين المنسوخة
+ToggleBtn.MouseButton1Click:Connect(function()
+	Frame.Visible = not Frame.Visible
+	for _, btn in pairs(playerButtons) do
+		btn.Visible = not Frame.Visible
 	end
-
-	while #targetQueue>0 do
-		local t = table.remove(targetQueue,1)
-		if t.Parent then
-			moveToTarget(t)
-		end
-	end
-
-	isRunning=false
-	targetQueue = {}
-	selectedPlayers = {}
 end)
