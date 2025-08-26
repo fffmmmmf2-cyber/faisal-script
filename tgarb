@@ -4,84 +4,98 @@ local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "BombGui"
 
--- إطار رئيسي
+-- زر إخفاء/إظهار الفريم
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 100, 0, 40)
+toggleBtn.Position = UDim2.new(1, -110, 0.5, -20)
+toggleBtn.Text = "قائمة BombHandle"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 18
+
+-- الفريم
 local Frame = Instance.new("Frame", gui)
-Frame.Size = UDim2.new(0, 220, 0, 300)
-Frame.Position = UDim2.new(0, 20, 0.5, -150)
+Frame.Size = UDim2.new(0, 180, 0, 250)
+Frame.Position = UDim2.new(1, -290, 0.5, -125)
 Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Frame.Visible = true
 
 local UIListLayout = Instance.new("UIListLayout", Frame)
-UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.Padding = UDim.new(0,4)
 
--- زر للتكبير
+-- زر لتكبير المحدد
 local enlargeBtn = Instance.new("TextButton", Frame)
-enlargeBtn.Size = UDim2.new(1,0,0,40)
-enlargeBtn.Text = "🔍 كبر المحدد"
-enlargeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+enlargeBtn.Size = UDim2.new(1,0,0,35)
+enlargeBtn.Text = "كبر المحدد"
+enlargeBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
 enlargeBtn.TextColor3 = Color3.new(1,1,1)
 enlargeBtn.Font = Enum.Font.SourceSansBold
-enlargeBtn.TextSize = 20
+enlargeBtn.TextSize = 18
 
--- متغير يخزن البارت اللي اخترته
 local selectedObj = nil
+local buttons = {}
 
--- وظيفة لإضافة زر لأي BombHandle
-local function addButtonFor(obj)
-	local btn = Instance.new("TextButton", Frame)
-	btn.Size = UDim2.new(1,0,0,30)
-	btn.Text = obj.Name .. " (" .. obj:GetFullName() .. ")"
-	btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.TextScaled = true
-
-	btn.MouseButton1Click:Connect(function()
-		selectedObj = obj
-		btn.BackgroundColor3 = Color3.fromRGB(0,170,0) -- يوضح انه هو المحدد
-		-- يرجع باقي الأزرار للون عادي
-		for _,other in pairs(Frame:GetChildren()) do
-			if other:IsA("TextButton") and other ~= enlargeBtn and other ~= btn then
-				other.BackgroundColor3 = Color3.fromRGB(70,70,70)
-			end
-		end
-	end)
-end
-
--- وظيفة تبحث عن كل BombHandle
+-- دالة مطابقة الاسم
 local function matchName(name)
 	name = string.lower(name)
 	name = string.gsub(name,"%s+","")
 	return name == "bombhandle"
 end
 
-for _, obj in pairs(workspace:GetDescendants()) do
-	if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
-		addButtonFor(obj)
+-- دالة لتحديث قائمة البارتات
+local function updateList()
+	-- أولاً نحذف الأزرار القديمة غير زر التكبير
+	for _, btn in pairs(buttons) do
+		btn:Destroy()
+	end
+	buttons = {}
+
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if (obj:IsA("BasePart") or obj:IsA("Model")) and matchName(obj.Name) then
+			local btn = Instance.new("TextButton", Frame)
+			btn.Size = UDim2.new(1,0,0,30)
+			btn.Text = obj.Name
+			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.TextScaled = true
+
+			btn.MouseButton1Click:Connect(function()
+				selectedObj = obj
+				btn.BackgroundColor3 = Color3.fromRGB(0,170,0)
+				for _,other in pairs(buttons) do
+					if other ~= btn then
+						other.BackgroundColor3 = Color3.fromRGB(70,70,70)
+					end
+				end
+			end)
+
+			table.insert(buttons, btn)
+		end
 	end
 end
 
--- لما اضغط زر التكبير
+-- حدث الزر لتكبير المحدد
 enlargeBtn.MouseButton1Click:Connect(function()
 	if selectedObj then
 		if selectedObj:IsA("BasePart") then
-			local oldSize = selectedObj.Size
 			selectedObj.Size = selectedObj.Size * 2
-			task.delay(4,function()
-				if selectedObj then
-					selectedObj.Size = oldSize
-				end
-			end)
 		elseif selectedObj:IsA("Model") then
 			local primary = selectedObj.PrimaryPart or selectedObj:FindFirstChildWhichIsA("BasePart")
 			if primary then
-				local oldCFrame = selectedObj:GetPrimaryPartCFrame()
 				selectedObj:ScaleTo(2)
-				task.delay(4,function()
-					if selectedObj then
-						selectedObj:ScaleTo(1)
-						selectedObj:SetPrimaryPartCFrame(oldCFrame)
-					end
-				end)
 			end
 		end
 	end
 end)
+
+-- حدث الزر لإظهار/إخفاء الفريم
+toggleBtn.MouseButton1Click:Connect(function()
+	Frame.Visible = not Frame.Visible
+end)
+
+-- تحديث القائمة كل نص ثانية
+while true do
+	updateList()
+	task.wait(0.5)
+end
