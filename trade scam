@@ -3,14 +3,27 @@ local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
 
--- إعدادات المنطقة
-local radius = 20 -- 20 ستود
-local updateInterval = 0.1 -- كل 0.1 ثانية
-
--- تخزين أسماء البارتات المعروضة
+local radius = 40 -- الآن 40 ستود
+local updateInterval = 0.1
 local labels = {}
 
--- دالة لإنشاء BillboardGui لكل بارت
+local ignoreParts = {
+    "Head", "Torso", "HumanoidRootPart",
+    "LeftHand", "RightHand", "LeftFoot", "RightFoot",
+    "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg",
+    "LeftUpperArm", "RightUpperArm", "LeftUpperLeg", "RightUpperLeg",
+    "UpperTorso", "LowerTorso",
+}
+
+local function isIgnored(part)
+    for _, name in pairs(ignoreParts) do
+        if part.Name == name then
+            return true
+        end
+    end
+    return false
+end
+
 local function createLabel(part)
     if labels[part] then return labels[part] end
 
@@ -24,7 +37,7 @@ local function createLabel(part)
     textLabel.Parent = billboard
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.new(1,1,1) -- أبيض
+    textLabel.TextColor3 = Color3.new(1,1,1)
     textLabel.TextScaled = true
     textLabel.Font = Enum.Font.SourceSans
     textLabel.Text = part.Name
@@ -34,7 +47,6 @@ local function createLabel(part)
     return billboard
 end
 
--- دالة لتحديث البارتات القريبة
 local function updateLabels()
     local character = player.Character
     if not character then return end
@@ -44,7 +56,7 @@ local function updateLabels()
     local nearbyParts = {}
 
     for _, part in pairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") then
+        if part:IsA("BasePart") and not isIgnored(part) then
             local distance = (part.Position - hrp.Position).Magnitude
             if distance <= radius then
                 nearbyParts[part] = true
@@ -53,7 +65,6 @@ local function updateLabels()
         end
     end
 
-    -- إزالة البارتات اللي خرجت من المنطقة
     for part, billboard in pairs(labels) do
         if not nearbyParts[part] then
             billboard:Destroy()
@@ -62,7 +73,6 @@ local function updateLabels()
     end
 end
 
--- تحديث كل 0.1 ثانية
 runService.RenderStepped:Connect(function()
     updateLabels()
 end)
