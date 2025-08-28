@@ -1,79 +1,68 @@
--- LocalScript: يظهر أسماء كل الأجزاء في اللعبة (بدون أي حماية)
+-- LocalScript
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local workspace = game:GetService("Workspace")
 
-local Players = game:GetService("Players")
-local LOCAL_PLAYER = Players.LocalPlayer
-local LABEL_NAME = "PartNameBillboard"
+-- إعدادات المنطقة
+local radius = 20 -- 20 ستود
+local updateInterval = 0.1 -- كل 0.1 ثانية
 
-local function getCharacter()
-	return LOCAL_PLAYER.Character or LOCAL_PLAYER.CharacterAdded:Wait()
+-- تخزين أسماء البارتات المعروضة
+local labels = {}
+
+-- دالة لإنشاء BillboardGui لكل بارت
+local function createLabel(part)
+    if labels[part] then return labels[part] end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = part
+    billboard.Size = UDim2.new(0, 100, 0, 20)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1,1,1) -- أبيض
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSans
+    textLabel.Text = part.Name
+
+    billboard.Parent = player.PlayerGui
+    labels[part] = billboard
+    return billboard
 end
 
-local function isPartAllowed(part)
-	if not part:IsA("BasePart") then
-		return false
-	end
-	local char = getCharacter()
-	if char and part:IsDescendantOf(char) then
-		return false
-	end
-	return true
+-- دالة لتحديث البارتات القريبة
+local function updateLabels()
+    local character = player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local nearbyParts = {}
+
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") then
+            local distance = (part.Position - hrp.Position).Magnitude
+            if distance <= radius then
+                nearbyParts[part] = true
+                createLabel(part)
+            end
+        end
+    end
+
+    -- إزالة البارتات اللي خرجت من المنطقة
+    for part, billboard in pairs(labels) do
+        if not nearbyParts[part] then
+            billboard:Destroy()
+            labels[part] = nil
+        end
+    end
 end
 
-local function ensureBillboard(part)
-	if part:FindFirstChild(LABEL_NAME) then
-		-- حدّث النص لو تغير الاسم
-		local tl = part[LABEL_NAME]:FindFirstChildOfClass("TextLabel")
-		if tl and tl.Text ~= part.Name then
-			tl.Text = part.Name
-		end
-		return
-	end
-
-	-- إنشاء BillboardGui جديد
-	local bb = Instance.new("BillboardGui")
-	bb.Name = LABEL_NAME
-	bb.Adornee = part
-	bb.Size = UDim2.new(0, 90, 0, 16)
-	bb.StudsOffset = Vector3.new(0, part.Size.Y * 0.5 + 0.6, 0)
-	bb.AlwaysOnTop = true
-	bb.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	bb.Parent = part
-
-	local tl = Instance.new("TextLabel")
-	tl.Size = UDim2.new(1, 0, 1, 0)
-	tl.BackgroundTransparency = 1
-	tl.Text = part.Name
-	tl.TextScaled = true
-	tl.Font = Enum.Font.SourceSansBold
-	tl.TextColor3 = Color3.new(1, 1, 1)
-	tl.TextStrokeTransparency = 0.4
-	tl.TextSize = 8
-	tl.Parent = bb
-end
-
--- يفحص كل ثانية كل الأجزاء
-task.spawn(function()
-	while true do
-		task.wait(1)
-		for _, obj in ipairs(workspace:GetDescendants()) do
-			if isPartAllowed(obj) then
-				ensureBillboard(obj)
-			end
-		end
-	end
-end)
-
--- عند إضافة بارت جديد
-workspace.DescendantAdded:Connect(function(obj)
-	if isPartAllowed(obj) then
-		ensureBillboard(obj)
-	end
-end)
-
--- عند حذف بارت
-workspace.DescendantRemoving:Connect(function(obj)
-	if obj:IsA("BasePart") then
-		local bb = obj:FindFirstChild(LABEL_NAME)
-		if bb then bb:Destroy() end
-	end
+-- تحديث كل 0.1 ثانية
+runService.RenderStepped:Connect(function()
+    updateLabels()
 end)
