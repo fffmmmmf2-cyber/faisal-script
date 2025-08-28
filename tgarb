@@ -1,68 +1,15 @@
--- Auto Walk to All "base" Parts v2
+-- Auto Walk: Base ↔ Door ↔ Normal Box Loop
 -- LocalScript داخل StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local function getChar()
 	return player.Character or player.CharacterAdded:Wait()
 end
 
--- ===== GUI =====
-local screen = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screen.Name = "AutoPathUI_v2"
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 48)
-button.Position = UDim2.new(0, 12, 0.5, -24)
-button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-button.Text = "ابدأ التنقل التلقائي"
-button.TextColor3 = Color3.fromRGB(255,255,255)
-button.TextScaled = true
-button.Font = Enum.Font.GothamBold
-button.Parent = screen
-
-local uic = Instance.new("UICorner", button)
-uic.CornerRadius = UDim.new(0,16)
-
--- ===== مسار مرسوم =====
-local pathFolder = Instance.new("Folder", workspace)
-pathFolder.Name = "PathVis"
-
-local function clearPath()
-	for _, obj in ipairs(pathFolder:GetChildren()) do
-		obj:Destroy()
-	end
-end
-
-local function drawSegment(p0, p1)
-	local dir = (p1 - p0)
-	local dist = dir.Magnitude
-	if dist < 0.05 then return end
-
-	local part = Instance.new("Part")
-	part.Anchored = true
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = Color3.fromRGB(0, 170, 255)
-	part.Size = Vector3.new(0.25, 0.25, dist)
-	part.CFrame = CFrame.lookAt((p0 + p1)/2, p1) * CFrame.new(0,0,-dist/2)
-	part.Parent = pathFolder
-end
-
-local function drawPath(waypoints)
-	clearPath()
-	for i, wp in ipairs(waypoints) do
-		if i > 1 then
-			drawSegment(waypoints[i-1].Position, wp.Position)
-		end
-	end
-end
-
--- ===== حساب المسار =====
 local function computePath(startPos, goalPos)
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2.5,
@@ -76,73 +23,87 @@ local function computePath(startPos, goalPos)
 	return nil
 end
 
--- ===== يجيب أقرب base =====
-local function getNearestBase(fromPos, visited)
-	local nearest, bestDist
-	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:lower() == "base" and not visited[d] then
-			local dist = (d.Position - fromPos).Magnitude
-			if not bestDist or dist < bestDist then
-				nearest, bestDist = d, dist
-			end
-		end
-	end
-	return nearest
-end
-
--- ===== التنقل =====
-local autoRunning = false
-
-local function autoWalk()
-	if autoRunning then 
-		autoRunning = false
-		button.Text = "ابدأ التنقل التلقائي"
-		clearPath()
-		return
-	end
-	
-	autoRunning = true
-	button.Text = "إيقاف"
-
+local function goTo(targetPos)
 	local char = getChar()
-	local hrp = char:WaitForChild("HumanoidRootPart")
 	local hum = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	local visited = {}
-	
-	while autoRunning do
-		local target = getNearestBase(hrp.Position, visited)
-		if not target then
-			StarterGui:SetCore("SendNotification", {
-				Title = "اكتمل",
-				Text = "ما عاد فيه بارت اسمه base",
-				Duration = 3
-			})
-			break
-		end
+	local path = computePath(hrp.Position, targetPos)
+	if not path then return end
 
-		local path = computePath(hrp.Position, target.Position + Vector3.new(0,2,0))
-		if path then
-			drawPath(path:GetWaypoints())
-			for _, wp in ipairs(path:GetWaypoints()) do
-				if wp.Action == Enum.PathWaypointAction.Jump then
-					hum.Jump = true
-				end
-				hum:MoveTo(wp.Position)
-				hum.MoveToFinished:Wait()
-				if not autoRunning then break end
-			end
+	for _, wp in ipairs(path:GetWaypoints()) do
+		if wp.Action == Enum.PathWaypointAction.Jump then
+			hum.Jump = true
 		end
-		
-		if (target.Position - hrp.Position).Magnitude < 6 then
-			visited[target] = true
-		end
-		RunService.Heartbeat:Wait()
+		hum:MoveTo(wp.Position)
+		hum.MoveToFinished:Wait()
 	end
-	
-	autoRunning = false
-	button.Text = "ابدأ التنقل التلقائي"
-	clearPath()
 end
 
-button.MouseButton1Click:Connect(autoWalk)
+-- يجيب جميع Base Parts في الخريطة
+local function getAllBases()
+	local bases = {}
+	for _, d in ipairs(workspace:GetDescendants()) do
+		if d:IsA("BasePart") and d.Name:lower() == "base" then
+			table.insert(bases, d)
+		end
+	end
+	return bases
+end
+
+-- يجيب Normal Box (واحد فقط حسب كلامك)
+local function getNormalBox()
+	for _, d in ipairs(workspace:GetDescendants()) do
+		if d:IsA("BasePart") and d.Name:lower():find("normal") then
+			return d
+		end
+	end
+	return nil
+end
+
+-- يتفاعل مع أي ProximityPrompt داخل البارت
+local function interactProximity(bar)
+	if not bar then return end
+	for _, obj in ipairs(bar:GetDescendants()) do
+		if obj:IsA("ProximityPrompt") then
+			for i = 1,5 do
+				obj:InputHoldBegin()
+				wait(0.1)
+				obj:InputHoldEnd()
+				wait(0.2)
+			end
+		end
+	end
+end
+
+-- يبحث عن الباب المتحرك بين Base/Normal Box ويذهب عبره
+local function goThroughDoor(door)
+	if not door then return end
+	goTo(door.Position + Vector3.new(0,2,0))
+end
+
+-- Main Loop
+local function autoLoop()
+	local bases = getAllBases()
+	local normalBox = getNormalBox()
+	if not normalBox then return end
+
+	local door = workspace:FindFirstChild("Door") -- غير الاسم حسب بابك إذا مختلف
+
+	while true do
+		for _, base in ipairs(bases) do
+			-- يذهب للـ Base
+			goTo(base.Position + Vector3.new(0,2,0))
+			-- بعد Base يذهب للباب
+			if door then goThroughDoor(door) end
+			-- يذهب للـ Normal Box ويضغط البروكسي
+			goTo(normalBox.Position + Vector3.new(0,2,0))
+			interactProximity(normalBox)
+			-- بعد Normal Box يذهب مرة ثانية للباب قبل العودة للـ Base التالي
+			if door then goThroughDoor(door) end
+		end
+	end
+end
+
+-- يبدأ السكربت
+spawn(autoLoop)
