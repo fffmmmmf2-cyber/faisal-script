@@ -65,7 +65,7 @@ local function createVersionLabel()
     versionLabel.TextColor3 = Color3.new(1,1,1)
     versionLabel.Font = Enum.Font.SourceSansBold
     versionLabel.TextScaled = true
-    versionLabel.Text = "v1"
+    versionLabel.Text = "v2"
 
     return versionLabel
 end
