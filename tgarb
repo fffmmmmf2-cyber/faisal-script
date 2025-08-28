@@ -1,15 +1,68 @@
--- Auto Walk: Base ↔ Door ↔ Normal Box Loop
+-- Auto Walk + Draw Line + ProximityPrompt Interaction
 -- LocalScript داخل StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local function getChar()
 	return player.Character or player.CharacterAdded:Wait()
 end
 
+-- ===== GUI =====
+local screen = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screen.Name = "AutoPathUI_DrawLine"
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 180, 0, 48)
+button.Position = UDim2.new(0.5, -90, 0.9, 0)
+button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+button.Text = "ابدأ"
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.TextScaled = true
+button.Font = Enum.Font.GothamBold
+button.Parent = screen
+
+local uic = Instance.new("UICorner", button)
+uic.CornerRadius = UDim.new(0,16)
+
+-- ===== مسار مرسوم =====
+local pathFolder = Instance.new("Folder", workspace)
+pathFolder.Name = "PathVisLine"
+
+local function clearPath()
+	for _, obj in ipairs(pathFolder:GetChildren()) do
+		obj:Destroy()
+	end
+end
+
+local function drawSegment(p0, p1)
+	local dir = (p1 - p0)
+	local dist = dir.Magnitude
+	if dist < 0.05 then return end
+
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = Enum.Material.Neon
+	part.Color = Color3.fromRGB(0, 170, 255)
+	part.Size = Vector3.new(0.25, 0.25, dist)
+	part.CFrame = CFrame.lookAt((p0 + p1)/2, p1) * CFrame.new(0,0,-dist/2)
+	part.Parent = pathFolder
+end
+
+local function drawPath(points)
+	clearPath()
+	for i, p in ipairs(points) do
+		if i > 1 then
+			drawSegment(points[i-1], p)
+		end
+	end
+end
+
+-- ===== Pathfinding =====
 local function computePath(startPos, goalPos)
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2.5,
@@ -40,7 +93,7 @@ local function goTo(targetPos)
 	end
 end
 
--- يجيب جميع Base Parts في الخريطة
+-- ===== Base Parts =====
 local function getAllBases()
 	local bases = {}
 	for _, d in ipairs(workspace:GetDescendants()) do
@@ -51,21 +104,21 @@ local function getAllBases()
 	return bases
 end
 
--- يجيب Normal Box (واحد فقط حسب كلامك)
+-- ===== Normal Box =====
 local function getNormalBox()
 	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:lower():find("normal") then
+		if d:IsA("BasePart") and d.Name:lower() == "normal box" then
 			return d
 		end
 	end
 	return nil
 end
 
--- يتفاعل مع أي ProximityPrompt داخل البارت
-local function interactProximity(bar)
-	if not bar then return end
-	for _, obj in ipairs(bar:GetDescendants()) do
-		if obj:IsA("ProximityPrompt") then
+-- ===== Interact Proximity =====
+local function interactProximity(box)
+	if not box then return end
+	for _, obj in ipairs(box:GetDescendants()) do
+		if obj:IsA("ProximityPrompt") and obj.Name == "Pick Up Box" then
 			for i = 1,5 do
 				obj:InputHoldBegin()
 				wait(0.1)
@@ -76,34 +129,48 @@ local function interactProximity(bar)
 	end
 end
 
--- يبحث عن الباب المتحرك بين Base/Normal Box ويذهب عبره
-local function goThroughDoor(door)
-	if not door then return end
-	goTo(door.Position + Vector3.new(0,2,0))
-end
-
--- Main Loop
+-- ===== Main Loop =====
 local function autoLoop()
 	local bases = getAllBases()
 	local normalBox = getNormalBox()
 	if not normalBox then return end
 
-	local door = workspace:FindFirstChild("Door") -- غير الاسم حسب بابك إذا مختلف
+	local pathPoints = {} -- نقاط الرسم
+	local firstRun = true
 
 	while true do
 		for _, base in ipairs(bases) do
 			-- يذهب للـ Base
 			goTo(base.Position + Vector3.new(0,2,0))
-			-- بعد Base يذهب للباب
-			if door then goThroughDoor(door) end
+			
+			-- يرسم خط المسار لأول مرة فقط
+			if firstRun then
+				table.insert(pathPoints, base.Position + Vector3.new(0,2,0))
+			end
+
+			-- يذهب للخط (باب)
+			if #pathPoints > 1 then
+				drawPath(pathPoints)
+				for _, pt in ipairs(pathPoints) do
+					goTo(pt + Vector3.new(0,2,0))
+				end
+			end
+
 			-- يذهب للـ Normal Box ويضغط البروكسي
 			goTo(normalBox.Position + Vector3.new(0,2,0))
 			interactProximity(normalBox)
-			-- بعد Normal Box يذهب مرة ثانية للباب قبل العودة للـ Base التالي
-			if door then goThroughDoor(door) end
+
+			-- يرجع على الخط بعد البروكسي
+			for _, pt in ipairs(pathPoints) do
+				goTo(pt + Vector3.new(0,2,0))
+			end
+
+			if firstRun then firstRun = false end
 		end
 	end
 end
 
--- يبدأ السكربت
-spawn(autoLoop)
+button.MouseButton1Click:Connect(function()
+	spawn(autoLoop)
+	button.Visible = false
+end)
