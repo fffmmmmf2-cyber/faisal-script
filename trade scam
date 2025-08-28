@@ -1,31 +1,18 @@
 -- LocalScript
 local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
+local runService = game:GetService("RunService")
 
-local radius = 20
-local updateInterval = 0.1
+local radius = 40 -- 40 ستود
+local updateInterval = 0.7 -- كل 0.7 ثانية
 local labels = {}
 
--- قائمة أسماء أجزاء الجسم اللي نبي نتجاهلها
 local ignoreParts = {
-    "Head",
-    "Torso",
-    "HumanoidRootPart",
-    "LeftHand",
-    "RightHand",
-    "LeftFoot",
-    "RightFoot",
-    "LeftLowerArm",
-    "RightLowerArm",
-    "LeftLowerLeg",
-    "RightLowerLeg",
-    "LeftUpperArm",
-    "RightUpperArm",
-    "LeftUpperLeg",
-    "RightUpperLeg",
-    "UpperTorso",
-    "LowerTorso",
+    "Head", "Torso", "HumanoidRootPart",
+    "LeftHand", "RightHand", "LeftFoot", "RightFoot",
+    "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg",
+    "LeftUpperArm", "RightUpperArm", "LeftUpperLeg", "RightUpperLeg",
+    "UpperTorso", "LowerTorso",
 }
 
 local function isIgnored(part)
@@ -33,6 +20,9 @@ local function isIgnored(part)
         if part.Name == name then
             return true
         end
+    end
+    if part.Parent and part.Parent:FindFirstChild("Humanoid") then
+        return true
     end
     return false
 end
@@ -60,6 +50,20 @@ local function createLabel(part)
     return billboard
 end
 
+-- نسخة السكربت
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+screenGui.ResetOnSpawn = false
+local versionLabel = Instance.new("TextLabel")
+versionLabel.Parent = screenGui
+versionLabel.Position = UDim2.new(1, -100, 0, 0)
+versionLabel.Size = UDim2.new(0, 100, 0, 30)
+versionLabel.BackgroundTransparency = 1
+versionLabel.TextColor3 = Color3.new(1,1,1)
+versionLabel.Font = Enum.Font.SourceSansBold
+versionLabel.TextScaled = true
+versionLabel.Text = "v2" -- تم التغيير هنا
+
 local function updateLabels()
     local character = player.Character
     if not character then return end
@@ -70,8 +74,7 @@ local function updateLabels()
 
     for _, part in pairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and not isIgnored(part) then
-            local distance = (part.Position - hrp.Position).Magnitude
-            if distance <= radius then
+            if (part.Position - hrp.Position).Magnitude <= radius then
                 nearbyParts[part] = true
                 createLabel(part)
             end
@@ -86,6 +89,8 @@ local function updateLabels()
     end
 end
 
-runService.RenderStepped:Connect(function()
+-- تحديث كل 0.7 ثانية
+while true do
     updateLabels()
-end)
+    wait(updateInterval)
+end
