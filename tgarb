@@ -1,9 +1,10 @@
--- Auto Walk + Dynamic Line Draw + ProximityPrompt Interaction v2
+-- Auto Walk to All "base" Parts v2
 -- LocalScript داخل StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local function getChar()
@@ -12,13 +13,13 @@ end
 
 -- ===== GUI =====
 local screen = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screen.Name = "AutoPathUI"
+screen.Name = "AutoPathUI_v2"
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,180,0,48)
-button.Position = UDim2.new(0.5,-90,0.9,0)
-button.BackgroundColor3 = Color3.fromRGB(35,35,35)
-button.Text = "ابدأ/رسم"
+button.Size = UDim2.new(0, 180, 0, 48)
+button.Position = UDim2.new(0, 12, 0.5, -24)
+button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+button.Text = "ابدأ التنقل التلقائي"
 button.TextColor3 = Color3.fromRGB(255,255,255)
 button.TextScaled = true
 button.Font = Enum.Font.GothamBold
@@ -27,155 +28,121 @@ button.Parent = screen
 local uic = Instance.new("UICorner", button)
 uic.CornerRadius = UDim.new(0,16)
 
--- ===== Path/Line =====
+-- ===== مسار مرسوم =====
 local pathFolder = Instance.new("Folder", workspace)
-pathFolder.Name = "PathVisLine"
-local pathPoints = {}
-
-local drawing = false
-local moving = false
+pathFolder.Name = "PathVis"
 
 local function clearPath()
 	for _, obj in ipairs(pathFolder:GetChildren()) do
 		obj:Destroy()
 	end
-	pathPoints = {}
 end
 
 local function drawSegment(p0, p1)
 	local dir = (p1 - p0)
 	local dist = dir.Magnitude
 	if dist < 0.05 then return end
+
 	local part = Instance.new("Part")
 	part.Anchored = true
 	part.CanCollide = false
 	part.Material = Enum.Material.Neon
-	part.Color = Color3.fromRGB(0,170,255)
-	part.Size = Vector3.new(0.25,0.25,dist)
-	part.CFrame = CFrame.lookAt((p0+p1)/2,p1)*CFrame.new(0,0,-dist/2)
+	part.Color = Color3.fromRGB(0, 170, 255)
+	part.Size = Vector3.new(0.25, 0.25, dist)
+	part.CFrame = CFrame.lookAt((p0 + p1)/2, p1) * CFrame.new(0,0,-dist/2)
 	part.Parent = pathFolder
 end
 
-local function drawPath()
+local function drawPath(waypoints)
 	clearPath()
-	for i,p in ipairs(pathPoints) do
-		if i>1 then drawSegment(pathPoints[i-1],p) end
+	for i, wp in ipairs(waypoints) do
+		if i > 1 then
+			drawSegment(waypoints[i-1].Position, wp.Position)
+		end
 	end
 end
 
--- ===== Pathfinding =====
+-- ===== حساب المسار =====
 local function computePath(startPos, goalPos)
 	local path = PathfindingService:CreatePath({
-		AgentRadius=2.5,
-		AgentHeight=5,
-		AgentCanJump=true
+		AgentRadius = 2.5,
+		AgentHeight = 5,
+		AgentCanJump = true
 	})
 	path:ComputeAsync(startPos, goalPos)
-	if path.Status==Enum.PathStatus.Success then
+	if path.Status == Enum.PathStatus.Success then
 		return path
 	end
 	return nil
 end
 
-local function goTo(targetPos)
-	local char = getChar()
-	local hum = char:WaitForChild("Humanoid")
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	local path = computePath(hrp.Position,targetPos)
-	if not path then return end
-	for _, wp in ipairs(path:GetWaypoints()) do
-		if wp.Action==Enum.PathWaypointAction.Jump then hum.Jump=true end
-		hum:MoveTo(wp.Position)
-		hum.MoveToFinished:Wait()
-	end
-end
-
--- ===== Bases =====
-local function getAllBases()
-	local bases={}
-	for _,d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:lower()=="base" then
-			table.insert(bases,d)
-		end
-	end
-	return bases
-end
-
--- ===== Normal Box =====
-local function getNormalBox()
-	for _,d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:lower()=="normal box" then
-			return d
-		end
-	end
-	return nil
-end
-
--- ===== Interact Proximity =====
-local function interactProximity(box)
-	if not box then return end
-	for _, obj in ipairs(box:GetDescendants()) do
-		if obj:IsA("ProximityPrompt") and obj.Name=="Pick Up Box" then
-			for i=1,5 do
-				obj:InputHoldBegin()
-				wait(0.1)
-				obj:InputHoldEnd()
-				wait(0.2)
+-- ===== يجيب أقرب base =====
+local function getNearestBase(fromPos, visited)
+	local nearest, bestDist
+	for _, d in ipairs(workspace:GetDescendants()) do
+		if d:IsA("BasePart") and d.Name:lower() == "base" and not visited[d] then
+			local dist = (d.Position - fromPos).Magnitude
+			if not bestDist or dist < bestDist then
+				nearest, bestDist = d, dist
 			end
 		end
 	end
+	return nearest
 end
 
--- ===== Drawing Loop =====
-RunService.Heartbeat:Connect(function()
-	if drawing then
-		local char=getChar()
-		local hrp=char:WaitForChild("HumanoidRootPart")
-		local pos=hrp.Position
-		if #pathPoints==0 or (pos-pathPoints[#pathPoints]).Magnitude>0.5 then
-			table.insert(pathPoints,pos)
-			drawPath()
-		end
+-- ===== التنقل =====
+local autoRunning = false
+
+local function autoWalk()
+	if autoRunning then 
+		autoRunning = false
+		button.Text = "ابدأ التنقل التلقائي"
+		clearPath()
+		return
 	end
-end)
+	
+	autoRunning = true
+	button.Text = "إيقاف"
 
--- ===== Main Movement Loop =====
-local function autoLoop()
-	local bases=getAllBases()
-	local normalBox=getNormalBox()
-	if not normalBox then return end
+	local char = getChar()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
 
-	for _, base in ipairs(bases) do
-		-- يذهب للـ Base
-		goTo(base.Position+Vector3.new(0,2,0))
-
-		-- يمشي على الخط (الباب)
-		for _, pt in ipairs(pathPoints) do
-			goTo(pt+Vector3.new(0,2,0))
+	local visited = {}
+	
+	while autoRunning do
+		local target = getNearestBase(hrp.Position, visited)
+		if not target then
+			StarterGui:SetCore("SendNotification", {
+				Title = "اكتمل",
+				Text = "ما عاد فيه بارت اسمه base",
+				Duration = 3
+			})
+			break
 		end
 
-		-- يذهب للـ Normal Box ويضغط البروكسي
-		goTo(normalBox.Position+Vector3.new(0,2,0))
-		interactProximity(normalBox)
-
-		-- يرجع على الخط بعد البروكسي
-		for _, pt in ipairs(pathPoints) do
-			goTo(pt+Vector3.new(0,2,0))
+		local path = computePath(hrp.Position, target.Position + Vector3.new(0,2,0))
+		if path then
+			drawPath(path:GetWaypoints())
+			for _, wp in ipairs(path:GetWaypoints()) do
+				if wp.Action == Enum.PathWaypointAction.Jump then
+					hum.Jump = true
+				end
+				hum:MoveTo(wp.Position)
+				hum.MoveToFinished:Wait()
+				if not autoRunning then break end
+			end
 		end
+		
+		if (target.Position - hrp.Position).Magnitude < 6 then
+			visited[target] = true
+		end
+		RunService.Heartbeat:Wait()
 	end
+	
+	autoRunning = false
+	button.Text = "ابدأ التنقل التلقائي"
+	clearPath()
 end
 
--- ===== Button Logic =====
-button.MouseButton1Click:Connect(function()
-	if not drawing and not moving then
-		drawing=true
-		button.Text="توقف"
-	elseif drawing then
-		drawing=false
-		button.Text="ابدأ التحرك"
-	elseif not drawing and not moving then
-		moving=true
-		button.Visible=false
-		spawn(autoLoop)
-	end
-end)
+button.MouseButton1Click:Connect(autoWalk)
