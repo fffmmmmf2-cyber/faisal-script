@@ -2,9 +2,9 @@
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
+local guiService = game:GetService("Players")
 
-local radius = 40 -- الآن 40 ستود
-local updateInterval = 0.1
+local radius = 40 -- 40 ستود
 local labels = {}
 
 local ignoreParts = {
@@ -20,6 +20,10 @@ local function isIgnored(part)
         if part.Name == name then
             return true
         end
+    end
+    -- تجاهل أي جزء داخل جسم لاعب
+    if part.Parent and part.Parent:FindFirstChild("Humanoid") then
+        return true
     end
     return false
 end
@@ -47,6 +51,27 @@ local function createLabel(part)
     return billboard
 end
 
+-- إنشاء TextLabel لتظهر نسخة السكربت
+local function createVersionLabel()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = player.PlayerGui
+    screenGui.ResetOnSpawn = false
+
+    local versionLabel = Instance.new("TextLabel")
+    versionLabel.Parent = screenGui
+    versionLabel.Position = UDim2.new(1, -100, 0, 0) -- يمين الشاشة
+    versionLabel.Size = UDim2.new(0, 100, 0, 30)
+    versionLabel.BackgroundTransparency = 1
+    versionLabel.TextColor3 = Color3.new(1,1,1)
+    versionLabel.Font = Enum.Font.SourceSansBold
+    versionLabel.TextScaled = true
+    versionLabel.Text = "v1"
+
+    return versionLabel
+end
+
+local versionLabel = createVersionLabel()
+
 local function updateLabels()
     local character = player.Character
     if not character then return end
@@ -73,6 +98,4 @@ local function updateLabels()
     end
 end
 
-runService.RenderStepped:Connect(function()
-    updateLabels()
-end)
+runService.RenderStepped:Connect(updateLabels)
