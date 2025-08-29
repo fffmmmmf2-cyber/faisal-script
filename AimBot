@@ -1,4 +1,4 @@
--- CameraLookAtPlayerCircle.lua
+-- CameraLockPlayer.lua
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
@@ -9,12 +9,12 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- الدائرة (لون + شفاف 0.5)
+-- الدائرة (شفافية 50%)
 local circle = Instance.new("Frame")
 circle.Size = UDim2.new(0, 250, 0, 250)
 circle.Position = UDim2.new(0.5, -125, 0.5, -125)
-circle.BackgroundTransparency = 0.5 -- شفافية 50%
-circle.BackgroundColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
+circle.BackgroundTransparency = 0.5
+circle.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 circle.BorderSizePixel = 4
 circle.BorderColor3 = Color3.fromRGB(100, 180, 255)
 circle.Parent = gui
@@ -23,10 +23,10 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0.5, 0) -- دائرة كاملة
 corner.Parent = circle
 
--- زر التفعيل (مؤقت)
+-- زر التفعيل
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 80, 0, 30)
-button.Position = UDim2.new(0.5, -40, 0, 10) -- مؤقت، نغيره حسب كلامك
+button.Position = UDim2.new(0.5, -40, 0, 10) -- مؤقت نقدر نغيره
 button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "تفعيل"
@@ -43,14 +43,25 @@ bCorner.Parent = button
 
 -- متغيرات
 local enabled = false
+local originalCameraType = camera.CameraType
+local originalCFrame = camera.CFrame
 
 -- تبديل الزر
 button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	button.Text = enabled and "إيقاف" or "تفعيل"
+
+	if enabled then
+		-- نوقف التحكم باللاعب بالكاميرا ونثبت الكاميرا
+		originalCameraType = camera.CameraType
+	else
+		-- ترجع الكاميرا طبيعي
+		camera.CameraType = originalCameraType
+		camera.CFrame = originalCFrame
+	end
 end)
 
--- هل داخل الدائرة؟
+-- هل اللاعب داخل الدائرة؟
 local function isInsideCircle(worldPos)
 	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 	if not onScreen then return false end
@@ -74,8 +85,10 @@ RunService.RenderStepped:Connect(function()
 			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = plr.Character.HumanoidRootPart
 				if isInsideCircle(hrp.Position) then
+					-- تثبيت الكاميرا على اللاعب
 					local camPos = camera.CFrame.Position
 					local targetPos = hrp.Position
+					camera.CameraType = Enum.CameraType.Scriptable
 					camera.CFrame = CFrame.new(camPos, targetPos)
 					break
 				end
