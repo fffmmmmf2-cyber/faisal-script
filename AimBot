@@ -1,32 +1,27 @@
--- CameraLockPlayer.lua
+-- EnhancedAimBot.lua
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+
+-- إعدادات
+local settings = {
+    TargetPart = "Head", -- "Head" أو "HumanoidRootPart"
+    Smoothness = 0.2,
+    CircleSize = 100,
+    CircleTransparency = 0.5,
+    CircleColor = Color3.fromRGB(100, 180, 255),
+}
 
 -- GUI
 local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- الدائرة (شفافية 50%)
-local circle = Instance.new("Frame")
-circle.Size = UDim2.new(0, 250, 0, 250)
-circle.Position = UDim2.new(0.5, -125, 0.5, -125)
-circle.BackgroundTransparency = 0.5
-circle.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
-circle.BorderSizePixel = 4
-circle.BorderColor3 = Color3.fromRGB(100, 180, 255)
-circle.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0.5, 0) -- دائرة كاملة
-corner.Parent = circle
-
 -- زر التفعيل
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 80, 0, 30)
-button.Position = UDim2.new(0.5, -40, 0, 10) -- مؤقت نقدر نغيره
+button.Size = UDim2.new(0, 100, 0, 40)
+button.Position = UDim2.new(0.5, -50, 0, 10)
 button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "تفعيل"
@@ -41,58 +36,77 @@ local bCorner = Instance.new("UICorner")
 bCorner.CornerRadius = UDim.new(0, 8)
 bCorner.Parent = button
 
+-- دائرة الهدف
+local targetCircle = Instance.new("Frame")
+targetCircle.Size = UDim2.new(0, settings.CircleSize, 0, settings.CircleSize)
+targetCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+targetCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+targetCircle.BackgroundTransparency = settings.CircleTransparency
+targetCircle.BackgroundColor3 = settings.CircleColor
+targetCircle.BorderSizePixel = 4
+targetCircle.BorderColor3 = settings.CircleColor
+targetCircle.Visible = false
+targetCircle.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0.5, 0)
+corner.Parent = targetCircle
+
 -- متغيرات
 local enabled = false
-local originalCameraType = camera.CameraType
-local originalCFrame = camera.CFrame
 
--- تبديل الزر
 button.MouseButton1Click:Connect(function()
-	enabled = not enabled
-	button.Text = enabled and "إيقاف" or "تفعيل"
-
-	if enabled then
-		-- نوقف التحكم باللاعب بالكاميرا ونثبت الكاميرا
-		originalCameraType = camera.CameraType
-	else
-		-- ترجع الكاميرا طبيعي
-		camera.CameraType = originalCameraType
-		camera.CFrame = originalCFrame
-	end
+    enabled = not enabled
+    button.Text = enabled and "إيقاف" or "تفعيل"
+    targetCircle.Visible = enabled
 end)
 
--- هل اللاعب داخل الدائرة؟
-local function isInsideCircle(worldPos)
-	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
-	if not onScreen then return false end
-
-	local absPos = circle.AbsolutePosition
-	local absSize = circle.AbsoluteSize
-	local radius = absSize.X / 2
-
-	local centerX = absPos.X + radius
-	local centerY = absPos.Y + radius
-
-	local dx = screenPos.X - centerX
-	local dy = screenPos.Y - centerY
-	return (dx*dx + dy*dy) <= (radius*radius)
+-- دالة لإيجاد أقرب لاعب
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild(settings.TargetPart) then
+            local part = plr.Character[settings.TargetPart]
+            local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+            if onScreen then
+                local centerX = camera.ViewportSize.X / 2
+                local centerY = camera.ViewportSize.Y / 2
+                local dx = screenPos.X - centerX
+                local dy = screenPos.Y - centerY
+                local distance = math.sqrt(dx*dx + dy*dy)
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = plr
+                end
+            end
+        end
+    end
+    return closestPlayer
 end
 
--- تحديث الكاميرا كل فريم
-RunService.RenderStepped:Connect(function()
-	if enabled then
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-				local hrp = plr.Character.HumanoidRootPart
-				if isInsideCircle(hrp.Position) then
-					-- تثبيت الكاميرا على اللاعب
-					local camPos = camera.CFrame.Position
-					local targetPos = hrp.Position
-					camera.CameraType = Enum.CameraType.Scriptable
-					camera.CFrame = CFrame.new(camPos, targetPos)
-					break
-				end
-			end
-		end
-	end
+-- تحديث كل فريم
+RunService.RenderStepped:Connect(function(delta)
+    if enabled then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild(settings.TargetPart) then
+            local partPos = target.Character[settings.TargetPart].Position
+            -- تحديث الكاميرا
+            local camPos = camera.CFrame.Position
+            local desiredCFrame = CFrame.new(camPos, partPos)
+            camera.CameraType = Enum.CameraType.Scriptable
+            camera.CFrame = camera.CFrame:Lerp(desiredCFrame, settings.Smoothness)
+            -- تحديث الدائرة على الشاشة
+            local screenPos, onScreen = camera:WorldToViewportPoint(partPos)
+            if onScreen then
+                targetCircle.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y)
+            else
+                targetCircle.Visible = false
+            end
+        else
+            targetCircle.Visible = false
+        end
+    else
+        camera.CameraType = Enum.CameraType.Custom
+    end
 end)
