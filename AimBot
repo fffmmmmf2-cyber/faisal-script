@@ -1,19 +1,16 @@
--- AimBot v1 للجوال
--- LocalScript داخل StarterPlayerScripts
-
+-- AimBot v2 للجوال (ثابت تمامًا)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
-local toggle = false -- البداية مغلق
-local aimFOV = 100 -- نصف قطر الدائرة
-local aimSensitivity = 0.5 -- سرعة التصويب
+local toggle = false
+local aimFOV = 100
+local aimSensitivity = 1 -- كامل وسريع
 
--- واجهة GUI
+-- GUI
 local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 
--- دائرة الهدف
 local AimCircle = Instance.new("Frame")
 AimCircle.Size = UDim2.new(0, aimFOV, 0, aimFOV)
 AimCircle.Position = UDim2.new(0.5, -aimFOV/2, 0.5, -aimFOV/2)
@@ -23,7 +20,6 @@ AimCircle.BorderColor3 = Color3.fromRGB(255,0,0)
 AimCircle.BackgroundColor3 = Color3.fromRGB(0,0,0)
 AimCircle.Parent = ScreenGui
 
--- زر التفعيل/إيقاف
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0,100,0,50)
 ToggleButton.Position = UDim2.new(0.9, -50, 0.9, -25)
@@ -42,7 +38,7 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- دالة لأقرب لاعب داخل الدائرة
+-- دالة أقرب لاعب داخل الدائرة
 local function getClosestTarget()
     local closestPlayer = nil
     local shortestDistance = aimFOV/2
@@ -66,10 +62,9 @@ RunService.RenderStepped:Connect(function()
     if toggle then
         local target = getClosestTarget()
         if target and target.Character and target.Character:FindFirstChild("Head") then
+            -- ثبات كامل على الرأس مهما تحركت
             local headPos = target.Character.Head.Position
-            local camPos = camera.CFrame.Position
-            local direction = (headPos - camPos).Unit
-            camera.CFrame = CFrame.new(camPos, camPos + direction * aimSensitivity)
+            camera.CFrame = CFrame.new(camera.CFrame.Position, headPos)
         end
     end
 end)
