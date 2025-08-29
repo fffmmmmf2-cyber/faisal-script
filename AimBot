@@ -1,4 +1,4 @@
--- CameraLookAtPlayer.lua
+-- CameraLookAtPlayerCircle.lua
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
@@ -9,23 +9,23 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- المربع (إطار فقط)
-local square = Instance.new("Frame")
-square.Size = UDim2.new(0, 250, 0, 250)
-square.Position = UDim2.new(0.5, -125, 0.5, -125)
-square.BackgroundTransparency = 1 -- مفرغ
-square.BorderSizePixel = 4
-square.BorderColor3 = Color3.fromRGB(100, 180, 255)
-square.Parent = gui
+-- الدائرة (إطار فقط)
+local circle = Instance.new("Frame")
+circle.Size = UDim2.new(0, 250, 0, 250)
+circle.Position = UDim2.new(0.5, -125, 0.5, -125)
+circle.BackgroundTransparency = 1 -- مفرغ
+circle.BorderSizePixel = 4
+circle.BorderColor3 = Color3.fromRGB(100, 180, 255)
+circle.Parent = gui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = square
+corner.CornerRadius = UDim.new(0.5, 0) -- يجعل الشكل دائرة كاملة
+corner.Parent = circle
 
 -- زر التفعيل
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 80, 0, 30)
-button.Position = UDim2.new(0.5, -40, 0, 20)
+button.Position = UDim2.new(0.5, -40, 0, 10) -- أعلى الشاشة أكثر
 button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "تفعيل"
@@ -49,18 +49,21 @@ button.MouseButton1Click:Connect(function()
 	button.Text = enabled and "إيقاف" or "تفعيل"
 end)
 
--- دالة تفحص إذا اللاعب داخل المربع
-local function isInsideSquare(worldPos)
+-- دالة تفحص إذا اللاعب داخل الدائرة
+local function isInsideCircle(worldPos)
 	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 	if not onScreen then return false end
 
-	local absPos = square.AbsolutePosition
-	local absSize = square.AbsoluteSize
+	local absPos = circle.AbsolutePosition
+	local absSize = circle.AbsoluteSize
+	local radius = absSize.X / 2
 
-	return screenPos.X >= absPos.X 
-	   and screenPos.X <= absPos.X + absSize.X
-	   and screenPos.Y >= absPos.Y 
-	   and screenPos.Y <= absPos.Y + absSize.Y
+	local centerX = absPos.X + radius
+	local centerY = absPos.Y + radius
+
+	local dx = screenPos.X - centerX
+	local dy = screenPos.Y - centerY
+	return (dx*dx + dy*dy) <= (radius*radius)
 end
 
 -- تحديث الكاميرا كل فريم
@@ -69,8 +72,8 @@ RunService.RenderStepped:Connect(function()
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = plr.Character.HumanoidRootPart
-				if isInsideSquare(hrp.Position) then
-					-- الكاميرا تتجه للاعب بس، بدون ما تتحرك الشخصية
+				if isInsideCircle(hrp.Position) then
+					-- الكاميرا تتجه للاعب بس
 					local camPos = camera.CFrame.Position
 					local targetPos = hrp.Position
 					camera.CFrame = CFrame.new(camPos, targetPos)
