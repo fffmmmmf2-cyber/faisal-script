@@ -1,15 +1,19 @@
--- AimBot v2 للجوال (ثابت تمامًا)
+-- AimBot v3 للجوال (محسّن ومطوّر)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+local Teams = game:GetService("Teams")
 
-local toggle = false
-local aimFOV = 100
-local aimSensitivity = 1 -- كامل وسريع
+-- إعدادات AimBot
+local aimFOV = 120            -- نصف قطر الدائرة
+local maxDistance = 300        -- أقصى مسافة للتصويب
+local smoothness = 0.15        -- سلاسة التصويب (0.1 أسرع، 0.3 أبطأ)
+local ignoreTeam = true        -- تجاهل الفريق
 
 -- GUI
 local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.ResetOnSpawn = false
 
 local AimCircle = Instance.new("Frame")
 AimCircle.Size = UDim2.new(0, aimFOV, 0, aimFOV)
@@ -20,34 +24,20 @@ AimCircle.BorderColor3 = Color3.fromRGB(255,0,0)
 AimCircle.BackgroundColor3 = Color3.fromRGB(0,0,0)
 AimCircle.Parent = ScreenGui
 
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0,100,0,50)
-ToggleButton.Position = UDim2.new(0.9, -50, 0.9, -25)
-ToggleButton.Text = "AimBot"
-ToggleButton.TextScaled = true
-ToggleButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
-ToggleButton.Parent = ScreenGui
-
-ToggleButton.MouseButton1Click:Connect(function()
-    toggle = not toggle
-    if toggle then
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
-    else
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-    end
-end)
-
--- دالة أقرب لاعب داخل الدائرة
+-- وظيفة تحديد أقرب هدف داخل الدائرة
 local function getClosestTarget()
     local closestPlayer = nil
-    local shortestDistance = aimFOV/2
+    local shortestDistance = aimFOV / 2
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character and target.Character:FindFirstChild("Head") then
+            if ignoreTeam and target.Team == player.Team then
+                continue
+            end
             local headPos, onScreen = camera:WorldToScreenPoint(target.Character.Head.Position)
             if onScreen then
                 local distance = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
-                if distance < shortestDistance then
+                local worldDistance = (player.Character.HumanoidRootPart.Position - target.Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDistance and worldDistance <= maxDistance then
                     shortestDistance = distance
                     closestPlayer = target
                 end
@@ -57,14 +47,25 @@ local function getClosestTarget()
     return closestPlayer
 end
 
--- تحديث AimBot
+-- دالة Smooth Aim
+local function smoothAim(currentCFrame, targetPos)
+    local direction = (targetPos - currentCFrame.Position)
+    local newCFrame = CFrame.new(currentCFrame.Position, currentCFrame.Position + direction * smoothness)
+    return newCFrame
+end
+
+-- تحديث AimBot كل إطار
 RunService.RenderStepped:Connect(function()
-    if toggle then
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local target = getClosestTarget()
         if target and target.Character and target.Character:FindFirstChild("Head") then
-            -- ثبات كامل على الرأس مهما تحركت
             local headPos = target.Character.Head.Position
-            camera.CFrame = CFrame.new(camera.CFrame.Position, headPos)
+            camera.CFrame = smoothAim(camera.CFrame, headPos)
         end
     end
+end)
+
+-- تحديث GUI كل ثانية (اختياري لتعديل الدائرة لاحقًا)
+RunService.Heartbeat:Connect(function()
+    AimCircle.Size = UDim2.new(0, aimFOV, 0, aimFOV)
 end)
