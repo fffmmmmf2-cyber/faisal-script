@@ -1,83 +1,59 @@
--- EnhancedAimBot.lua
+-- AimBot v1 للجوال
+-- LocalScript داخل StarterPlayerScripts
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- إعدادات
-local settings = {
-    TargetPart = "Head", -- "Head" أو "HumanoidRootPart"
-    Smoothness = 0.2,
-    CircleSize = 100,
-    CircleTransparency = 0.5,
-    CircleColor = Color3.fromRGB(100, 180, 255),
-}
+local toggle = false -- البداية مغلق
+local aimFOV = 100 -- نصف قطر الدائرة
+local aimSensitivity = 0.5 -- سرعة التصويب
 
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
--- زر التفعيل
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 100, 0, 40)
-button.Position = UDim2.new(0.5, -50, 0, 10)
-button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Text = "تفعيل"
-button.Font = Enum.Font.SourceSansBold
-button.TextScaled = true
-button.AutoButtonColor = true
-button.BackgroundTransparency = 0.2
-button.BorderSizePixel = 0
-button.Parent = gui
-
-local bCorner = Instance.new("UICorner")
-bCorner.CornerRadius = UDim.new(0, 8)
-bCorner.Parent = button
+-- واجهة GUI
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 
 -- دائرة الهدف
-local targetCircle = Instance.new("Frame")
-targetCircle.Size = UDim2.new(0, settings.CircleSize, 0, settings.CircleSize)
-targetCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-targetCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
-targetCircle.BackgroundTransparency = settings.CircleTransparency
-targetCircle.BackgroundColor3 = settings.CircleColor
-targetCircle.BorderSizePixel = 4
-targetCircle.BorderColor3 = settings.CircleColor
-targetCircle.Visible = false
-targetCircle.Parent = gui
+local AimCircle = Instance.new("Frame")
+AimCircle.Size = UDim2.new(0, aimFOV, 0, aimFOV)
+AimCircle.Position = UDim2.new(0.5, -aimFOV/2, 0.5, -aimFOV/2)
+AimCircle.BackgroundTransparency = 0.8
+AimCircle.BorderSizePixel = 2
+AimCircle.BorderColor3 = Color3.fromRGB(255,0,0)
+AimCircle.BackgroundColor3 = Color3.fromRGB(0,0,0)
+AimCircle.Parent = ScreenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0.5, 0)
-corner.Parent = targetCircle
+-- زر التفعيل/إيقاف
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0,100,0,50)
+ToggleButton.Position = UDim2.new(0.9, -50, 0.9, -25)
+ToggleButton.Text = "AimBot"
+ToggleButton.TextScaled = true
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
+ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+ToggleButton.Parent = ScreenGui
 
--- متغيرات
-local enabled = false
-
-button.MouseButton1Click:Connect(function()
-    enabled = not enabled
-    button.Text = enabled and "إيقاف" or "تفعيل"
-    targetCircle.Visible = enabled
+ToggleButton.MouseButton1Click:Connect(function()
+    toggle = not toggle
+    if toggle then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
+    end
 end)
 
--- دالة لإيجاد أقرب لاعب
-local function getClosestPlayer()
+-- دالة لأقرب لاعب داخل الدائرة
+local function getClosestTarget()
     local closestPlayer = nil
-    local shortestDistance = math.huge
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild(settings.TargetPart) then
-            local part = plr.Character[settings.TargetPart]
-            local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+    local shortestDistance = aimFOV/2
+    for _, target in pairs(Players:GetPlayers()) do
+        if target ~= player and target.Character and target.Character:FindFirstChild("Head") then
+            local headPos, onScreen = camera:WorldToScreenPoint(target.Character.Head.Position)
             if onScreen then
-                local centerX = camera.ViewportSize.X / 2
-                local centerY = camera.ViewportSize.Y / 2
-                local dx = screenPos.X - centerX
-                local dy = screenPos.Y - centerY
-                local distance = math.sqrt(dx*dx + dy*dy)
+                local distance = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
                 if distance < shortestDistance then
                     shortestDistance = distance
-                    closestPlayer = plr
+                    closestPlayer = target
                 end
             end
         end
@@ -85,28 +61,15 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- تحديث كل فريم
-RunService.RenderStepped:Connect(function(delta)
-    if enabled then
-        local target = getClosestPlayer()
-        if target and target.Character and target.Character:FindFirstChild(settings.TargetPart) then
-            local partPos = target.Character[settings.TargetPart].Position
-            -- تحديث الكاميرا
+-- تحديث AimBot
+RunService.RenderStepped:Connect(function()
+    if toggle then
+        local target = getClosestTarget()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local headPos = target.Character.Head.Position
             local camPos = camera.CFrame.Position
-            local desiredCFrame = CFrame.new(camPos, partPos)
-            camera.CameraType = Enum.CameraType.Scriptable
-            camera.CFrame = camera.CFrame:Lerp(desiredCFrame, settings.Smoothness)
-            -- تحديث الدائرة على الشاشة
-            local screenPos, onScreen = camera:WorldToViewportPoint(partPos)
-            if onScreen then
-                targetCircle.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y)
-            else
-                targetCircle.Visible = false
-            end
-        else
-            targetCircle.Visible = false
+            local direction = (headPos - camPos).Unit
+            camera.CFrame = CFrame.new(camPos, camPos + direction * aimSensitivity)
         end
-    else
-        camera.CameraType = Enum.CameraType.Custom
     end
 end)
