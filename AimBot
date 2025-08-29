@@ -1,75 +1,85 @@
--- CameraLockSquare.lua
--- LocalScript داخل StarterPlayerScripts
-
+-- CameraLockUI.lua
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 -- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player:WaitForChild("PlayerGui")
-screenGui.ResetOnSpawn = false
+local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
--- المربع الأزرق المفرغ
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 250) -- حجم المربع
-frame.Position = UDim2.new(0.5, -125, 0.5, -125) -- وسط الشاشة
-frame.BackgroundTransparency = 1
-frame.BorderSizePixel = 4
-frame.BorderColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
-frame.Parent = screenGui
+-- المربع (وسط الشاشة)
+local square = Instance.new("Frame")
+square.Size = UDim2.new(0, 250, 0, 250)
+square.Position = UDim2.new(0.5, -125, 0.5, -125)
+square.BackgroundTransparency = 0.3 -- شفاف 30% فقط (أوضح)
+square.BackgroundColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
+square.BorderSizePixel = 4
+square.BorderColor3 = Color3.fromRGB(100, 180, 255)
+square.Parent = gui
 
--- زر التفعيل/الإيقاف
+-- تدوير الزوايا
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = square
+
+-- الزر
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 80, 0, 30)
-button.Position = UDim2.new(0.5, -40, 0, 20) -- فوق وسط الشاشة
+button.Position = UDim2.new(0.5, -40, 0, 20) -- أعلى منتصف الشاشة
 button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "تفعيل"
-button.Parent = screenGui
-button.AutoButtonColor = true
-button.BackgroundTransparency = 0.2
 button.Font = Enum.Font.SourceSansBold
 button.TextScaled = true
-button.ZIndex = 2
+button.AutoButtonColor = true
+button.BackgroundTransparency = 0.2
 button.BorderSizePixel = 0
-button.UICorner = Instance.new("UICorner", button)
-button.UICorner.CornerRadius = UDim.new(0, 8)
+button.Parent = gui
+
+local bCorner = Instance.new("UICorner")
+bCorner.CornerRadius = UDim.new(0, 8)
+bCorner.Parent = button
 
 -- متغيرات
 local enabled = false
 local targetPlayer = nil
 
--- زر التفعيل
+-- تبديل الزر
 button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	button.Text = enabled and "إيقاف" or "تفعيل"
 	if not enabled then
 		targetPlayer = nil
-		camera.CameraSubject = player.Character:WaitForChild("Humanoid")
+		if player.Character and player.Character:FindFirstChild("Humanoid") then
+			camera.CameraSubject = player.Character.Humanoid
+		end
 	end
 end)
 
--- دالة تشيك إذا اللاعب داخل المربع
-local function isInSquare(worldPos)
+-- هل داخل المربع؟
+local function isInsideSquare(worldPos)
 	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 	if not onScreen then return false end
-	local frameAbsPos = frame.AbsolutePosition
-	local frameAbsSize = frame.AbsoluteSize
-	return screenPos.X >= frameAbsPos.X and screenPos.X <= frameAbsPos.X + frameAbsSize.X
-	   and screenPos.Y >= frameAbsPos.Y and screenPos.Y <= frameAbsPos.Y + frameAbsSize.Y
+
+	local absPos = square.AbsolutePosition
+	local absSize = square.AbsoluteSize
+
+	return screenPos.X >= absPos.X 
+	   and screenPos.X <= absPos.X + absSize.X
+	   and screenPos.Y >= absPos.Y 
+	   and screenPos.Y <= absPos.Y + absSize.Y
 end
 
--- تحديث الكاميرا
+-- التحديث كل فريم
 RunService.RenderStepped:Connect(function()
 	if enabled then
 		targetPlayer = nil
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = plr.Character.HumanoidRootPart
-				if isInSquare(hrp.Position) then
+				if isInsideSquare(hrp.Position) then
 					targetPlayer = plr
 					break
 				end
@@ -78,8 +88,8 @@ RunService.RenderStepped:Connect(function()
 
 		if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
 			camera.CameraSubject = targetPlayer.Character.Humanoid
-		else
-			camera.CameraSubject = player.Character:WaitForChild("Humanoid")
+		elseif player.Character and player.Character:FindFirstChild("Humanoid") then
+			camera.CameraSubject = player.Character.Humanoid
 		end
 	end
 end)
