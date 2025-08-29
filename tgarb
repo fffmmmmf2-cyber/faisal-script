@@ -1,4 +1,4 @@
--- Auto Walk to Base Parts + Custom Path v1
+-- Auto Walk to Base Parts + Custom Path v2
 -- LocalScript داخل StarterPlayerScripts
 
 local Players = game:GetService("Players")
@@ -42,7 +42,7 @@ uic1.CornerRadius = UDim.new(0,16)
 -- زر إنشاء الطريق
 local buttonPath = Instance.new("TextButton")
 buttonPath.Size = UDim2.new(0, 180, 0, 48)
-buttonPath.Position = UDim2.new(0, 10, 0, 62)
+buttonPath.Position = UDim2.new(0,10,0,62)
 buttonPath.BackgroundColor3 = Color3.fromRGB(50,50,50)
 buttonPath.Text = "إنشاء طريق"
 buttonPath.TextColor3 = Color3.fromRGB(255,255,255)
@@ -166,7 +166,7 @@ local function autoWalk()
 	buttonAuto.Text="ابدأ التنقل التلقائي"
 	clearPath()
 
-	-- بعد ما يخلص Base Parts، يروح للبارت 1 و2
+	-- بعد الانتهاء من Base Parts، يذهب للبارت 1 → ثم 2 → ثم يرجع 1 → ويتوقف
 	local part1 = workspace:FindFirstChild("1")
 	local part2 = workspace:FindFirstChild("2")
 	if part1 and part2 then
