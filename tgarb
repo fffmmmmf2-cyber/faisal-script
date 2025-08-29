@@ -1,10 +1,11 @@
--- Auto Walk + Pick Up Box GUI
+-- Auto Walk to Base Parts + Custom Path v1
 -- LocalScript داخل StarterPlayerScripts
 
 local Players = game:GetService("Players")
-local PathfindingService = game:GetService("PathfindingService")
 local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
+local workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local function getChar()
@@ -13,11 +14,11 @@ end
 
 -- ===== GUI =====
 local screen = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screen.Name = "AutoPathAndPickBoxUI"
+screen.Name = "AutoPathAndCustomWayUI"
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0,12,0.5,-60)
+frame.Size = UDim2.new(0, 200, 0, 140)
+frame.Position = UDim2.new(0,12,0.5,-70)
 frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 frame.Parent = screen
 
@@ -38,21 +39,21 @@ buttonAuto.Parent = frame
 local uic1 = Instance.new("UICorner", buttonAuto)
 uic1.CornerRadius = UDim.new(0,16)
 
--- زر التقاط Pick Up Box
-local buttonPick = Instance.new("TextButton")
-buttonPick.Size = UDim2.new(0, 180, 0, 48)
-buttonPick.Position = UDim2.new(0,10,0,62)
-buttonPick.BackgroundColor3 = Color3.fromRGB(50,50,50)
-buttonPick.Text = "التقاط بوكس"
-buttonPick.TextColor3 = Color3.fromRGB(255,255,255)
-buttonPick.TextScaled = true
-buttonPick.Font = Enum.Font.GothamBold
-buttonPick.Parent = frame
+-- زر إنشاء الطريق
+local buttonPath = Instance.new("TextButton")
+buttonPath.Size = UDim2.new(0, 180, 0, 48)
+buttonPath.Position = UDim2.new(0, 10, 0, 62)
+buttonPath.BackgroundColor3 = Color3.fromRGB(50,50,50)
+buttonPath.Text = "إنشاء طريق"
+buttonPath.TextColor3 = Color3.fromRGB(255,255,255)
+buttonPath.TextScaled = true
+buttonPath.Font = Enum.Font.GothamBold
+buttonPath.Parent = frame
 
-local uic2 = Instance.new("UICorner", buttonPick)
+local uic2 = Instance.new("UICorner", buttonPath)
 uic2.CornerRadius = UDim.new(0,16)
 
--- ===== مسار Base Parts =====
+-- ===== Path Visualization =====
 local pathFolder = Instance.new("Folder", workspace)
 pathFolder.Name = "PathVisAuto"
 
@@ -164,23 +165,37 @@ local function autoWalk()
 	autoRunning=false
 	buttonAuto.Text="ابدأ التنقل التلقائي"
 	clearPath()
+
+	-- بعد ما يخلص Base Parts، يروح للبارت 1 و2
+	local part1 = workspace:FindFirstChild("1")
+	local part2 = workspace:FindFirstChild("2")
+	if part1 and part2 then
+		hum:MoveTo(part1.Position)
+		hum.MoveToFinished:Wait()
+		hum:MoveTo(part2.Position)
+		hum.MoveToFinished:Wait()
+		hum:MoveTo(part1.Position)
+		hum.MoveToFinished:Wait()
+	end
 end
 
 buttonAuto.MouseButton1Click:Connect(autoWalk)
 
--- ===== Pick Up Box Logic =====
-local function interactPickUpBox()
+-- ===== إنشاء الطريق =====
+local createdCount=0
+
+local function createPathPart()
+	if createdCount>=2 then return end
 	local char=getChar()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("ProximityPrompt") and obj.Name=="Pick Up Box" then
-			for i=1,5 do
-				obj:InputHoldBegin()
-				wait(0.1)
-				obj:InputHoldEnd()
-				wait(0.2)
-			end
-		end
-	end
+	local hrp=char:WaitForChild("HumanoidRootPart")
+	createdCount=createdCount+1
+	local part=Instance.new("Part")
+	part.Size=Vector3.new(2,2,2)
+	part.Position=hrp.Position-Vector3.new(0,3,0)
+	part.Anchored=true
+	part.CanCollide=true
+	part.Name=tostring(createdCount)
+	part.Parent=workspace
 end
 
-buttonPick.MouseButton1Click:Connect(interactPickUpBox)
+buttonPath.MouseButton1Click:Connect(createPathPart)
