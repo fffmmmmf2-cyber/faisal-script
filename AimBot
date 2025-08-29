@@ -1,136 +1,85 @@
---// Services
+-- CameraLockSquare.lua
+-- LocalScript داخل StarterPlayerScripts
+
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
-
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local RootPart = Character:WaitForChild("HumanoidRootPart")
-
--- Variables
-local targetPartName = "HumanoidRootPart"
-local trackingEnabled = false
+local UserInputService = game:GetService("UserInputService")
 
 -- GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0,200,0,100)
-MainFrame.Position = UDim2.new(0.3,0,0.3,0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
+-- المربع الأزرق المفرغ
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 250) -- حجم المربع
+frame.Position = UDim2.new(0.5, -125, 0.5, -125) -- وسط الشاشة
+frame.BackgroundTransparency = 1
+frame.BorderSizePixel = 4
+frame.BorderColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
+frame.Parent = screenGui
 
--- Dropdown اختيار الجزء
-local PartDropdown = Instance.new("TextButton")
-PartDropdown.Size = UDim2.new(0,180,0,30)
-PartDropdown.Position = UDim2.new(0,10,0,10)
-PartDropdown.Text = "اختر الجزء"
-PartDropdown.BackgroundColor3 = Color3.fromRGB(255,0,0)
-PartDropdown.TextColor3 = Color3.new(1,1,1)
-PartDropdown.Parent = MainFrame
+-- زر التفعيل/الإيقاف
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 80, 0, 30)
+button.Position = UDim2.new(0.5, -40, 0, 20) -- فوق وسط الشاشة
+button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Text = "تفعيل"
+button.Parent = screenGui
+button.AutoButtonColor = true
+button.BackgroundTransparency = 0.2
+button.Font = Enum.Font.SourceSansBold
+button.TextScaled = true
+button.ZIndex = 2
+button.BorderSizePixel = 0
+button.UICorner = Instance.new("UICorner", button)
+button.UICorner.CornerRadius = UDim.new(0, 8)
 
-local PartOptions = {"Head","HumanoidRootPart","UpperTorso","LowerTorso"}
-local PartSelected = "HumanoidRootPart"
+-- متغيرات
+local enabled = false
+local targetPlayer = nil
 
-PartDropdown.MouseButton1Click:Connect(function()
-    PartSelected = PartOptions[(table.find(PartOptions,PartSelected) % #PartOptions)+1]
-    PartDropdown.Text = PartSelected
+-- زر التفعيل
+button.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	button.Text = enabled and "إيقاف" or "تفعيل"
+	if not enabled then
+		targetPlayer = nil
+		camera.CameraSubject = player.Character:WaitForChild("Humanoid")
+	end
 end)
 
--- Toggle تتبع الكاميرا
-local TrackToggle = Instance.new("TextButton")
-TrackToggle.Size = UDim2.new(0,180,0,30)
-TrackToggle.Position = UDim2.new(0,10,0,50)
-TrackToggle.Text = "تتبع الكاميرا"
-TrackToggle.BackgroundColor3 = Color3.fromRGB(255,0,0)
-TrackToggle.TextColor3 = Color3.new(1,1,1)
-TrackToggle.Parent = MainFrame
-
-TrackToggle.MouseButton1Click:Connect(function()
-    trackingEnabled = not trackingEnabled
-    TrackToggle.BackgroundColor3 = trackingEnabled and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
-end)
-
--- زر رينبو متدرج الألوان
-local RainbowButton = Instance.new("TextButton")
-RainbowButton.Size = UDim2.new(0,50,0,30)
-RainbowButton.Position = UDim2.new(0,10,0,10)
-RainbowButton.BackgroundColor3 = Color3.fromRGB(255,0,0)
-RainbowButton.Text = ""
-RainbowButton.Parent = ScreenGui
-
-RainbowButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
-spawn(function()
-    local hue = 0
-    while true do
-        hue = (hue + 1) % 360
-        RainbowButton.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
-        wait(0.03)
-    end
-end)
-
--- Get closest player
-local function getClosestPlayer()
-    local closest = nil
-    local shortestDistance = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(PartSelected) then
-            local part = player.Character[PartSelected]
-            local distance = (part.Position - RootPart.Position).Magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closest = player
-            end
-        end
-    end
-    return closest
+-- دالة تشيك إذا اللاعب داخل المربع
+local function isInSquare(worldPos)
+	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
+	if not onScreen then return false end
+	local frameAbsPos = frame.AbsolutePosition
+	local frameAbsSize = frame.AbsoluteSize
+	return screenPos.X >= frameAbsPos.X and screenPos.X <= frameAbsPos.X + frameAbsSize.X
+	   and screenPos.Y >= frameAbsPos.Y and screenPos.Y <= frameAbsPos.Y + frameAbsSize.Y
 end
 
--- Check visibility
-local function isVisible(part)
-    local origin = Camera.CFrame.Position
-    local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
-    local ray = Ray.new(origin,direction)
-    local hit = workspace:FindPartOnRayWithIgnoreList(ray,{Character})
-    return hit and hit:IsDescendantOf(part.Parent)
-end
-
--- Update Loop
+-- تحديث الكاميرا
 RunService.RenderStepped:Connect(function()
-    if trackingEnabled then
-        local targetPlayer = getClosestPlayer()
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(PartSelected) then
-            local part = targetPlayer.Character[PartSelected]
+	if enabled then
+		targetPlayer = nil
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+				local hrp = plr.Character.HumanoidRootPart
+				if isInSquare(hrp.Position) then
+					targetPlayer = plr
+					break
+				end
+			end
+		end
 
-            -- Set part color
-            for _, p in pairs(targetPlayer.Character:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    if isVisible(part) then
-                        p.Color = Color3.fromRGB(0,255,0)
-                        p.Transparency = 0.3
-                    else
-                        p.Color = Color3.fromRGB(255,0,0)
-                        p.Transparency = 0
-                    end
-                end
-            end
-
-            -- Camera: النظر نحو الجزء
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
-
-            -- جسمك يتجه نحو الهدف
-            local lookCFrame = CFrame.new(RootPart.Position, Vector3.new(part.Position.X, RootPart.Position.Y, part.Position.Z))
-            RootPart.CFrame = CFrame.new(RootPart.Position) * CFrame.Angles(0, lookCFrame.Y - RootPart.CFrame.Y,0)
-            -- تبسيط التدوير: فقط حول المحور Y
-            RootPart.CFrame = CFrame.new(RootPart.Position, Vector3.new(part.Position.X, RootPart.Position.Y, part.Position.Z))
-        end
-    end
+		if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") then
+			camera.CameraSubject = targetPlayer.Character.Humanoid
+		else
+			camera.CameraSubject = player.Character:WaitForChild("Humanoid")
+		end
+	end
 end)
