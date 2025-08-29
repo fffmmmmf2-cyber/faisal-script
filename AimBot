@@ -1,4 +1,4 @@
--- CameraLockUI.lua
+-- CameraLookAtPlayer.lua
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
@@ -9,13 +9,13 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- المربع (إطار فقط بدون لون داخلي)
+-- المربع (إطار فقط)
 local square = Instance.new("Frame")
 square.Size = UDim2.new(0, 250, 0, 250)
 square.Position = UDim2.new(0.5, -125, 0.5, -125)
-square.BackgroundTransparency = 1 -- مفرغ من الداخل
+square.BackgroundTransparency = 1 -- مفرغ
 square.BorderSizePixel = 4
-square.BorderColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
+square.BorderColor3 = Color3.fromRGB(100, 180, 255)
 square.Parent = gui
 
 local corner = Instance.new("UICorner")
@@ -42,22 +42,14 @@ bCorner.Parent = button
 
 -- متغيرات
 local enabled = false
-local targetPlayer = nil
-local originalType = camera.CameraType
-local originalCFrame = camera.CFrame
 
 -- تبديل الزر
 button.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	button.Text = enabled and "إيقاف" or "تفعيل"
-	if not enabled then
-		targetPlayer = nil
-		camera.CameraType = originalType
-		camera.CFrame = originalCFrame
-	end
 end)
 
--- هل داخل المربع؟
+-- دالة تفحص إذا اللاعب داخل المربع
 local function isInsideSquare(worldPos)
 	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 	if not onScreen then return false end
@@ -71,27 +63,19 @@ local function isInsideSquare(worldPos)
 	   and screenPos.Y <= absPos.Y + absSize.Y
 end
 
--- التحديث كل فريم
+-- تحديث الكاميرا كل فريم
 RunService.RenderStepped:Connect(function()
 	if enabled then
-		targetPlayer = nil
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = plr.Character.HumanoidRootPart
 				if isInsideSquare(hrp.Position) then
-					targetPlayer = plr
+					-- الكاميرا تتجه للاعب بس، بدون ما تتحرك الشخصية
+					local camPos = camera.CFrame.Position
+					local targetPos = hrp.Position
+					camera.CFrame = CFrame.new(camPos, targetPos)
 					break
 				end
-			end
-		end
-
-		if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-			-- خل الكاميرا تطالع اللاعب بس
-			local hrp = targetPlayer.Character.HumanoidRootPart
-			camera.CameraType = Enum.CameraType.Scriptable
-			local camPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-			if camPos then
-				camera.CFrame = CFrame.new(camPos.Position + Vector3.new(0, 5, -10), hrp.Position)
 			end
 		end
 	end
