@@ -9,23 +9,24 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- الدائرة (إطار فقط)
+-- الدائرة (لون + شفاف 0.5)
 local circle = Instance.new("Frame")
 circle.Size = UDim2.new(0, 250, 0, 250)
 circle.Position = UDim2.new(0.5, -125, 0.5, -125)
-circle.BackgroundTransparency = 1 -- مفرغ
+circle.BackgroundTransparency = 0.5 -- شفافية 50%
+circle.BackgroundColor3 = Color3.fromRGB(100, 180, 255) -- أزرق فاتح
 circle.BorderSizePixel = 4
 circle.BorderColor3 = Color3.fromRGB(100, 180, 255)
 circle.Parent = gui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0.5, 0) -- يجعل الشكل دائرة كاملة
+corner.CornerRadius = UDim.new(0.5, 0) -- دائرة كاملة
 corner.Parent = circle
 
--- زر التفعيل
+-- زر التفعيل (مؤقت)
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 80, 0, 30)
-button.Position = UDim2.new(0.5, -40, 0, 10) -- أعلى الشاشة أكثر
+button.Position = UDim2.new(0.5, -40, 0, 10) -- مؤقت، نغيره حسب كلامك
 button.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "تفعيل"
@@ -49,7 +50,7 @@ button.MouseButton1Click:Connect(function()
 	button.Text = enabled and "إيقاف" or "تفعيل"
 end)
 
--- دالة تفحص إذا اللاعب داخل الدائرة
+-- هل داخل الدائرة؟
 local function isInsideCircle(worldPos)
 	local screenPos, onScreen = camera:WorldToViewportPoint(worldPos)
 	if not onScreen then return false end
@@ -73,7 +74,6 @@ RunService.RenderStepped:Connect(function()
 			if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = plr.Character.HumanoidRootPart
 				if isInsideCircle(hrp.Position) then
-					-- الكاميرا تتجه للاعب بس
 					local camPos = camera.CFrame.Position
 					local targetPos = hrp.Position
 					camera.CFrame = CFrame.new(camPos, targetPos)
