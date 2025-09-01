@@ -1,4 +1,4 @@
--- تثبيت كل البارتات المذكورة باستثناء بارتات اللاعب
+-- تثبيت كل البارتات المذكورة باستثناء بارتات اللاعب بشكل مستمر
 local partsToAnchor = {
     "PetMover",
     "RootPart",
@@ -21,13 +21,15 @@ local partsToAnchor = {
     "LeftEarInner"
 }
 
-for _, name in ipairs(partsToAnchor) do
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == name then
-            -- نتأكد البارت مو تابع للاعب
-            if not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
-                obj.Anchored = true
+while true do
+    for _, name in ipairs(partsToAnchor) do
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name == name then
+                if not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
+                    obj.Anchored = true
+                end
             end
         end
     end
+    wait(0.5) -- يتأكد كل نصف ثانية، تقدر تغيرها لـ1 للثانية
 end
