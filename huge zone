@@ -1,4 +1,4 @@
--- تثبيت كل البارتات المذكورة باستثناء جسم اللاعب
+-- تثبيت كل البارتات المذكورة باستثناء بارتات اللاعب
 local partsToAnchor = {
     "PetMover",
     "RootPart",
@@ -24,7 +24,10 @@ local partsToAnchor = {
 for _, name in ipairs(partsToAnchor) do
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Name == name then
-            obj.Anchored = true
+            -- نتأكد البارت مو تابع للاعب
+            if not obj:IsDescendantOf(game.Players.LocalPlayer.Character) then
+                obj.Anchored = true
+            end
         end
     end
 end
