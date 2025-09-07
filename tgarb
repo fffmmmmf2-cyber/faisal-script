@@ -1,201 +1,116 @@
--- Auto Walk to Base Parts + Custom Path v2
--- LocalScript داخل StarterPlayerScripts
+-- GUI + Teleport Hack Script
+-- by Faisal
 
-local Players = game:GetService("Players")
+--// GUI Creation
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local Drag = Instance.new("TextButton")
+local TeleportBtn = Instance.new("TextButton")
+local StopBtn = Instance.new("TextButton")
+
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "TeleportHackGUI"
+
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Frame.Size = UDim2.new(0,200,0,100)
+Frame.Position = UDim2.new(0.4,0,0.3,0)
+
+UICorner.CornerRadius = UDim.new(0,12)
+UICorner.Parent = Frame
+
+Drag.Parent = Frame
+Drag.Size = UDim2.new(1,0,0.2,0)
+Drag.BackgroundTransparency = 1
+Drag.Text = "🔹 اسحب للتحريك"
+Drag.TextColor3 = Color3.new(1,1,1)
+
+TeleportBtn.Parent = Frame
+TeleportBtn.Size = UDim2.new(0.9,0,0.3,0)
+TeleportBtn.Position = UDim2.new(0.05,0,0.3,0)
+TeleportBtn.Text = "🚀 انتقال"
+TeleportBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+TeleportBtn.TextColor3 = Color3.new(1,1,1)
+
+StopBtn.Parent = Frame
+StopBtn.Size = UDim2.new(0.9,0,0.3,0)
+StopBtn.Position = UDim2.new(0.05,0,0.65,0)
+StopBtn.Text = "⛔ إيقاف"
+StopBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
+StopBtn.TextColor3 = Color3.new(1,1,1)
+
+--// Draggable
+local UIS = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+
+Drag.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+Drag.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+--// Teleport Logic
 local RunService = game:GetService("RunService")
-local PathfindingService = game:GetService("PathfindingService")
-local StarterGui = game:GetService("StarterGui")
-local workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local humroot = char:WaitForChild("HumanoidRootPart")
 
-local player = Players.LocalPlayer
-local function getChar()
-	return player.Character or player.CharacterAdded:Wait()
+local active = false
+
+local function findClosestPart()
+    local nearest, dist = nil, math.huge
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and string.lower(obj.Name) == "stealhitbox" then
+            local d = (humroot.Position - obj.Position).Magnitude
+            if d < dist then
+                dist = d
+                nearest = obj
+            end
+        end
+    end
+    return nearest
 end
 
--- ===== GUI =====
-local screen = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screen.Name = "AutoPathAndCustomWayUI"
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 140)
-frame.Position = UDim2.new(0,12,0.5,-70)
-frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
-frame.Parent = screen
-
-local uic_frame = Instance.new("UICorner", frame)
-uic_frame.CornerRadius = UDim.new(0,16)
-
--- زر التنقل التلقائي للـ Base Parts
-local buttonAuto = Instance.new("TextButton")
-buttonAuto.Size = UDim2.new(0, 180, 0, 48)
-buttonAuto.Position = UDim2.new(0, 10, 0, 10)
-buttonAuto.BackgroundColor3 = Color3.fromRGB(50,50,50)
-buttonAuto.Text = "ابدأ التنقل التلقائي"
-buttonAuto.TextColor3 = Color3.fromRGB(255,255,255)
-buttonAuto.TextScaled = true
-buttonAuto.Font = Enum.Font.GothamBold
-buttonAuto.Parent = frame
-
-local uic1 = Instance.new("UICorner", buttonAuto)
-uic1.CornerRadius = UDim.new(0,16)
-
--- زر إنشاء الطريق
-local buttonPath = Instance.new("TextButton")
-buttonPath.Size = UDim2.new(0, 180, 0, 48)
-buttonPath.Position = UDim2.new(0,10,0,62)
-buttonPath.BackgroundColor3 = Color3.fromRGB(50,50,50)
-buttonPath.Text = "إنشاء طريق"
-buttonPath.TextColor3 = Color3.fromRGB(255,255,255)
-buttonPath.TextScaled = true
-buttonPath.Font = Enum.Font.GothamBold
-buttonPath.Parent = frame
-
-local uic2 = Instance.new("UICorner", buttonPath)
-uic2.CornerRadius = UDim.new(0,16)
-
--- ===== Path Visualization =====
-local pathFolder = Instance.new("Folder", workspace)
-pathFolder.Name = "PathVisAuto"
-
-local function clearPath()
-	for _, obj in ipairs(pathFolder:GetChildren()) do
-		obj:Destroy()
-	end
+local function teleportLoop()
+    while active do
+        local part = findClosestPart()
+        if part then
+            humroot.CFrame = part.CFrame + Vector3.new(0,5,0)
+        end
+        task.wait(0.5)
+    end
 end
 
-local function drawSegment(p0,p1)
-	local dir = (p1 - p0)
-	local dist = dir.Magnitude
-	if dist < 0.05 then return end
-	local part = Instance.new("Part")
-	part.Anchored = true
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = Color3.fromRGB(0,170,255)
-	part.Size = Vector3.new(0.25,0.25,dist)
-	part.CFrame = CFrame.lookAt((p0+p1)/2,p1)*CFrame.new(0,0,-dist/2)
-	part.Parent = pathFolder
-end
+TeleportBtn.MouseButton1Click:Connect(function()
+    if not active then
+        active = true
+        teleportLoop()
+    end
+end)
 
-local function drawPath(waypoints)
-	clearPath()
-	for i, wp in ipairs(waypoints) do
-		if i > 1 then
-			drawSegment(waypoints[i-1].Position, wp.Position)
-		end
-	end
-end
-
--- ===== Pathfinding =====
-local function computePath(startPos, goalPos)
-	local path = PathfindingService:CreatePath({
-		AgentRadius=2.5,
-		AgentHeight=5,
-		AgentCanJump=true
-	})
-	path:ComputeAsync(startPos, goalPos)
-	if path.Status==Enum.PathStatus.Success then
-		return path
-	end
-	return nil
-end
-
--- ===== Base Parts =====
-local function getNearestBase(fromPos, visited)
-	local nearest, bestDist
-	for _, d in ipairs(workspace:GetDescendants()) do
-		if d:IsA("BasePart") and d.Name:lower()=="base" and not visited[d] then
-			local dist=(d.Position-fromPos).Magnitude
-			if not bestDist or dist<bestDist then
-				nearest,bestDist=d,dist
-			end
-		end
-	end
-	return nearest
-end
-
--- ===== Auto Walk Logic =====
-local autoRunning=false
-
-local function autoWalk()
-	if autoRunning then
-		autoRunning=false
-		buttonAuto.Text="ابدأ التنقل التلقائي"
-		clearPath()
-		return
-	end
-	
-	autoRunning=true
-	buttonAuto.Text="إيقاف"
-
-	local char = getChar()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	local hum = char:WaitForChild("Humanoid")
-
-	local visited={}
-
-	while autoRunning do
-		local target = getNearestBase(hrp.Position, visited)
-		if not target then
-			StarterGui:SetCore("SendNotification",{
-				Title="اكتمل",
-				Text="ما عاد فيه بارت اسمه base",
-				Duration=3
-			})
-			break
-		end
-
-		local path=computePath(hrp.Position,target.Position+Vector3.new(0,2,0))
-		if path then
-			drawPath(path:GetWaypoints())
-			for _, wp in ipairs(path:GetWaypoints()) do
-				if wp.Action==Enum.PathWaypointAction.Jump then hum.Jump=true end
-				hum:MoveTo(wp.Position)
-				hum.MoveToFinished:Wait()
-				if not autoRunning then break end
-			end
-		end
-
-		if (target.Position-hrp.Position).Magnitude<6 then
-			visited[target]=true
-		end
-		RunService.Heartbeat:Wait()
-	end
-	
-	autoRunning=false
-	buttonAuto.Text="ابدأ التنقل التلقائي"
-	clearPath()
-
-	-- بعد الانتهاء من Base Parts، يذهب للبارت 1 → ثم 2 → ثم يرجع 1 → ويتوقف
-	local part1 = workspace:FindFirstChild("1")
-	local part2 = workspace:FindFirstChild("2")
-	if part1 and part2 then
-		hum:MoveTo(part1.Position)
-		hum.MoveToFinished:Wait()
-		hum:MoveTo(part2.Position)
-		hum.MoveToFinished:Wait()
-		hum:MoveTo(part1.Position)
-		hum.MoveToFinished:Wait()
-	end
-end
-
-buttonAuto.MouseButton1Click:Connect(autoWalk)
-
--- ===== إنشاء الطريق =====
-local createdCount=0
-
-local function createPathPart()
-	if createdCount>=2 then return end
-	local char=getChar()
-	local hrp=char:WaitForChild("HumanoidRootPart")
-	createdCount=createdCount+1
-	local part=Instance.new("Part")
-	part.Size=Vector3.new(2,2,2)
-	part.Position=hrp.Position-Vector3.new(0,3,0)
-	part.Anchored=true
-	part.CanCollide=true
-	part.Name=tostring(createdCount)
-	part.Parent=workspace
-end
-
-buttonPath.MouseButton1Click:Connect(createPathPart)
+StopBtn.MouseButton1Click:Connect(function()
+    active = false
+end)
