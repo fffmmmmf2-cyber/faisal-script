@@ -5,7 +5,7 @@
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
-local Drag = Instance.new("TextButton")
+local Drag = Instance.new("TextLabel")
 local TeleportBtn = Instance.new("TextButton")
 local StopBtn = Instance.new("TextButton")
 
@@ -40,15 +40,25 @@ StopBtn.Text = "⛔ إيقاف"
 StopBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
 StopBtn.TextColor3 = Color3.new(1,1,1)
 
--- Draggable
+-- Draggable (Fixed)
 local UIS = game:GetService("UserInputService")
-local dragging, dragInput, dragStart, startPos
+local dragging = false
+local dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    Frame.Position = UDim2.new(
+        startPos.X.Scale, startPos.X.Offset + delta.X,
+        startPos.Y.Scale, startPos.Y.Offset + delta.Y
+    )
+end
 
 Drag.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
         startPos = Frame.Position
+
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -57,17 +67,9 @@ Drag.InputBegan:Connect(function(input)
     end
 end)
 
-Drag.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
 UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        update(input)
     end
 end)
 
@@ -80,11 +82,11 @@ local humroot = char:WaitForChild("HumanoidRootPart")
 local savedPart = nil
 local active = false
 
--- يحدد أقرب بارت وقت الاكسكيوت
+-- يحفظ أقرب Part اسمه Slope أول ما يتنفذ
 local function findClosestPart()
     local nearest, dist = nil, math.huge
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and string.lower(obj.Name) == "stealhitbox" then
+        if obj:IsA("BasePart") and string.lower(obj.Name) == "slope" then
             local d = (humroot.Position - obj.Position).Magnitude
             if d < dist then
                 dist = d
@@ -97,11 +99,11 @@ end
 
 savedPart = findClosestPart()
 
--- حلقة المراقبة
+-- حلقة النقل المستمر
 local function teleportLoop()
     while active and savedPart do
         humroot.CFrame = savedPart.CFrame + Vector3.new(0,5,0)
-        task.wait(0.5) -- يشيك كل نص ثانية
+        task.wait(0.5)
     end
 end
 
