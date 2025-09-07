@@ -1,19 +1,15 @@
-local Players = game:GetService("Players")
+local player = game.Players.LocalPlayer
 
-local targetPlayerName = "scorv3150"
+-- زر الـ GUI
+local coalButton = script.Parent -- افترض إن السكربت داخل الزر نفسه
 
-local function teleportEveryoneToTarget()
-    local targetPlayer = Players:FindFirstChild(targetPlayerName)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
-
-        for _, player in pairs(Players:GetPlayers()) do
-            if player.Name ~= targetPlayerName and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
-            end
+coalButton.MouseButton1Click:Connect(function()
+    local character = player.Character
+    if not character or not character.PrimaryPart then return end
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "Coal" and obj:IsA("BasePart") then
+            obj.CFrame = character.PrimaryPart.CFrame + Vector3.new(0,5,0)
         end
     end
-end
-
--- نفّذ النقل مرة وحدة
-teleportEveryoneToTarget()
+end)
