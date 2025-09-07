@@ -1,4 +1,4 @@
--- Teleport Stick Script
+-- Teleport & Stick Script
 -- by Faisal
 
 -- GUI
@@ -40,7 +40,7 @@ StopBtn.Text = "⛔ إيقاف"
 StopBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
 StopBtn.TextColor3 = Color3.new(1,1,1)
 
--- Draggable (Fixed)
+-- Draggable
 local UIS = game:GetService("UserInputService")
 local dragging = false
 local dragStart, startPos
@@ -73,7 +73,7 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- Teleport Logic
+-- Teleport & Stick Logic
 local Players = game:GetService("Players")
 local plr = Players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
@@ -82,7 +82,7 @@ local humroot = char:WaitForChild("HumanoidRootPart")
 local savedPart = nil
 local active = false
 
--- يحفظ أقرب Part اسمه Slope أول ما يتنفذ
+-- حفظ أقرب Slope
 local function findClosestPart()
     local nearest, dist = nil, math.huge
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -99,7 +99,30 @@ end
 
 savedPart = findClosestPart()
 
--- حلقة النقل المستمر
+-- تثبيت أجزاء الجسم لمدة 3 ثواني
+local function stickToPart()
+    local partsToStick = {}
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            table.insert(partsToStick, part)
+        end
+    end
+
+    -- نقل كل جزء للبارت
+    for _, part in ipairs(partsToStick) do
+        part.Anchored = true
+        part.CFrame = savedPart.CFrame
+    end
+
+    task.wait(3) -- مدة التثبيت
+
+    -- فك التثبيت
+    for _, part in ipairs(partsToStick) do
+        part.Anchored = false
+    end
+end
+
+-- حلقة النقل المستمر (لمن اللعبة تحاول تغير مكانك)
 local function teleportLoop()
     while active and savedPart do
         humroot.CFrame = savedPart.CFrame + Vector3.new(0,5,0)
@@ -111,8 +134,9 @@ end
 TeleportBtn.MouseButton1Click:Connect(function()
     if savedPart then
         humroot.CFrame = savedPart.CFrame + Vector3.new(0,5,0)
+        task.spawn(stickToPart)
         active = true
-        teleportLoop()
+        task.spawn(teleportLoop)
     end
 end)
 
