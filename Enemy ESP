@@ -1,39 +1,196 @@
-local HttpService = game:GetService("HttpService")
+-- خدمات
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- إنشاء واجهة المستخدم
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AnimuGUI"
+screenGui.Parent = Player:WaitForChild("PlayerGui")
+
+-- الفريم الرئيسي
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0.5, -100, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+frame.BackgroundTransparency = 0.3
+frame.Parent = screenGui
+frame.Active = true
+frame.Draggable = true
+
+-- زر الرينبو لإظهار/إخفاء الفريم
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 20, 0, 20)
+toggleBtn.Position = UDim2.new(0, 0, 0, 0)
+toggleBtn.Text = "+"
+toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
+toggleBtn.Parent = screenGui
+
+-- تحديث لون الزر بشكل رينبو
+spawn(function()
+    while true do
+        for i = 0, 1, 0.01 do
+            toggleBtn.BackgroundColor3 = Color3.fromHSV(i,1,1)
+            wait(0.03)
+        end
+    end
+end)
+
+-- وظيفة إخفاء/إظهار الفريم عند الضغط على الزر
+toggleBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
+end)
+
+-- الخانة 1: Enemy ESP
+local button1 = Instance.new("TextButton")
+button1.Size = UDim2.new(0, 180, 0, 40)
+button1.Position = UDim2.new(0, 10, 0, 10)
+button1.Text = "Enemy ESP"
+button1.TextColor3 = Color3.fromRGB(255,255,255)
+button1.BackgroundColor3 = Color3.fromRGB(255,0,0)
+button1.Parent = frame
+
+-- الخانة 2: NoClip
+local button2 = Instance.new("TextButton")
+button2.Size = UDim2.new(0, 180, 0, 40)
+button2.Position = UDim2.new(0, 10, 0, 60)
+button2.Text = "NoClip"
+button2.TextColor3 = Color3.fromRGB(255,255,255)
+button2.BackgroundColor3 = Color3.fromRGB(0,0,255)
+button2.Parent = frame
+
+-- سكربت Enemy ESP كامل
+local enemyESPScript = [[
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HRP = Character:WaitForChild("HumanoidRootPart")
+local function createHealthGui(player, humanoid)
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not humanoid then return end
+    local old = player.Character:FindFirstChild("EnemyBillboard")
+    if old then old:Destroy() end
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = hrp
+    billboard.Size = UDim2.new(0,150,0,40)
+    billboard.StudsOffset = Vector3.new(0,4,0)
+    billboard.AlwaysOnTop = true
+    billboard.Name = "EnemyBillboard"
+    billboard.Parent = player.Character
 
--- قفزتين للتأكد
-for i = 1,2 do
-    Humanoid.Jump = true
-    wait(0.2)
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1,0,0.5,0)
+    nameLabel.Position = UDim2.new(0,0,0,0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255,0,0)
+    nameLabel.TextScaled = true
+    nameLabel.Parent = billboard
+
+    local healthBar = Instance.new("Frame")
+    healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
+    healthBar.Position = UDim2.new(0,0,0.6,0)
+    healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    healthBar.BorderSizePixel = 1
+    healthBar.Parent = billboard
+
+    humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        healthBar.Size = UDim2.new(humanoid.Health/humanoid.MaxHealth,0,0.3,0)
+    end)
 end
 
--- ===============================
--- السكربت الأصلي مشفر بالكامل
--- ===============================
-local encoded = [[
-U29tZUV4YW1wbGVGb3JUaGVDb21wbGV0ZVNjcmlwdENvZGUuLi4=
+local function applyEnemyEffect(player)
+    if player == Players.LocalPlayer then return end
+    local function onCharacter(char)
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        if char:FindFirstChild("EnemyHighlight") then
+            char.EnemyHighlight:Destroy()
+        end
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "EnemyHighlight"
+        highlight.Adornee = char
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.FillColor = Color3.fromRGB(255,0,0)
+        highlight.FillTransparency = 0
+        highlight.OutlineTransparency = 0.7
+        highlight.Parent = char
+        createHealthGui(player, humanoid)
+    end
+    if player.Character then
+        onCharacter(player.Character)
+    end
+    player.CharacterAdded:Connect(onCharacter)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    applyEnemyEffect(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        applyEnemyEffect(player)
+    end)
+end)
+
+while true do
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            applyEnemyEffect(player)
+        end
+    end
+    wait(5)
+end
 ]]
 
-local function decodeSymbols(s)
-    local t = {}
-    for c in s:gmatch("[A-Za-z0-9+/=]") do
-        table.insert(t,c)
+button1.MouseButton1Click:Connect(function()
+    loadstring(enemyESPScript)()
+end)
+
+-- سكربت NoClip كامل
+button2.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/NoClip"))()
+end)
+
+-- ===========================================
+-- نظام حماية من السقوط (2 ثانية) مع بارت كبير تحت اللاعب
+-- ===========================================
+local lastSafeCFrame = nil -- آخر مكان آمن على الأرض
+local fallTime = 0         -- الوقت اللي اللاعب فيه بالهواء
+local maxFallTime = 1.3      -- الحد الأقصى للسقوط قبل الرجوع
+
+RunService.Heartbeat:Connect(function(delta)
+    if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character:FindFirstChildOfClass("Humanoid") then
+        local hrp = Player.Character.HumanoidRootPart
+        local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+        
+        -- إذا على الأرض
+        if humanoid.FloorMaterial ~= Enum.Material.Air then
+            lastSafeCFrame = hrp.CFrame
+            fallTime = 0
+        else
+            -- اللاعب بالهواء
+            fallTime = fallTime + delta
+            if fallTime >= maxFallTime and lastSafeCFrame then
+                -- رجع اللاعب لمكان آمن
+                pcall(function()
+                    hrp.CFrame = lastSafeCFrame
+                end)
+
+                -- إنشاء بارت كبير تحت اللاعب
+                local platform = Instance.new("Part")
+                platform.Size = Vector3.new(3, 1, 3) -- الطول والعرض 3، الارتفاع 1
+                platform.Anchored = true
+                platform.CanCollide = true
+                platform.Position = hrp.Position - Vector3.new(0, hrp.Size.Y/2 + 0.5, 0)
+                platform.Parent = workspace
+                platform.Transparency = 0.5
+                platform.BrickColor = BrickColor.new("Really black")
+                
+                fallTime = 0
+            end
+        end
     end
-    return table.concat(t)
-end
-
-local function multiDecode(s)
-    local first = HttpService:Base64Decode(decodeSymbols(s))
-    local second = HttpService:Base64Decode(first)
-    return second
-end
-
-pcall(function()
-    loadstring(multiDecode(encoded))()
 end)
