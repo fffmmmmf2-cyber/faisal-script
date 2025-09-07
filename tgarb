@@ -1,7 +1,7 @@
--- GUI + Teleport Hack Script
+-- Teleport Stick Script
 -- by Faisal
 
---// GUI Creation
+-- GUI
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner")
@@ -40,7 +40,7 @@ StopBtn.Text = "⛔ إيقاف"
 StopBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
 StopBtn.TextColor3 = Color3.new(1,1,1)
 
---// Draggable
+-- Draggable
 local UIS = game:GetService("UserInputService")
 local dragging, dragInput, dragStart, startPos
 
@@ -71,15 +71,16 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
---// Teleport Logic
-local RunService = game:GetService("RunService")
+-- Teleport Logic
 local Players = game:GetService("Players")
 local plr = Players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local humroot = char:WaitForChild("HumanoidRootPart")
 
+local savedPart = nil
 local active = false
 
+-- يحدد أقرب بارت وقت الاكسكيوت
 local function findClosestPart()
     local nearest, dist = nil, math.huge
     for _, obj in ipairs(workspace:GetDescendants()) do
@@ -94,23 +95,26 @@ local function findClosestPart()
     return nearest
 end
 
+savedPart = findClosestPart()
+
+-- حلقة المراقبة
 local function teleportLoop()
-    while active do
-        local part = findClosestPart()
-        if part then
-            humroot.CFrame = part.CFrame + Vector3.new(0,5,0)
-        end
-        task.wait(0.5)
+    while active and savedPart do
+        humroot.CFrame = savedPart.CFrame + Vector3.new(0,5,0)
+        task.wait(0.5) -- يشيك كل نص ثانية
     end
 end
 
+-- زر انتقال
 TeleportBtn.MouseButton1Click:Connect(function()
-    if not active then
+    if savedPart then
+        humroot.CFrame = savedPart.CFrame + Vector3.new(0,5,0)
         active = true
         teleportLoop()
     end
 end)
 
+-- زر إيقاف
 StopBtn.MouseButton1Click:Connect(function()
     active = false
 end)
