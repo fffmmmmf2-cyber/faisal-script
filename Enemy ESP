@@ -4,7 +4,7 @@ local StarterGui = game:GetService("StarterGui")
 -- إشعار عند التشغيل
 StarterGui:SetCore("SendNotification",{
     Title = "AnimuGUI",
-    Text = "✅ السكربت شغال الآن",
+    Text = "✅ كس امك انيكك ",
     Duration = 3,
     Button1 = "حسناً"
 })
