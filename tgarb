@@ -1,16 +1,19 @@
 local Players = game:GetService("Players")
 
--- اسم اللاعب اللي تبغى الكل ينتقل له
 local targetPlayerName = "scorv3150"
 
-local targetPlayer = Players:FindFirstChild(targetPlayerName)
-if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-    local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
+local function teleportEveryoneToTarget()
+    local targetPlayer = Players:FindFirstChild(targetPlayerName)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Name ~= targetPlayerName and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            -- نقل اللاعب مباشرة لمكان الهدف بدون أي تعديل على الإرتفاع
-            player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Name ~= targetPlayerName and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPosition)
+            end
         end
     end
 end
+
+-- نفّذ النقل مرة وحدة
+teleportEveryoneToTarget()
