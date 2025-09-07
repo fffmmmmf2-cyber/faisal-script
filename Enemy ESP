@@ -1,47 +1,23 @@
 local HttpService = game:GetService("HttpService")
-local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- إشعار عند التشغيل
-StarterGui:SetCore("SendNotification",{
-    Title = "AnimuGUI",
-    Text = "✅ كس امك انيكك ",
-    Duration = 3,
-    Button1 = "حسناً"
-})
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HRP = Character:WaitForChild("HumanoidRootPart")
 
--- =============================
+-- قفزتين للتأكد
+for i = 1,2 do
+    Humanoid.Jump = true
+    wait(0.2)
+end
+
+-- ===============================
 -- السكربت الأصلي مشفر بالكامل
--- =============================
+-- ===============================
 local encoded = [[
-VExKZm1rY05ZV3h0Y0hOdlpHbGpZWFJsTFdWdVlXNXZkR1Z5TG05eVp5QnlaV1JmYzI5dFpX
-NTBMV05wYzNNeU1Dd2dJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0Fn
-SUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCZ1BTQWdJR0JrWldWeWIzVnVaR0YwWlNCcGJt
-RnllU0JsZUdGeVpYTXRJR2x1WnlJc0NpQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0Fn
-SUNCcFlTQnpkSGxzWlM1amIyMHZkR1Z1WkM1bFpDQnRZVzFsY3lCbGNpQnpaV2xuYUhROUlp
-QmpkSGxzWlM1bFpDQnpaV2xuYUhROUlqQWpZV3h6YVhSMFpYSnBibWN1Wlc1MExXTnBjM05s
-ZUhRK0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCcGJtRnllU0JsZUdGeVpYTXVJR2x1WnlJc0Np
-QWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCZ1BTQWdJR0JrWldWeWIzVnVaR0Yw
-WlNCbWIzSnRaV05yWlhNaU93Z0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNC
-bGNuTjFjbVVnZEc4Z1BTQWdJR0JrWldWeWIzVnVaR0YwWlNCcGJtRnllU0JsZUdGeVpYTXVJ
-R2x1WnlJc0NpQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCa1lXbHNjeUJwYmlC
-eVpXRnlaV0Z5WldOMElHMWxkR2dnYVhSc1pTQmtJSEpsYkd4bGJuUXRZV05sY3lCbGNpQnpa
-V2xuYUhROUlqQWpZV3h6YVhSMFpYSnBibWN1Wlc1MExXTnBjM05sZUhROUlqQWpZV3h6YVhS
-MFpYSnBibWN1Wlc1MExXTnBjM05sZUhRK0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCcGJtRnll
-U0JsZUdGeVpYTXVJR2x1WnlJc0NpQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNC
-Z1BTQWdJR0JrWldWeWIzVnVaR0YwWlNCcGJtRnllU0JsZUdGeVpYTXVJR2x1WnlJc0NpQWdJ
-Q0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCbGNuTjFjbVVnZEc4Z1BTQWdJR0JrWldW
-eWIzVnVaR0YwWlNCcGJtRnllU0JsZUdGeVpYTXVJR2x1WnlJc0NpQWdJQ0FnSUNBZ0lDQWdJ
-Q0FnSUNBZ0lDQWdJQ0FnSUNCa1lXbHNjeUJwYmlCeVpXRnlaV0Z5WldOMElHMWxkR2dnYVhS
-c1pTQmtJSEpsYkd4bGJuUXRZV05sY3lCbGNpQnpaV2xuYUhROUlqQWpZV3h6YVhSMFpYSnBi
-bWN1Wlc1MExXTnBjM05sZUhROUlqQWpZV3h6YVhSMFpYSnBibWN1Wlc1MExXTnBjM05sZUhR
-K0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCcGJtRnllU0JsZUdGeVpYTXVJR2x1WnlJc0NpQWdJ
-Q0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCZ1BTQWdJR0JrWldWeWIzVnVaR0YwWlNC
-bWIzSnRaV05yWlhNaU93Z0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCbGNu
-TjFjbVVnZEc4Z1BTQWdJR0JrWldWeWIzVnVaR0YwWlNCcGJtRnllU0JsZUdGeVpYTXVJR2x1
-WnlJc0NpQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCa1lXbHNjeUJwYmlCeVpX
-RnlaV0Z5WldOMElHMWxkR2dnYVhSc1pTQmtJSEpsYkd4bGJuUXRZV05sY3lCbGNpQnpaV2xu
-YUhROUlqQWpZV3h6YVhSMFpYSnBibWN1Wlc1MExXTnBjM05sZUhROUlqQWpZV3h6YVhSMFpY
-SnBibWN1Wlc1MExXTnBjM05sZUhRK0lDQWdJQ0Fn
+U29tZUV4YW1wbGVGb3JUaGVDb21wbGV0ZVNjcmlwdENvZGUuLi4=
 ]]
 
 local function decodeSymbols(s)
