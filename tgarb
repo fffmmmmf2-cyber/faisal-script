@@ -1,15 +1,33 @@
+-- اسم البارت اللي تبيه
+local partName = "CoinVisual"
+
 local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
 
--- زر الـ GUI
-local coalButton = script.Parent -- افترض إن السكربت داخل الزر نفسه
+local parts = {} -- هنا نخزن البارتات
 
-coalButton.MouseButton1Click:Connect(function()
-    local character = player.Character
-    if not character or not character.PrimaryPart then return end
-    
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == "Coal" and obj:IsA("BasePart") then
-            obj.CFrame = character.PrimaryPart.CFrame + Vector3.new(0,5,0)
+-- تحديث البارتات كل نص ثانية
+task.spawn(function()
+    while task.wait(0.5) do
+        local temp = {}
+        for _, v in ipairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and v.Name == partName then
+                table.insert(temp, v)
+            end
+        end
+        parts = temp
+    end
+end)
+
+-- الانتقال بينهم كل ربع ثانية
+task.spawn(function()
+    while task.wait(0.25) do
+        for _, v in ipairs(parts) do
+            if v and v.Parent then
+                hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
+                task.wait(0.25)
+            end
         end
     end
 end)
