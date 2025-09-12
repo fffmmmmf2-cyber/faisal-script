@@ -1,33 +1,64 @@
--- اسم البارت اللي تبيه
-local partName = "CoinVisual"
+-- سكربت يطلع رسالة فوق راس اللاعب لما يكتب في TextBox
+-- كل اللاعبين يشوفون الرسالة
 
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local parts = {} -- هنا نخزن البارتات
+-- لو ما فيه RemoteEvent انشئ واحد
+local fakeChatEvent = ReplicatedStorage:FindFirstChild("FakeChat")
+if not fakeChatEvent then
+	fakeChatEvent = Instance.new("RemoteEvent")
+	fakeChatEvent.Name = "FakeChat"
+	fakeChatEvent.Parent = ReplicatedStorage
+end
 
--- تحديث البارتات كل نص ثانية
-task.spawn(function()
-    while task.wait(0.5) do
-        local temp = {}
-        for _, v in ipairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") and v.Name == partName then
-                table.insert(temp, v)
-            end
-        end
-        parts = temp
-    end
+local player = Players.LocalPlayer
+
+-- انشاء TextBox
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0, 200, 0, 30)
+textBox.Position = UDim2.new(0.5, -100, 1, -40)
+textBox.PlaceholderText = "اكتب رسالتك هنا"
+textBox.ClearTextOnFocus = true
+textBox.Parent = screenGui
+
+-- ارسال الرسالة للسيرفر
+textBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed and textBox.Text ~= "" then
+		fakeChatEvent:FireServer(textBox.Text)
+		textBox.Text = ""
+	end
 end)
 
--- الانتقال بينهم كل ربع ثانية
-task.spawn(function()
-    while task.wait(0.25) do
-        for _, v in ipairs(parts) do
-            if v and v.Parent then
-                hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
-                task.wait(0.25)
-            end
-        end
-    end
+-- استقبال واظهار الرسالة فوق الراس
+fakeChatEvent.OnClientEvent:Connect(function(sender, message)
+	if sender.Character and sender.Character:FindFirstChild("Head") then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 200, 0, 50)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.Adornee = sender.Character.Head
+		billboard.Parent = sender.Character.Head
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 0.3
+		label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		label.TextScaled = true
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Font = Enum.Font.SourceSansBold
+		label.Text = message
+		label.Parent = billboard
+
+		game:GetService("Debris"):AddItem(billboard, 5)
+	end
 end)
+
+-- جزء السيرفر يرسل الرسالة لكل اللاعبين
+if player == Players.LocalPlayer then
+	fakeChatEvent.OnServerEvent:Connect(function(plr, message)
+		fakeChatEvent:FireAllClients(plr, message)
+	end)
+end
