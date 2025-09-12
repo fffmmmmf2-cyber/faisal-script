@@ -1,10 +1,10 @@
 -- سكربت يطلع رسالة فوق راس اللاعب لما يكتب في TextBox
--- كل اللاعبين يشوفون الرسالة
+-- الكل يقدر يشوف الرسالة
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- لو ما فيه RemoteEvent انشئ واحد
+-- لو مافي RemoteEvent ينشئ واحد
 local fakeChatEvent = ReplicatedStorage:FindFirstChild("FakeChat")
 if not fakeChatEvent then
 	fakeChatEvent = Instance.new("RemoteEvent")
@@ -14,7 +14,7 @@ end
 
 local player = Players.LocalPlayer
 
--- انشاء TextBox
+-- ========= واجهة (Textbox) =========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -23,9 +23,10 @@ textBox.Size = UDim2.new(0, 200, 0, 30)
 textBox.Position = UDim2.new(0.5, -100, 1, -40)
 textBox.PlaceholderText = "اكتب رسالتك هنا"
 textBox.ClearTextOnFocus = true
+textBox.TextScaled = true
 textBox.Parent = screenGui
 
--- ارسال الرسالة للسيرفر
+-- لما يضغط Enter يرسل الرسالة
 textBox.FocusLost:Connect(function(enterPressed)
 	if enterPressed and textBox.Text ~= "" then
 		fakeChatEvent:FireServer(textBox.Text)
@@ -33,13 +34,14 @@ textBox.FocusLost:Connect(function(enterPressed)
 	end
 end)
 
--- استقبال واظهار الرسالة فوق الراس
+-- ========= عرض الرسالة فوق الراس =========
 fakeChatEvent.OnClientEvent:Connect(function(sender, message)
 	if sender.Character and sender.Character:FindFirstChild("Head") then
 		local billboard = Instance.new("BillboardGui")
 		billboard.Size = UDim2.new(0, 200, 0, 50)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.Adornee = sender.Character.Head
+		billboard.AlwaysOnTop = true
 		billboard.Parent = sender.Character.Head
 
 		local label = Instance.new("TextLabel")
@@ -52,12 +54,12 @@ fakeChatEvent.OnClientEvent:Connect(function(sender, message)
 		label.Text = message
 		label.Parent = billboard
 
-		game:GetService("Debris"):AddItem(billboard, 5)
+		game:GetService("Debris"):AddItem(billboard, 5) -- يختفي بعد 5 ثواني
 	end
 end)
 
--- جزء السيرفر يرسل الرسالة لكل اللاعبين
-if player == Players.LocalPlayer then
+-- ========= جزء السيرفر (يخلي الرسالة توصل للكل) =========
+if game:GetService("RunService"):IsServer() then
 	fakeChatEvent.OnServerEvent:Connect(function(plr, message)
 		fakeChatEvent:FireAllClients(plr, message)
 	end)
