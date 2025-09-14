@@ -1,36 +1,14 @@
--- LocalScript داخل StarterGui
+-- LocalScript
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
--- صنع الـ ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
--- صنع الـ Frame (يمين الشاشة وصغير)
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 140, 0, 60) -- عرض 140 وارتفاع 60
-frame.Position = UDim2.new(1, -160, 0.5, -30) -- يمين الشاشة بالنص
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
--- صنع زر
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -20, 1, -20) -- ياخذ اغلب مساحة الفريم
-button.Position = UDim2.new(0, 10, 0, 10)
-button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 20
-button.Text = "حفظ المكان"
-button.Parent = frame
-
--- متغيرات محلية
-local savedCFrame = nil
-local originalCFrame = nil
-local isTeleported = false
+-- إشعار عند تشغيل السكربت
+StarterGui:SetCore("SendNotification", {
+	Title = "سكربت",
+	Text = "تم تشغيل السكربت",
+	Duration = 5
+})
 
 -- دوال مساعدة
 local function getHRP(char)
@@ -40,59 +18,60 @@ end
 local function setAnchored(char, anchored)
 	for _, part in ipairs(char:GetDescendants()) do
 		if part:IsA("BasePart") then
-			pcall(function()
-				part.Anchored = anchored
-			end)
+			pcall(function() part.Anchored = anchored end)
 		end
 	end
 end
 
-local function setCharCFrame(char, cf)
-	if not char or not cf then return end
-	local hrp = getHRP(char)
-	if hrp then
-		hrp.CFrame = cf
-	end
+local function randomMove(hrp, basePos)
+	-- يولد مكان عشوائي حوالين basePos داخل 50 ستود
+	local randX = math.random(-50, 50)
+	local randZ = math.random(-50, 50)
+	local newPos = basePos + Vector3.new(randX, 0, randZ)
+	hrp.CFrame = CFrame.new(newPos)
 end
 
--- منطق الزر
-button.MouseButton1Click:Connect(function()
-	local char = player.Character
+-- المتابعة
+local function monitorHealth(char)
+	local humanoid = char:WaitForChild("Humanoid")
 	local hrp = getHRP(char)
-	if not hrp then return end
 
-	if button.Text == "حفظ المكان" then
-		savedCFrame = hrp.CFrame
-		isTeleported = false
-		originalCFrame = nil
-		button.Text = "انتقال"
-	elseif button.Text == "انتقال" then
-		if savedCFrame then
-			originalCFrame = hrp.CFrame
-			setCharCFrame(char, savedCFrame)
-			setAnchored(char, true)
-			isTeleported = true
-			button.Text = "ارجاع"
-		end
-	elseif button.Text == "ارجاع" then
-		if originalCFrame then
-			setCharCFrame(char, originalCFrame)
-		end
-		setAnchored(char, false)
-		isTeleported = false
-		button.Text = "انتقال"
-	end
-end)
+	humanoid.HealthChanged:Connect(function(health)
+		if health > 0 and health < 30 then
+			-- الحماية تبدأ
+			StarterGui:SetCore("SendNotification", {
+				Title = "حماية",
+				Text = "تم حمايتك",
+				Duration = 5
+			})
 
--- التعامل مع الـ Respawn
+			if hrp then
+				-- نزول تحت الأرض
+				hrp.CFrame = hrp.CFrame - Vector3.new(0, 300, 0)
+				setAnchored(char, true)
+
+				-- التحرك العشوائي كل 2 ثانية
+				task.spawn(function()
+					while humanoid.Health > 0 and humanoid.Health < 30 do
+						randomMove(hrp, hrp.Position)
+						task.wait(2)
+					end
+				end)
+			end
+		elseif health >= 30 then
+			-- رجوع: ريسبون كامل
+			humanoid.Health = 0
+		end
+	end)
+end
+
+-- عند بدء اللعبة أو بعد كل ريسبون
 player.CharacterAdded:Connect(function(char)
-	char:WaitForChild("Humanoid", 5)
-	task.wait(0.2)
-	if isTeleported and savedCFrame then
-		setCharCFrame(char, savedCFrame)
-		setAnchored(char, true)
-		button.Text = "ارجاع"
-	else
-		setAnchored(char, false)
-	end
+	char:WaitForChild("Humanoid")
+	monitorHealth(char)
 end)
+
+-- لو الشخصية موجودة من قبل
+if player.Character then
+	monitorHealth(player.Character)
+end
