@@ -1,77 +1,44 @@
--- LocalScript
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
+
 local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local root = char:WaitForChild("HumanoidRootPart")
 
--- إشعار عند تشغيل السكربت
-StarterGui:SetCore("SendNotification", {
-	Title = "سكربت",
-	Text = "تم تشغيل السكربت",
-	Duration = 5
-})
+local protected = false
 
--- دوال مساعدة
-local function getHRP(char)
-	return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+-- إشعار بسيط
+local function notify(title, text)
+	StarterGui:SetCore("SendNotification", {
+		Title = title,
+		Text = text,
+		Duration = 5
+	})
 end
 
-local function setAnchored(char, anchored)
-	for _, part in ipairs(char:GetDescendants()) do
-		if part:IsA("BasePart") then
-			pcall(function() part.Anchored = anchored end)
-		end
+-- حركة عشوائية بسيطة
+local function randomMove()
+	while protected and hum.Health > 0 do
+		local offset = Vector3.new(
+			math.random(-50, 50),
+			0,
+			math.random(-50, 50)
+		)
+		root.CFrame = root.CFrame + offset
+		task.wait(2)
 	end
 end
 
-local function randomMove(hrp, basePos)
-	-- يولد مكان عشوائي حوالين basePos داخل 50 ستود
-	local randX = math.random(-50, 50)
-	local randZ = math.random(-50, 50)
-	local newPos = basePos + Vector3.new(randX, 0, randZ)
-	hrp.CFrame = CFrame.new(newPos)
-end
-
--- المتابعة
-local function monitorHealth(char)
-	local humanoid = char:WaitForChild("Humanoid")
-	local hrp = getHRP(char)
-
-	humanoid.HealthChanged:Connect(function(health)
-		if health > 0 and health < 30 then
-			-- الحماية تبدأ
-			StarterGui:SetCore("SendNotification", {
-				Title = "حماية",
-				Text = "تم حمايتك",
-				Duration = 5
-			})
-
-			if hrp then
-				-- نزول تحت الأرض
-				hrp.CFrame = hrp.CFrame - Vector3.new(0, 300, 0)
-				setAnchored(char, true)
-
-				-- التحرك العشوائي كل 2 ثانية
-				task.spawn(function()
-					while humanoid.Health > 0 and humanoid.Health < 30 do
-						randomMove(hrp, hrp.Position)
-						task.wait(2)
-					end
-				end)
-			end
-		elseif health >= 30 then
-			-- رجوع: ريسبون كامل
-			humanoid.Health = 0
-		end
-	end)
-end
-
--- عند بدء اللعبة أو بعد كل ريسبون
-player.CharacterAdded:Connect(function(char)
-	char:WaitForChild("Humanoid")
-	monitorHealth(char)
+-- مراقبة الصحة
+hum.HealthChanged:Connect(function(health)
+	if health < 30 and not protected then
+		protected = true
+		-- نزول تحت الأرض 200 ستود
+		root.CFrame = root.CFrame - Vector3.new(0, 200, 0)
+		-- تثبيت الجسم
+		hum.PlatformStand = true
+		notify("الحماية", "تم حمايتك ✅")
+		task.spawn(randomMove)
+	end
 end)
-
--- لو الشخصية موجودة من قبل
-if player.Character then
-	monitorHealth(player.Character)
-end
