@@ -1,66 +1,98 @@
--- سكربت يطلع رسالة فوق راس اللاعب لما يكتب في TextBox
--- الكل يقدر يشوف الرسالة
-
+-- LocalScript داخل StarterGui
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- لو مافي RemoteEvent ينشئ واحد
-local fakeChatEvent = ReplicatedStorage:FindFirstChild("FakeChat")
-if not fakeChatEvent then
-	fakeChatEvent = Instance.new("RemoteEvent")
-	fakeChatEvent.Name = "FakeChat"
-	fakeChatEvent.Parent = ReplicatedStorage
-end
-
 local player = Players.LocalPlayer
 
--- ========= واجهة (Textbox) =========
+-- صنع الـ ScreenGui
 local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportGui"
+screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(0, 200, 0, 30)
-textBox.Position = UDim2.new(0.5, -100, 1, -40)
-textBox.PlaceholderText = "اكتب رسالتك هنا"
-textBox.ClearTextOnFocus = true
-textBox.TextScaled = true
-textBox.Parent = screenGui
+-- صنع الـ Frame (يمين الشاشة وصغير)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 140, 0, 60) -- عرض 140 وارتفاع 60
+frame.Position = UDim2.new(1, -160, 0.5, -30) -- يمين الشاشة بالنص
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
--- لما يضغط Enter يرسل الرسالة
-textBox.FocusLost:Connect(function(enterPressed)
-	if enterPressed and textBox.Text ~= "" then
-		fakeChatEvent:FireServer(textBox.Text)
-		textBox.Text = ""
-	end
-end)
+-- صنع زر
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -20, 1, -20) -- ياخذ اغلب مساحة الفريم
+button.Position = UDim2.new(0, 10, 0, 10)
+button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+button.Text = "حفظ المكان"
+button.Parent = frame
 
--- ========= عرض الرسالة فوق الراس =========
-fakeChatEvent.OnClientEvent:Connect(function(sender, message)
-	if sender.Character and sender.Character:FindFirstChild("Head") then
-		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.new(0, 200, 0, 50)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
-		billboard.Adornee = sender.Character.Head
-		billboard.AlwaysOnTop = true
-		billboard.Parent = sender.Character.Head
+-- متغيرات محلية
+local savedCFrame = nil
+local originalCFrame = nil
+local isTeleported = false
 
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 0.3
-		label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		label.TextScaled = true
-		label.TextColor3 = Color3.new(1, 1, 1)
-		label.Font = Enum.Font.SourceSansBold
-		label.Text = message
-		label.Parent = billboard
-
-		game:GetService("Debris"):AddItem(billboard, 5) -- يختفي بعد 5 ثواني
-	end
-end)
-
--- ========= جزء السيرفر (يخلي الرسالة توصل للكل) =========
-if game:GetService("RunService"):IsServer() then
-	fakeChatEvent.OnServerEvent:Connect(function(plr, message)
-		fakeChatEvent:FireAllClients(plr, message)
-	end)
+-- دوال مساعدة
+local function getHRP(char)
+	return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
 end
+
+local function setAnchored(char, anchored)
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			pcall(function()
+				part.Anchored = anchored
+			end)
+		end
+	end
+end
+
+local function setCharCFrame(char, cf)
+	if not char or not cf then return end
+	local hrp = getHRP(char)
+	if hrp then
+		hrp.CFrame = cf
+	end
+end
+
+-- منطق الزر
+button.MouseButton1Click:Connect(function()
+	local char = player.Character
+	local hrp = getHRP(char)
+	if not hrp then return end
+
+	if button.Text == "حفظ المكان" then
+		savedCFrame = hrp.CFrame
+		isTeleported = false
+		originalCFrame = nil
+		button.Text = "انتقال"
+	elseif button.Text == "انتقال" then
+		if savedCFrame then
+			originalCFrame = hrp.CFrame
+			setCharCFrame(char, savedCFrame)
+			setAnchored(char, true)
+			isTeleported = true
+			button.Text = "ارجاع"
+		end
+	elseif button.Text == "ارجاع" then
+		if originalCFrame then
+			setCharCFrame(char, originalCFrame)
+		end
+		setAnchored(char, false)
+		isTeleported = false
+		button.Text = "انتقال"
+	end
+end)
+
+-- التعامل مع الـ Respawn
+player.CharacterAdded:Connect(function(char)
+	char:WaitForChild("Humanoid", 5)
+	task.wait(0.2)
+	if isTeleported and savedCFrame then
+		setCharCFrame(char, savedCFrame)
+		setAnchored(char, true)
+		button.Text = "ارجاع"
+	else
+		setAnchored(char, false)
+	end
+end)
