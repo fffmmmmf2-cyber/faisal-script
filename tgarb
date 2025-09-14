@@ -1,44 +1,49 @@
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
-
 local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-local root = char:WaitForChild("HumanoidRootPart")
 
-local protected = false
+-- انتظار الشخصية
+local function setupProtection(char)
+	local hum = char:WaitForChild("Humanoid")
+	local root = char:WaitForChild("HumanoidRootPart")
+	local protected = false
 
--- إشعار بسيط
-local function notify(title, text)
-	StarterGui:SetCore("SendNotification", {
-		Title = title,
-		Text = text,
-		Duration = 5
-	})
-end
-
--- حركة عشوائية بسيطة
-local function randomMove()
-	while protected and hum.Health > 0 do
-		local offset = Vector3.new(
-			math.random(-50, 50),
-			0,
-			math.random(-50, 50)
-		)
-		root.CFrame = root.CFrame + offset
-		task.wait(2)
+	local function notify(title, text)
+		StarterGui:SetCore("SendNotification", {
+			Title = title,
+			Text = text,
+			Duration = 5
+		})
 	end
-end
 
--- مراقبة الصحة
-hum.HealthChanged:Connect(function(health)
-	if health < 30 and not protected then
+	local function randomMove()
+		while true do
+			local offset = Vector3.new(
+				math.random(-50,50),
+				0,
+				math.random(-50,50)
+			)
+			root.CFrame = root.CFrame + offset
+			task.wait(2)
+		end
+	end
+
+	-- أول ما يبدأ السكربت ينزل تحت الأرض ويثبت
+	if not protected then
 		protected = true
-		-- نزول تحت الأرض 200 ستود
-		root.CFrame = root.CFrame - Vector3.new(0, 200, 0)
-		-- تثبيت الجسم
-		hum.PlatformStand = true
+		root.CFrame = root.CFrame - Vector3.new(0,200,0)
+		hum.PlatformStand = true -- تثبيت الحركة
 		notify("الحماية", "تم حمايتك ✅")
 		task.spawn(randomMove)
 	end
+end
+
+-- عند بداية اللعبة
+if player.Character then
+	setupProtection(player.Character)
+end
+
+-- لو الشخصية تتبدل (ريسبون)
+player.CharacterAdded:Connect(function(char)
+	setupProtection(char)
 end)
