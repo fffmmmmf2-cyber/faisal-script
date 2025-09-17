@@ -1,162 +1,125 @@
--- LocalScript: ضع هذا الملف في StarterPlayer > StarterPlayerScripts
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 
-local player = Players.LocalPlayer
 local HEALTH_THRESHOLD = 30
 local RIGHT_OFFSET_STUDS = 200
-local CHECK_DELAY = 0.25 -- ربع ثانية
+local CHECK_DELAY = 0.25 -- كل ربع ثانية
+local activePlayers = {}
 
--- حالات
-local isFrozen = false
-local waitingForRespawn = false
-
--- حفظ القيم الأصلية لاستعادتها بعد الرسبون
-local original = {
-    WalkSpeed = nil,
-    JumpPower = nil,
-    PlatformStand = nil
-}
-
-local function sendNotification(title, text, duration)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = title or "نظام",
-            Text = text or "",
-            Duration = duration or 3
-        })
-    end)
+-- وظيفة عرض رسالة على شاشة اللاعب
+local function showMessage(player, text)
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "SystemMessage"
+	gui.ResetOnSpawn = false
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.3, 0, 0, 50)
+	label.Position = UDim2.new(0.7, 0, 0.85, 0) -- تحت يمين
+	label.BackgroundTransparency = 0.3
+	label.BackgroundColor3 = Color3.new(0, 0, 0)
+	label.TextColor3 = Color3.new(1, 0.8, 0)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextScaled = true
+	label.Text = text
+	label.Parent = gui
+	
+	gui.Parent = player:WaitForChild("PlayerGui")
+	
+	-- يختفي بعد 3 ثواني
+	task.delay(3, function()
+		if gui and gui.Parent then
+			gui:Destroy()
+		end
+	end)
 end
 
-local function restoreCharacter(humanoid, character)
-    if not humanoid or not character then return end
-    -- استعادة القيم الأصلية اذا كانت محفوظة
-    if original.WalkSpeed then
-        pcall(function() humanoid.WalkSpeed = original.WalkSpeed end)
-    end
-    if original.JumpPower then
-        pcall(function() humanoid.JumpPower = original.JumpPower end)
-    end
-    if original.PlatformStand ~= nil then
-        pcall(function() humanoid.PlatformStand = original.PlatformStand end)
-    end
+local function freezeCharacter(player, character)
+	if not character then return end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not hrp or not humanoid then return end
 
-    -- فك التثبيت للبارتس المحلية (client-side)
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function() part.Anchored = false end)
-        end
-    end
+	if activePlayers[player] then return end
+	activePlayers[player] = true
 
-    isFrozen = false
-    waitingForRespawn = true
+	local oldWalkSpeed = humanoid.WalkSpeed
+	local oldJumpPower = humanoid.JumpPower
+
+	-- حساب مكان النقل يمين الشخصية
+	local rightOffset = hrp.CFrame.RightVector * RIGHT_OFFSET_STUDS
+	local targetCFrame = hrp.CFrame + rightOffset
+
+	-- نقل اللاعب
+	hrp.CFrame = targetCFrame
+
+	-- تجميد البارتس
+	local anchoredParts = {}
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			table.insert(anchoredParts, part)
+			part.Anchored = true
+		end
+	end
+
+	-- تعطيل الحركة
+	humanoid.WalkSpeed = 0
+	humanoid.JumpPower = 0
+
+	-- عرض الرسالة
+	showMessage(player, "تم تفعيل السكربت")
+
+	-- متابعة لحد الموت
+	task.spawn(function()
+		while humanoid.Health > 0 and player.Character == character do
+			if hrp and hrp.Parent then
+				hrp.CFrame = targetCFrame
+			end
+			task.wait(CHECK_DELAY)
+		end
+
+		-- استرجاع القيم
+		for _, part in ipairs(anchoredParts) do
+			if part and part.Parent then
+				part.Anchored = false
+			end
+		end
+		if humanoid and humanoid.Parent then
+			humanoid.WalkSpeed = oldWalkSpeed
+			humanoid.JumpPower = oldJumpPower
+		end
+
+		activePlayers[player] = false
+	end)
 end
 
-local function freezeAndMove(character, humanoid)
-    if isFrozen then return end
-    if not character or not humanoid then return end
+local function onCharacterAdded(player, character)
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if not humanoid then return end
 
-    isFrozen = true
-    waitingForRespawn = false
-
-    -- حفظ القيم الأصلية
-    original.WalkSpeed = humanoid.WalkSpeed
-    original.JumpPower = humanoid.JumpPower
-    original.PlatformStand = humanoid.PlatformStand
-
-    -- احصل على HRP
-    local hrp = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    if not hrp then
-        -- لو ما موجود، نلغي الفریز
-        isFrozen = false
-        return
-    end
-
-    -- حساب مكان النقل: يمين اللاعب
-    local targetCFrame = hrp.CFrame + (hrp.CFrame.RightVector * RIGHT_OFFSET_STUDS)
-
-    -- حاول النقل والتثبيت (client-side)
-    pcall(function()
-        hrp.CFrame = targetCFrame
-    end)
-
-    -- ثبت أجزاء الشخصية محليًا كحيلة لعمل "تجميد" بصري
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function() part.Anchored = true end)
-        end
-    end
-
-    -- تعطيل الحركة والقفز وPlatformStand لثبات أكثر
-    pcall(function()
-        humanoid.WalkSpeed = 0
-        humanoid.JumpPower = 0
-        humanoid.PlatformStand = true
-    end)
-
-    -- عرض اشعار تحت اليمين (Notification)
-    sendNotification("نظام", "تم تفعيل السكربت", 3)
-
-    -- حلقة تضمن بقائك مثبتًا كل CHECK_DELAY إلى أن تموت أو يحصل رسبون
-    local connDied
-    connDied = humanoid.Died:Connect(function()
-        -- عند الموت نوقف الحلقة ونعيد الاوضاع
-        if connDied then connDied:Disconnect() end
-    end)
-
-    -- نستخدم RunService.Heartbeat أو حلقة مع task.wait
-    task.spawn(function()
-        while isFrozen and humanoid.Parent and player.Character == character and humanoid.Health > 0 do
-            -- نجبر HRP على البقاء في الموقع المطلوب (محلياً)
-            pcall(function()
-                if hrp and hrp.Parent then
-                    hrp.CFrame = targetCFrame
-                end
-            end)
-            task.wait(CHECK_DELAY)
-        end
-
-        -- استعادة القيم عند الخروج من الحلقة
-        restoreCharacter(humanoid, character)
-    end)
+	local lastHealth = humanoid.Health
+	humanoid.HealthChanged:Connect(function(newHealth)
+		if newHealth <= HEALTH_THRESHOLD and lastHealth > HEALTH_THRESHOLD then
+			freezeCharacter(player, character)
+		end
+		lastHealth = newHealth
+	end)
 end
 
-local function onCharacterAdded(char)
-    local humanoid = char:WaitForChild("Humanoid", 10)
-    if not humanoid then return end
-
-    -- بعد الرسبون نسمح بالتفعيل مرة ثانية
-    waitingForRespawn = false
-    isFrozen = false
-
-    local lastHealth = humanoid.Health
-
-    humanoid.HealthChanged:Connect(function(newHealth)
-        -- تفعيل لما ينزل لأول مرة تحت العتبة
-        if newHealth <= HEALTH_THRESHOLD and lastHealth > HEALTH_THRESHOLD then
-            -- نضمن اننا لسنا في حالة انتظار رسبون
-            if not waitingForRespawn and not isFrozen then
-                freezeAndMove(char, humanoid)
-            end
-        end
-        lastHealth = newHealth
-    end)
-
-    -- لو اللاعب مات، نرجع القيم بعد قليل (في حالة لم يتم اعادة التعيين تلقائياً)
-    humanoid.Died:Connect(function()
-        -- خلي وقت قصير قبل تهيئة لأن الرسبون ممكن يستغرق لحظة
-        task.delay(0.1, function()
-            -- تهيئة الانتظار: لما characterAdded يتكرر، سيعيد السماح
-            waitingForRespawn = true
-            isFrozen = false
-        end)
-    end)
+local function onPlayerAdded(player)
+	activePlayers[player] = false
+	player.CharacterAdded:Connect(function(char)
+		onCharacterAdded(player, char)
+	end)
+	if player.Character then
+		onCharacterAdded(player, player.Character)
+	end
+	player.AncestryChanged:Connect(function()
+		if not player:IsDescendantOf(game) then
+			activePlayers[player] = nil
+		end
+	end)
 end
 
--- لو الشخصية موجودة فورياً
-if player.Character then
-    onCharacterAdded(player.Character)
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, p in pairs(Players:GetPlayers()) do
+	onPlayerAdded(p)
 end
-
-player.CharacterAdded:Connect(onCharacterAdded)
