@@ -1,49 +1,162 @@
+-- LocalScript: ضع هذا الملف في StarterPlayer > StarterPlayerScripts
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+
 local player = Players.LocalPlayer
+local HEALTH_THRESHOLD = 30
+local RIGHT_OFFSET_STUDS = 200
+local CHECK_DELAY = 0.25 -- ربع ثانية
 
--- انتظار الشخصية
-local function setupProtection(char)
-	local hum = char:WaitForChild("Humanoid")
-	local root = char:WaitForChild("HumanoidRootPart")
-	local protected = false
+-- حالات
+local isFrozen = false
+local waitingForRespawn = false
 
-	local function notify(title, text)
-		StarterGui:SetCore("SendNotification", {
-			Title = title,
-			Text = text,
-			Duration = 5
-		})
-	end
+-- حفظ القيم الأصلية لاستعادتها بعد الرسبون
+local original = {
+    WalkSpeed = nil,
+    JumpPower = nil,
+    PlatformStand = nil
+}
 
-	local function randomMove()
-		while true do
-			local offset = Vector3.new(
-				math.random(-50,50),
-				0,
-				math.random(-50,50)
-			)
-			root.CFrame = root.CFrame + offset
-			task.wait(2)
-		end
-	end
-
-	-- أول ما يبدأ السكربت ينزل تحت الأرض ويثبت
-	if not protected then
-		protected = true
-		root.CFrame = root.CFrame - Vector3.new(0,200,0)
-		hum.PlatformStand = true -- تثبيت الحركة
-		notify("الحماية", "تم حمايتك ✅")
-		task.spawn(randomMove)
-	end
+local function sendNotification(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title or "نظام",
+            Text = text or "",
+            Duration = duration or 3
+        })
+    end)
 end
 
--- عند بداية اللعبة
+local function restoreCharacter(humanoid, character)
+    if not humanoid or not character then return end
+    -- استعادة القيم الأصلية اذا كانت محفوظة
+    if original.WalkSpeed then
+        pcall(function() humanoid.WalkSpeed = original.WalkSpeed end)
+    end
+    if original.JumpPower then
+        pcall(function() humanoid.JumpPower = original.JumpPower end)
+    end
+    if original.PlatformStand ~= nil then
+        pcall(function() humanoid.PlatformStand = original.PlatformStand end)
+    end
+
+    -- فك التثبيت للبارتس المحلية (client-side)
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function() part.Anchored = false end)
+        end
+    end
+
+    isFrozen = false
+    waitingForRespawn = true
+end
+
+local function freezeAndMove(character, humanoid)
+    if isFrozen then return end
+    if not character or not humanoid then return end
+
+    isFrozen = true
+    waitingForRespawn = false
+
+    -- حفظ القيم الأصلية
+    original.WalkSpeed = humanoid.WalkSpeed
+    original.JumpPower = humanoid.JumpPower
+    original.PlatformStand = humanoid.PlatformStand
+
+    -- احصل على HRP
+    local hrp = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    if not hrp then
+        -- لو ما موجود، نلغي الفریز
+        isFrozen = false
+        return
+    end
+
+    -- حساب مكان النقل: يمين اللاعب
+    local targetCFrame = hrp.CFrame + (hrp.CFrame.RightVector * RIGHT_OFFSET_STUDS)
+
+    -- حاول النقل والتثبيت (client-side)
+    pcall(function()
+        hrp.CFrame = targetCFrame
+    end)
+
+    -- ثبت أجزاء الشخصية محليًا كحيلة لعمل "تجميد" بصري
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function() part.Anchored = true end)
+        end
+    end
+
+    -- تعطيل الحركة والقفز وPlatformStand لثبات أكثر
+    pcall(function()
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.PlatformStand = true
+    end)
+
+    -- عرض اشعار تحت اليمين (Notification)
+    sendNotification("نظام", "تم تفعيل السكربت", 3)
+
+    -- حلقة تضمن بقائك مثبتًا كل CHECK_DELAY إلى أن تموت أو يحصل رسبون
+    local connDied
+    connDied = humanoid.Died:Connect(function()
+        -- عند الموت نوقف الحلقة ونعيد الاوضاع
+        if connDied then connDied:Disconnect() end
+    end)
+
+    -- نستخدم RunService.Heartbeat أو حلقة مع task.wait
+    task.spawn(function()
+        while isFrozen and humanoid.Parent and player.Character == character and humanoid.Health > 0 do
+            -- نجبر HRP على البقاء في الموقع المطلوب (محلياً)
+            pcall(function()
+                if hrp and hrp.Parent then
+                    hrp.CFrame = targetCFrame
+                end
+            end)
+            task.wait(CHECK_DELAY)
+        end
+
+        -- استعادة القيم عند الخروج من الحلقة
+        restoreCharacter(humanoid, character)
+    end)
+end
+
+local function onCharacterAdded(char)
+    local humanoid = char:WaitForChild("Humanoid", 10)
+    if not humanoid then return end
+
+    -- بعد الرسبون نسمح بالتفعيل مرة ثانية
+    waitingForRespawn = false
+    isFrozen = false
+
+    local lastHealth = humanoid.Health
+
+    humanoid.HealthChanged:Connect(function(newHealth)
+        -- تفعيل لما ينزل لأول مرة تحت العتبة
+        if newHealth <= HEALTH_THRESHOLD and lastHealth > HEALTH_THRESHOLD then
+            -- نضمن اننا لسنا في حالة انتظار رسبون
+            if not waitingForRespawn and not isFrozen then
+                freezeAndMove(char, humanoid)
+            end
+        end
+        lastHealth = newHealth
+    end)
+
+    -- لو اللاعب مات، نرجع القيم بعد قليل (في حالة لم يتم اعادة التعيين تلقائياً)
+    humanoid.Died:Connect(function()
+        -- خلي وقت قصير قبل تهيئة لأن الرسبون ممكن يستغرق لحظة
+        task.delay(0.1, function()
+            -- تهيئة الانتظار: لما characterAdded يتكرر، سيعيد السماح
+            waitingForRespawn = true
+            isFrozen = false
+        end)
+    end)
+end
+
+-- لو الشخصية موجودة فورياً
 if player.Character then
-	setupProtection(player.Character)
+    onCharacterAdded(player.Character)
 end
 
--- لو الشخصية تتبدل (ريسبون)
-player.CharacterAdded:Connect(function(char)
-	setupProtection(char)
-end)
+player.CharacterAdded:Connect(onCharacterAdded)
