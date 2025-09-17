@@ -1,0 +1,80 @@
+-- AdminKillServer (ServerScriptService)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- اسم الريموت ايفنت
+local EVENT_NAME = "AdminKillEvent"
+
+-- اختياري: قائمة السماح (حط هنا UserId للاعبين المسموح لهم)
+local WHITELIST = {
+    -- مثال: [12345678] = true,
+}
+-- لو تبي تخلي صاحب اللعبة دايمًا مسموح:
+local creatorId = game.CreatorId
+if creatorId and creatorId > 0 then
+    WHITELIST[creatorId] = true
+end
+
+-- إنشاء الريموت ايفنت لو مو موجود
+local killEvent = ReplicatedStorage:FindFirstChild(EVENT_NAME)
+if not killEvent then
+    killEvent = Instance.new("RemoteEvent")
+    killEvent.Name = EVENT_NAME
+    killEvent.Parent = ReplicatedStorage
+end
+
+-- دالة مساعدة: تحقق صلاحية اللاعب المرسل
+local function isAllowed(player)
+    if not player then return false end
+    if WHITELIST[player.UserId] then
+        return true
+    end
+    -- تقدر تضيف شروط أخرى هنا مثلاً: يملك شيئاً معيناً في Inventory أو عضو بجروب
+    return false
+end
+
+-- عند وصول طلب من العميل
+killEvent.OnServerEvent:Connect(function(requester, targetName)
+    -- التحقق من الصلاحية
+    if not isAllowed(requester) then
+        warn(("Player %s (%d) tried to use AdminKill but is not allowed"):format(requester.Name, requester.UserId))
+        return
+    end
+
+    if type(targetName) ~= "string" then return end
+
+    -- البحث عن اللاعب بالاسم (مطابقة كاملة لحقل Name)
+    local targetPlayer = nil
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower() == targetName:lower() then
+            targetPlayer = p
+            break
+        end
+    end
+
+    if not targetPlayer then
+        warn(("AdminKill: target '%s' not found (requested by %s)"):format(targetName, requester.Name))
+        return
+    end
+
+    -- لا تقتل نفسك
+    if targetPlayer == requester then
+        warn(("AdminKill: %s tried to kill themselves -> ignored"):format(requester.Name))
+        return
+    end
+
+    -- تنفيذ القتل فعلياً على السيرفر
+    local char = targetPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            -- نضع Health = 0 ليُقتل اللاعب فعليًا
+            humanoid.Health = 0
+            print(("AdminKill: %s killed %s"):format(requester.Name, targetPlayer.Name))
+        else
+            warn(("AdminKill: target %s has no humanoid or already dead"):format(targetPlayer.Name))
+        end
+    else
+        warn(("AdminKill: target %s has no character"):format(targetPlayer.Name))
+    end
+end)
