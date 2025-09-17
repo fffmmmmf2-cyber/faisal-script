@@ -1,125 +1,279 @@
+-- UnifiedLoaderAndAdminKill (ضعه في ServerScriptService)
+-- يقوم بتحميل سكربت من GitHub عبر HttpGet + loadstring ثم ينشئ RemoteEvent وسكريبت GUI للعميل
+-- تذكر: تحتاج HttpService.Enabled = true وبيئة تدعم loadstring (مثل بيئة بعض المطورين/أدوات).
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local StarterPlayer = game:GetService("StarterPlayer")
+local HttpService = game:GetService("HttpService")
 
-local HEALTH_THRESHOLD = 30
-local RIGHT_OFFSET_STUDS = 200
-local CHECK_DELAY = 0.25 -- كل ربع ثانية
-local activePlayers = {}
+-- ======= التهيئة =======
+local GITHUB_RAW_URL = "https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/admin"
+local EVENT_NAME = "AdminKillEvent"
 
--- وظيفة عرض رسالة على شاشة اللاعب
-local function showMessage(player, text)
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "SystemMessage"
-	gui.ResetOnSpawn = false
-	
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(0.3, 0, 0, 50)
-	label.Position = UDim2.new(0.7, 0, 0.85, 0) -- تحت يمين
-	label.BackgroundTransparency = 0.3
-	label.BackgroundColor3 = Color3.new(0, 0, 0)
-	label.TextColor3 = Color3.new(1, 0.8, 0)
-	label.Font = Enum.Font.SourceSansBold
-	label.TextScaled = true
-	label.Text = text
-	label.Parent = gui
-	
-	gui.Parent = player:WaitForChild("PlayerGui")
-	
-	-- يختفي بعد 3 ثواني
-	task.delay(3, function()
-		if gui and gui.Parent then
-			gui:Destroy()
-		end
-	end)
+-- قم بتعديل WHITELIST لتحتوي على UserId الخاص بك أو الأشخاص المسموح لهم
+local WHITELIST = {
+    -- مثال: [12345678] = true
+}
+-- ضيف تلقائياً صاحب اللعبة
+if game.CreatorId and game.CreatorId > 0 then
+    WHITELIST[game.CreatorId] = true
 end
 
-local function freezeCharacter(player, character)
-	if not character then return end
-	local hrp = character:FindFirstChild("HumanoidRootPart")
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not hrp or not humanoid then return end
-
-	if activePlayers[player] then return end
-	activePlayers[player] = true
-
-	local oldWalkSpeed = humanoid.WalkSpeed
-	local oldJumpPower = humanoid.JumpPower
-
-	-- حساب مكان النقل يمين الشخصية
-	local rightOffset = hrp.CFrame.RightVector * RIGHT_OFFSET_STUDS
-	local targetCFrame = hrp.CFrame + rightOffset
-
-	-- نقل اللاعب
-	hrp.CFrame = targetCFrame
-
-	-- تجميد البارتس
-	local anchoredParts = {}
-	for _, part in pairs(character:GetDescendants()) do
-		if part:IsA("BasePart") then
-			table.insert(anchoredParts, part)
-			part.Anchored = true
-		end
-	end
-
-	-- تعطيل الحركة
-	humanoid.WalkSpeed = 0
-	humanoid.JumpPower = 0
-
-	-- عرض الرسالة
-	showMessage(player, "تم تفعيل السكربت")
-
-	-- متابعة لحد الموت
-	task.spawn(function()
-		while humanoid.Health > 0 and player.Character == character do
-			if hrp and hrp.Parent then
-				hrp.CFrame = targetCFrame
-			end
-			task.wait(CHECK_DELAY)
-		end
-
-		-- استرجاع القيم
-		for _, part in ipairs(anchoredParts) do
-			if part and part.Parent then
-				part.Anchored = false
-			end
-		end
-		if humanoid and humanoid.Parent then
-			humanoid.WalkSpeed = oldWalkSpeed
-			humanoid.JumpPower = oldJumpPower
-		end
-
-		activePlayers[player] = false
-	end)
+-- ======= دوال مساعدة =======
+local function ensureRemoteEvent(name)
+    local ev = ReplicatedStorage:FindFirstChild(name)
+    if ev and ev:IsA("RemoteEvent") then
+        return ev
+    end
+    local newEv = Instance.new("RemoteEvent")
+    newEv.Name = name
+    newEv.Parent = ReplicatedStorage
+    return newEv
 end
 
-local function onCharacterAdded(player, character)
-	local humanoid = character:WaitForChild("Humanoid", 5)
-	if not humanoid then return end
-
-	local lastHealth = humanoid.Health
-	humanoid.HealthChanged:Connect(function(newHealth)
-		if newHealth <= HEALTH_THRESHOLD and lastHealth > HEALTH_THRESHOLD then
-			freezeCharacter(player, character)
-		end
-		lastHealth = newHealth
-	end)
+local function isAllowed(player)
+    if not player then return false end
+    return WHITELIST[player.UserId] == true
 end
 
-local function onPlayerAdded(player)
-	activePlayers[player] = false
-	player.CharacterAdded:Connect(function(char)
-		onCharacterAdded(player, char)
-	end)
-	if player.Character then
-		onCharacterAdded(player, player.Character)
-	end
-	player.AncestryChanged:Connect(function()
-		if not player:IsDescendantOf(game) then
-			activePlayers[player] = nil
-		end
-	end)
+-- ======= 1) جلب وتنفيذ السكربت من GitHub اذا ممكن =======
+local function tryLoadRemoteScript()
+    -- التأكد من تفعيل Http
+    if not HttpService.HttpEnabled then
+        warn("HttpService غير مفعل. فعل HttpRequests في إعدادات اللعبة اذا تبغى تحميل من GitHub.")
+        return false, "HttpDisabled"
+    end
+
+    local ok, body = pcall(function()
+        -- استخدام HttpGet عبر game (بعض البيئات تسمح)
+        return game:HttpGet(GITHUB_RAW_URL, true)
+    end)
+    if not ok or not body then
+        warn("فشل تحميل السكربت من GitHub:", body)
+        return false, "HttpGetFailed"
+    end
+
+    -- حاول تنفيذ النص عبر loadstring (بعض البيئات لا تدعم loadstring)
+    if type(loadstring) ~= "function" then
+        warn("loadstring غير موجود في هذه البيئة. لا يمكن تنفيذ الكود المحمّل تلقائياً.")
+        return false, "NoLoadstring"
+    end
+
+    local ok2, res = pcall(function()
+        local fn = loadstring(body)
+        if type(fn) == "function" then
+            return fn()
+        end
+    end)
+    if not ok2 then
+        warn("فشل تنفيذ السكربت المحمّل: ", res)
+        return false, "LoadExecFailed"
+    end
+
+    return true, "Loaded"
 end
 
-Players.PlayerAdded:Connect(onPlayerAdded)
-for _, p in pairs(Players:GetPlayers()) do
-	onPlayerAdded(p)
+-- ======= 2) إنشاء/التأكد من RemoteEvent وآلية القتل على السيرفر =======
+local killEvent = ensureRemoteEvent(EVENT_NAME)
+
+-- وظيفة تنفيذ القتل (Server-side)
+killEvent.OnServerEvent:Connect(function(requester, targetName)
+    if type(targetName) ~= "string" then return end
+
+    if not isAllowed(requester) then
+        warn(("Player %s (%d) tried to use AdminKill but is not allowed"):format(requester.Name, requester.UserId))
+        return
+    end
+
+    -- البحث عن لاعب يطابق الاسم بشكل كامل (case-insensitive)
+    local targetPlayer = nil
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower() == targetName:lower() then
+            targetPlayer = p
+            break
+        end
+    end
+
+    if not targetPlayer then
+        warn(("AdminKill: target '%s' not found (requested by %s)"):format(targetName, requester.Name))
+        return
+    end
+
+    if targetPlayer == requester then
+        warn(("AdminKill: %s tried to kill themselves -> ignored"):format(requester.Name))
+        return
+    end
+
+    local char = targetPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            humanoid.Health = 0
+            print(("AdminKill: %s killed %s"):format(requester.Name, targetPlayer.Name))
+        else
+            warn(("AdminKill: target %s has no humanoid or already dead"):format(targetPlayer.Name))
+        end
+    else
+        warn(("AdminKill: target %s has no character"):format(targetPlayer.Name))
+    end
+end)
+
+-- ======= 3) انشاء LocalScript تلقائياً داخل StarterPlayerScripts (واجهة المستخدم) =======
+-- ننشئ LocalScript ونضع داخله كود الواجهة (autocomplete + زر اللي يرسل REQUEST للسيرفر)
+local function createClientLocalScript()
+    -- تحقق إن كان هناك LocalScript بنفس الاسم مسبقاً
+    local sps = StarterPlayer:FindFirstChild("StarterPlayerScripts")
+    if not sps then
+        warn("StarterPlayerScripts غير موجود")
+        return
+    end
+
+    -- اسم السكربت داخل StarterPlayerScripts
+    local CLIENT_SCRIPT_NAME = "AdminKillClient_AutoGenerated"
+
+    if sps:FindFirstChild(CLIENT_SCRIPT_NAME) then
+        -- لا تعيد إنشاءه إذا موجود
+        return
+    end
+
+    local src = [[
+-- Auto-generated LocalScript for Admin Kill GUI
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+local EVENT_NAME = "]] .. EVENT_NAME .. [["
+
+-- واجهة بسيطة (TextBox + complete + زر)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminKillGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 120)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundTransparency = 0.25
+frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local boxLabel = Instance.new("TextLabel")
+boxLabel.Size = UDim2.new(1, -20, 0, 18)
+boxLabel.Position = UDim2.new(0, 10, 0, 6)
+boxLabel.BackgroundTransparency = 1
+boxLabel.Text = "اكتب أول 3 حروف من اسم اللاعب ثم اضغط قتل"
+boxLabel.TextColor3 = Color3.fromRGB(255, 255, 200)
+boxLabel.Font = Enum.Font.SourceSans
+boxLabel.TextSize = 14
+boxLabel.TextXAlignment = Enum.TextXAlignment.Left
+boxLabel.Parent = frame
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(1, -20, 0, 30)
+textBox.Position = UDim2.new(0, 10, 0, 30)
+textBox.Text = ""
+textBox.PlaceholderText = "أول 3 حروف..."
+textBox.ClearTextOnFocus = false
+textBox.Parent = frame
+textBox.Font = Enum.Font.SourceSans
+textBox.TextSize = 18
+textBox.TextXAlignment = Enum.TextXAlignment.Left
+
+local matchedLabel = Instance.new("TextLabel")
+matchedLabel.Size = UDim2.new(1, -20, 0, 20)
+matchedLabel.Position = UDim2.new(0, 10, 0, 66)
+matchedLabel.BackgroundTransparency = 1
+matchedLabel.Text = "لم يتم التطابق"
+matchedLabel.TextColor3 = Color3.fromRGB(255, 200, 120)
+matchedLabel.Font = Enum.Font.SourceSans
+matchedLabel.TextSize = 16
+matchedLabel.TextXAlignment = Enum.TextXAlignment.Left
+matchedLabel.Parent = frame
+
+local killButton = Instance.new("TextButton")
+killButton.Size = UDim2.new(0, 80, 0, 28)
+killButton.Position = UDim2.new(1, -90, 0, 84)
+killButton.Text = "قتل"
+killButton.Parent = frame
+killButton.Font = Enum.Font.SourceSansBold
+killButton.TextSize = 18
+killButton.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+killButton.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- دالة بحث بالبادئة (prefix) من 3 أحرف أو أكثر
+local PlayersService = game:GetService("Players")
+local function findMatchPrefix(prefix)
+    if not prefix or #prefix < 1 then return nil end
+    prefix = prefix:lower()
+    for _, p in ipairs(PlayersService:GetPlayers()) do
+        if p.Name:sub(1, #prefix):lower() == prefix then
+            return p.Name
+        end
+    end
+    return nil
 end
+
+local programmaticChange = false
+
+textBox:GetPropertyChangedSignal("Text"):Connect(function()
+    if programmaticChange then return end
+    local txt = textBox.Text or ""
+    if #txt >= 3 then
+        local prefix = txt:sub(1,3)
+        local match = findMatchPrefix(prefix)
+        if match then
+            programmaticChange = true
+            textBox.Text = match
+            programmaticChange = false
+            matchedLabel.Text = "مطابق: " .. match
+        else
+            matchedLabel.Text = "لا يوجد مطابقة"
+        end
+    else
+        matchedLabel.Text = "اكتب 3 حروف على الأقل"
+    end
+end)
+
+-- حاول إيجاد الريموت ايفنت في ReplicatedStorage
+local killEvent = ReplicatedStorage:WaitForChild(EVENT_NAME, 5)
+
+killButton.MouseButton1Click:Connect(function()
+    local targetName = textBox.Text or ""
+    if #targetName < 1 then
+        matchedLabel.Text = "اكتب اسم صحيح"
+        return
+    end
+
+    matchedLabel.Text = "أرسل طلب قتل لـ " .. targetName
+
+    if killEvent and killEvent:IsA("RemoteEvent") then
+        killEvent:FireServer(targetName)
+    else
+        matchedLabel.Text = "خطأ: RemoteEvent غير موجود"
+    end
+end)
+]]
+
+    -- انشاء LocalScript وادخال الكود
+    local ls = Instance.new("LocalScript")
+    ls.Name = "AdminKillClient_AutoGenerated"
+    ls.Source = src
+    ls.Parent = sps
+    print("تم إنشاء LocalScript في StarterPlayerScripts باسم:", ls.Name)
+end
+
+-- حاول تحميل السكربت الخارجي (اذا كان ممكن)، لكن حتى لو فشل سيستمر السكربت المحلي بالعمل
+local loaded, status = tryLoadRemoteScript()
+if loaded then
+    print("تم تحميل و تنفيذ السكربت الخارجي من GitHub بنجاح:", status)
+else
+    warn("لم يتم تحميل السكربت الخارجي - تابع لكن السكربت الرئيسي سيشتغل محلياً. السبب:", status)
+end
+
+-- أنشئ LocalScript الواجهة (لو مو موجود)
+createClientLocalScript()
+
+-- رسالة ختامية
+print("UnifiedLoaderAndAdminKill جاهز. تأكد تضيف UserIdك في WHITELIST داخل السكربت لو تبي تستخدم الزر.")
