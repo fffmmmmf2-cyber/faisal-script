@@ -1,29 +1,55 @@
--- LocalScript: AdminKillLoader
+-- AdminKill_AllInOne_LocalScript
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 local EVENT_NAME = "AdminKillEvent"
-local GITHUB_URL = "https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/refs/heads/main/admin"
 
--- ======= 1) تحميل وتشغيل السكربت الخارجي =======
-local success, err = pcall(function()
-    local code = game:HttpGet(GITHUB_URL, true)
-    loadstring(code)()
-end)
-if success then
-    print("تم تحميل السكربت الخارجي من GitHub بنجاح")
-else
-    warn("فشل تحميل السكربت الخارجي:", err)
+-- ======= WHITELIST للأمان =======
+local WHITELIST = {
+    -- حط UserId حقك هنا
+    [player.UserId] = true
+}
+-- ضيف صاحب اللعبة تلقائياً
+if game.CreatorId and game.CreatorId > 0 then
+    WHITELIST[game.CreatorId] = true
 end
 
--- ======= 2) إنشاء RemoteEvent لو مو موجود =======
+-- ======= 1) إنشاء RemoteEvent على السيرفر لو مو موجود =======
 local killEvent = ReplicatedStorage:FindFirstChild(EVENT_NAME)
 if not killEvent then
     killEvent = Instance.new("RemoteEvent")
     killEvent.Name = EVENT_NAME
     killEvent.Parent = ReplicatedStorage
 end
+
+-- ======= 2) سكربت السيرفر لتنفيذ القتل =======
+killEvent.OnServerEvent:Connect(function(requester, targetName)
+    if type(targetName) ~= "string" then return end
+    if not WHITELIST[requester.UserId] then
+        warn(("Player %s (%d) tried to use AdminKill but is not allowed"):format(requester.Name, requester.UserId))
+        return
+    end
+
+    local targetPlayer
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower() == targetName:lower() then
+            targetPlayer = p
+            break
+        end
+    end
+
+    if not targetPlayer or targetPlayer == requester then return end
+
+    local char = targetPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            humanoid.Health = 0
+            print(("AdminKill: %s killed %s"):format(requester.Name, targetPlayer.Name))
+        end
+    end
+end)
 
 -- ======= 3) إنشاء GUI =======
 local screenGui = Instance.new("ScreenGui")
@@ -82,7 +108,7 @@ killButton.TextSize = 18
 killButton.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
 killButton.TextColor3 = Color3.fromRGB(255,255,255)
 
--- ======= 4) البحث عن لاعب يبدأ بالبادئة (3 حروف) =======
+-- ======= 4) autocomplete =======
 local function findMatchPrefix(prefix)
     if not prefix or #prefix < 1 then return nil end
     prefix = prefix:lower()
@@ -114,19 +140,19 @@ textBox:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ======= 5) زر إرسال القتل =======
+-- ======= 5) زر الإرسال =======
 killButton.MouseButton1Click:Connect(function()
     local targetName = textBox.Text or ""
     if #targetName < 1 then
         matchedLabel.Text = "اكتب اسم صحيح"
         return
     end
-
     matchedLabel.Text = "أرسل طلب قتل لـ " .. targetName
-
     if killEvent and killEvent:IsA("RemoteEvent") then
         killEvent:FireServer(targetName)
     else
         matchedLabel.Text = "خطأ: RemoteEvent غير موجود"
     end
 end)
+
+print("AdminKill_AllInOne_LocalScript جاهز ✅")
