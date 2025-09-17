@@ -1,21 +1,20 @@
--- AdminKill_AllInOne_LocalScript
-local Players = game:GetService("Players")
+-- AdminKill_AutoFull_withWhitelist (ضعه في ServerScriptService)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
+local StarterPlayer = game:GetService("StarterPlayer")
+local Players = game:GetService("Players")
 
 local EVENT_NAME = "AdminKillEvent"
 
--- ======= WHITELIST للأمان =======
+-- ======= WHITELIST =======
 local WHITELIST = {
-    -- حط UserId حقك هنا
-    [player.UserId] = true
+    [4820552697] = true -- حطّيت UserId حقك هنا
 }
--- ضيف صاحب اللعبة تلقائياً
+-- ضيف صاحب اللعبة تلقائياً (لو موجود)
 if game.CreatorId and game.CreatorId > 0 then
     WHITELIST[game.CreatorId] = true
 end
 
--- ======= 1) إنشاء RemoteEvent على السيرفر لو مو موجود =======
+-- ======= 1) إنشاء RemoteEvent إن لم يكن موجود =======
 local killEvent = ReplicatedStorage:FindFirstChild(EVENT_NAME)
 if not killEvent then
     killEvent = Instance.new("RemoteEvent")
@@ -23,11 +22,11 @@ if not killEvent then
     killEvent.Parent = ReplicatedStorage
 end
 
--- ======= 2) سكربت السيرفر لتنفيذ القتل =======
+-- ======= 2) معالجة طلبات القتل على السيرفر =======
 killEvent.OnServerEvent:Connect(function(requester, targetName)
     if type(targetName) ~= "string" then return end
     if not WHITELIST[requester.UserId] then
-        warn(("Player %s (%d) tried to use AdminKill but is not allowed"):format(requester.Name, requester.UserId))
+        -- غير مسموح
         return
     end
 
@@ -42,78 +41,92 @@ killEvent.OnServerEvent:Connect(function(requester, targetName)
     if not targetPlayer or targetPlayer == requester then return end
 
     local char = targetPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.Health > 0 then
-            humanoid.Health = 0
-            print(("AdminKill: %s killed %s"):format(requester.Name, targetPlayer.Name))
-        end
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.Health > 0 then
+        humanoid.Health = 0
     end
 end)
 
--- ======= 3) إنشاء GUI =======
+-- ======= 3) إنشاء LocalScript تلقائي داخل StarterPlayerScripts =======
+local function createClientScript()
+    local sps = StarterPlayer:FindFirstChild("StarterPlayerScripts")
+    if not sps then return end
+
+    local CLIENT_SCRIPT_NAME = "AdminKillClient_Auto"
+    if sps:FindFirstChild(CLIENT_SCRIPT_NAME) then return end
+
+    local src = [[
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local EVENT_NAME = "]]..EVENT_NAME..[["
+
+local killEvent = ReplicatedStorage:WaitForChild(EVENT_NAME,10)
+if not killEvent then return end
+
+-- ===== GUI =====
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AdminKillGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 120)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundTransparency = 0.25
+frame.Size = UDim2.new(0, 320,0,130)
+frame.Position = UDim2.new(0,10,0,10)
+frame.BackgroundTransparency = 0.3
 frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
-local boxLabel = Instance.new("TextLabel")
-boxLabel.Size = UDim2.new(1, -20, 0, 18)
-boxLabel.Position = UDim2.new(0, 10, 0, 6)
-boxLabel.BackgroundTransparency = 1
-boxLabel.Text = "اكتب أول 3 حروف من اسم اللاعب ثم اضغط قتل"
-boxLabel.TextColor3 = Color3.fromRGB(255, 255, 200)
-boxLabel.Font = Enum.Font.SourceSans
-boxLabel.TextSize = 14
-boxLabel.TextXAlignment = Enum.TextXAlignment.Left
-boxLabel.Parent = frame
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1,-20,0,20)
+label.Position = UDim2.new(0,10,0,6)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.fromRGB(255,255,200)
+label.Font = Enum.Font.SourceSans
+label.TextSize = 14
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.Text = "اكتب أول 3 حروف من اسم اللاعب ثم اضغط قتل"
+label.Parent = frame
 
 local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(1, -20, 0, 30)
-textBox.Position = UDim2.new(0, 10, 0, 30)
-textBox.Text = ""
+textBox.Size = UDim2.new(1,-20,0,36)
+textBox.Position = UDim2.new(0,10,0,30)
 textBox.PlaceholderText = "أول 3 حروف..."
 textBox.ClearTextOnFocus = false
-textBox.Parent = frame
 textBox.Font = Enum.Font.SourceSans
 textBox.TextSize = 18
 textBox.TextXAlignment = Enum.TextXAlignment.Left
+textBox.Parent = frame
 
 local matchedLabel = Instance.new("TextLabel")
-matchedLabel.Size = UDim2.new(1, -20, 0, 20)
-matchedLabel.Position = UDim2.new(0, 10, 0, 66)
+matchedLabel.Size = UDim2.new(1,-20,0,20)
+matchedLabel.Position = UDim2.new(0,10,0,72)
 matchedLabel.BackgroundTransparency = 1
 matchedLabel.Text = "لم يتم التطابق"
-matchedLabel.TextColor3 = Color3.fromRGB(255, 200, 120)
+matchedLabel.TextColor3 = Color3.fromRGB(255,200,120)
 matchedLabel.Font = Enum.Font.SourceSans
 matchedLabel.TextSize = 16
 matchedLabel.TextXAlignment = Enum.TextXAlignment.Left
 matchedLabel.Parent = frame
 
 local killButton = Instance.new("TextButton")
-killButton.Size = UDim2.new(0, 80, 0, 28)
-killButton.Position = UDim2.new(1, -90, 0, 84)
+killButton.Size = UDim2.new(0,80,0,30)
+killButton.Position = UDim2.new(1,-95,0,86)
 killButton.Text = "قتل"
 killButton.Parent = frame
 killButton.Font = Enum.Font.SourceSansBold
 killButton.TextSize = 18
-killButton.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+killButton.BackgroundColor3 = Color3.fromRGB(150,30,30)
 killButton.TextColor3 = Color3.fromRGB(255,255,255)
 
--- ======= 4) autocomplete =======
+-- ===== autocomplete =====
 local function findMatchPrefix(prefix)
-    if not prefix or #prefix < 1 then return nil end
+    if not prefix or #prefix<1 then return nil end
     prefix = prefix:lower()
     for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name:sub(1, #prefix):lower() == prefix then
+        if p.Name:sub(1,#prefix):lower() == prefix then
             return p.Name
         end
     end
@@ -124,14 +137,14 @@ local programmaticChange = false
 textBox:GetPropertyChangedSignal("Text"):Connect(function()
     if programmaticChange then return end
     local txt = textBox.Text or ""
-    if #txt >= 3 then
+    if #txt>=3 then
         local prefix = txt:sub(1,3)
         local match = findMatchPrefix(prefix)
         if match then
             programmaticChange = true
             textBox.Text = match
             programmaticChange = false
-            matchedLabel.Text = "مطابق: " .. match
+            matchedLabel.Text = "مطابق: "..match
         else
             matchedLabel.Text = "لا يوجد مطابقة"
         end
@@ -140,19 +153,25 @@ textBox:GetPropertyChangedSignal("Text"):Connect(function()
     end
 end)
 
--- ======= 5) زر الإرسال =======
 killButton.MouseButton1Click:Connect(function()
     local targetName = textBox.Text or ""
-    if #targetName < 1 then
+    if #targetName <1 then
         matchedLabel.Text = "اكتب اسم صحيح"
         return
     end
-    matchedLabel.Text = "أرسل طلب قتل لـ " .. targetName
+    matchedLabel.Text = "إرسال طلب قتل لـ "..targetName
     if killEvent and killEvent:IsA("RemoteEvent") then
         killEvent:FireServer(targetName)
-    else
-        matchedLabel.Text = "خطأ: RemoteEvent غير موجود"
     end
 end)
+]]
 
-print("AdminKill_AllInOne_LocalScript جاهز ✅")
+    local ls = Instance.new("LocalScript")
+    ls.Name = CLIENT_SCRIPT_NAME
+    ls.Source = src
+    ls.Parent = sps
+end
+
+createClientScript()
+
+print("AdminKill_AutoFull_withWhitelist : تم التهيئة (ServerScriptService)")
