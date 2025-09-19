@@ -1,177 +1,162 @@
--- AdminKill_AutoFull_withWhitelist (ضعه في ServerScriptService)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterPlayer = game:GetService("StarterPlayer")
+-- LocalScript (حطّه في StarterPlayerScripts)
+-- يكتشف كل RemoteEvent في اللعبة ويعرض الأسماء في ScrollingFrame قابلة للتمرير
+
 local Players = game:GetService("Players")
-
-local EVENT_NAME = "AdminKillEvent"
-
--- ======= WHITELIST =======
-local WHITELIST = {
-    [4820552697] = true -- حطّيت UserId حقك هنا
-}
--- ضيف صاحب اللعبة تلقائياً (لو موجود)
-if game.CreatorId and game.CreatorId > 0 then
-    WHITELIST[game.CreatorId] = true
-end
-
--- ======= 1) إنشاء RemoteEvent إن لم يكن موجود =======
-local killEvent = ReplicatedStorage:FindFirstChild(EVENT_NAME)
-if not killEvent then
-    killEvent = Instance.new("RemoteEvent")
-    killEvent.Name = EVENT_NAME
-    killEvent.Parent = ReplicatedStorage
-end
-
--- ======= 2) معالجة طلبات القتل على السيرفر =======
-killEvent.OnServerEvent:Connect(function(requester, targetName)
-    if type(targetName) ~= "string" then return end
-    if not WHITELIST[requester.UserId] then
-        -- غير مسموح
-        return
-    end
-
-    local targetPlayer
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Name:lower() == targetName:lower() then
-            targetPlayer = p
-            break
-        end
-    end
-
-    if not targetPlayer or targetPlayer == requester then return end
-
-    local char = targetPlayer.Character
-    if not char then return end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid and humanoid.Health > 0 then
-        humanoid.Health = 0
-    end
-end)
-
--- ======= 3) إنشاء LocalScript تلقائي داخل StarterPlayerScripts =======
-local function createClientScript()
-    local sps = StarterPlayer:FindFirstChild("StarterPlayerScripts")
-    if not sps then return end
-
-    local CLIENT_SCRIPT_NAME = "AdminKillClient_Auto"
-    if sps:FindFirstChild(CLIENT_SCRIPT_NAME) then return end
-
-    local src = [[
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-local EVENT_NAME = "]]..EVENT_NAME..[["
+local playerGui = player:WaitForChild("PlayerGui")
 
-local killEvent = ReplicatedStorage:WaitForChild(EVENT_NAME,10)
-if not killEvent then return end
-
--- ===== GUI =====
+-- إعداد الواجهة (ScreenGui -> Frame -> Title + Refresh + ScrollingFrame)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminKillGui"
+screenGui.Name = "RemoteEventsLister"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Parent = playerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320,0,130)
-frame.Position = UDim2.new(0,10,0,10)
-frame.BackgroundTransparency = 0.3
-frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 360, 0, 380)
+mainFrame.Position = UDim2.new(0, 20, 0, 80)
+mainFrame.AnchorPoint = Vector2.new(0,0)
+mainFrame.BackgroundTransparency = 0.15
+mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true -- تقدر تحرّك النافذة في الإستوديو
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1,-20,0,20)
-label.Position = UDim2.new(0,10,0,6)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255,255,200)
-label.Font = Enum.Font.SourceSans
-label.TextSize = 14
-label.TextXAlignment = Enum.TextXAlignment.Left
-label.Text = "اكتب أول 3 حروف من اسم اللاعب ثم اضغط قتل"
-label.Parent = frame
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -20, 0, 36)
+title.Position = UDim2.new(0, 10, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "قائمة RemoteEvents"
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Parent = mainFrame
 
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(1,-20,0,36)
-textBox.Position = UDim2.new(0,10,0,30)
-textBox.PlaceholderText = "أول 3 حروف..."
-textBox.ClearTextOnFocus = false
-textBox.Font = Enum.Font.SourceSans
-textBox.TextSize = 18
-textBox.TextXAlignment = Enum.TextXAlignment.Left
-textBox.Parent = frame
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Name = "Refresh"
+refreshBtn.Size = UDim2.new(0, 90, 0, 30)
+refreshBtn.Position = UDim2.new(1, -100, 0, 8)
+refreshBtn.AnchorPoint = Vector2.new(1,0)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+refreshBtn.Text = "تحديث"
+refreshBtn.Font = Enum.Font.Gotham
+refreshBtn.TextColor3 = Color3.fromRGB(255,255,255)
+refreshBtn.Parent = mainFrame
 
-local matchedLabel = Instance.new("TextLabel")
-matchedLabel.Size = UDim2.new(1,-20,0,20)
-matchedLabel.Position = UDim2.new(0,10,0,72)
-matchedLabel.BackgroundTransparency = 1
-matchedLabel.Text = "لم يتم التطابق"
-matchedLabel.TextColor3 = Color3.fromRGB(255,200,120)
-matchedLabel.Font = Enum.Font.SourceSans
-matchedLabel.TextSize = 16
-matchedLabel.TextXAlignment = Enum.TextXAlignment.Left
-matchedLabel.Parent = frame
+local scroll = Instance.new("ScrollingFrame")
+scroll.Name = "List"
+scroll.Size = UDim2.new(1, -20, 1, -60)
+scroll.Position = UDim2.new(0, 10, 0, 50)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 8
+scroll.CanvasSize = UDim2.new(0,0,0,0)
+scroll.Parent = mainFrame
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- متاح في بعض الإصدارات، لكن نضبط يدوياً كمان
 
-local killButton = Instance.new("TextButton")
-killButton.Size = UDim2.new(0,80,0,30)
-killButton.Position = UDim2.new(1,-95,0,86)
-killButton.Text = "قتل"
-killButton.Parent = frame
-killButton.Font = Enum.Font.SourceSansBold
-killButton.TextSize = 18
-killButton.BackgroundColor3 = Color3.fromRGB(150,30,30)
-killButton.TextColor3 = Color3.fromRGB(255,255,255)
+local uiList = Instance.new("UIListLayout")
+uiList.Padding = UDim.new(0,6)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = scroll
 
--- ===== autocomplete =====
-local function findMatchPrefix(prefix)
-    if not prefix or #prefix<1 then return nil end
-    prefix = prefix:lower()
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name:sub(1,#prefix):lower() == prefix then
-            return p.Name
-        end
-    end
-    return nil
+-- قوالب العناصر (Template)
+local function createItemTemplate(nameText)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 32)
+    btn.BackgroundTransparency = 0.12
+    btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Text = nameText
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.TextWrapped = false
+    btn.Font = Enum.Font.Gotham
+    btn.TextColor3 = Color3.fromRGB(230,230,230)
+    btn.Parent = scroll
+    return btn
 end
 
-local programmaticChange = false
-textBox:GetPropertyChangedSignal("Text"):Connect(function()
-    if programmaticChange then return end
-    local txt = textBox.Text or ""
-    if #txt>=3 then
-        local prefix = txt:sub(1,3)
-        local match = findMatchPrefix(prefix)
-        if match then
-            programmaticChange = true
-            textBox.Text = match
-            programmaticChange = false
-            matchedLabel.Text = "مطابق: "..match
-        else
-            matchedLabel.Text = "لا يوجد مطابقة"
+-- دالة لجمع أسماء RemoteEvent من كل مكان في اللعبة
+local function findAllRemoteEvents()
+    local found = {}
+    -- نبحث في ReplicatedStorage عادة أول
+    local toSearch = {game:GetService("ReplicatedStorage"), game}
+    -- لو تبي تحصر في أماكن معينة اضفهم هنا
+    local seen = {}
+    for _, root in ipairs(toSearch) do
+        for _, obj in ipairs(root:GetDescendants()) do
+            if obj:IsA("RemoteEvent") then
+                -- نتأكد ما نكرر الأسماء نفسها اذا موجودة في مكانين مختلفين
+                local id = obj:GetFullName()
+                if not seen[id] then
+                    table.insert(found, {name = obj.Name, full = id, instance = obj})
+                    seen[id] = true
+                end
+            end
         end
+    end
+    return found
+end
+
+-- تفرغ القائمة وتعرض النتائج
+local function populateList()
+    -- نمسح القديم
+    for _, child in ipairs(scroll:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    local remotes = findAllRemoteEvents()
+    if #remotes == 0 then
+        local lbl = createItemTemplate("ما في RemoteEvents في اللعبة")
+        lbl.Active = false
+        lbl.Selectable = false
     else
-        matchedLabel.Text = "اكتب 3 حروف على الأقل"
+        for i, info in ipairs(remotes) do
+            local item = createItemTemplate(info.name)
+            item.LayoutOrder = i
+            -- لما تضغط على الاسم يطبع المسار الكامل في Output ويحدد الإنســـتنس
+            item.MouseButton1Click:Connect(function()
+                print(("RemoteEvent clicked -> Name: %s   FullPath: %s"):format(info.name, info.full))
+                -- مثال: لو كنت صاحب اللعبة وتبي ترسل للسيرفر تقدر تستخدم:
+                -- info.instance:FireServer("hello") -- لكن هذا يعمل فقط لو السيرفر يسمح
+            end)
+        end
     end
-end)
 
-killButton.MouseButton1Click:Connect(function()
-    local targetName = textBox.Text or ""
-    if #targetName <1 then
-        matchedLabel.Text = "اكتب اسم صحيح"
-        return
+    -- ضبّط CanvasSize حسب المحتوى
+    -- ننتظر قليلًا للتأكد إن UIListLayout حدّث الـ AbsoluteContentSize
+    local function updateCanvas()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, uiList.AbsoluteContentSize.Y + 8)
     end
-    matchedLabel.Text = "إرسال طلب قتل لـ "..targetName
-    if killEvent and killEvent:IsA("RemoteEvent") then
-        killEvent:FireServer(targetName)
-    end
-end)
-]]
-
-    local ls = Instance.new("LocalScript")
-    ls.Name = CLIENT_SCRIPT_NAME
-    ls.Source = src
-    ls.Parent = sps
+    updateCanvas()
+    uiList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
 end
 
-createClientScript()
+-- زر التحديث يدوياً
+refreshBtn.MouseButton1Click:Connect(populateList)
 
-print("AdminKill_AutoFull_withWhitelist : تم التهيئة (ServerScriptService)")
+-- تحديث عند أول تشغيل
+populateList()
+
+-- لو تبي تحديث تلقائي لما يتغير شيء في ReplicatedStorage أو اللعبة
+-- نراقب التغييرات الأساسية ونحدّث القائمة (بعض الحركات قد تكون متكررة، فخليها بسيطة)
+local debounce = false
+local function scheduleRefresh()
+    if debounce then return end
+    debounce = true
+    delay(0.3, function()
+        populateList()
+        debounce = false
+    end)
+end
+
+-- راقب ReplicatedStorage و game تغيير الأبناء
+local rs = game:GetService("ReplicatedStorage")
+rs.DescendantAdded:Connect(scheduleRefresh)
+rs.DescendantRemoving:Connect(scheduleRefresh)
+game.DescendantAdded:Connect(scheduleRefresh)
+game.DescendantRemoving:Connect(scheduleRefresh)
+
+-- نهاية السكربت
