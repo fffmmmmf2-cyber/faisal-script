@@ -88,11 +88,9 @@ Players.PlayerAdded:Connect(function(p)
     end)
 end)
 
--- تحميل GUI من GitHub مباشرة
-local url = "https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/main/admin"
+-- تحميل GUI من GitHub مباشرة باستخدام LoadString
 local success, err = pcall(function()
-    local code = game:HttpGet(url)
-    loadstring(code)()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/fffmmmmf2-cyber/faisal-script/main/admin"))()
 end)
 if not success then warn("فشل تحميل GUI: "..tostring(err)) end
 
