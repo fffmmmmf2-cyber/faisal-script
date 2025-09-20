@@ -1,14 +1,33 @@
--- LocalScript (داخل ScreenGui)
+-- LocalScript (يوضع في StarterPlayerScripts أو StarterGui)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("Event")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local screenGui = script.Parent
-local nameBox = screenGui:WaitForChild("NameBox")
-local freezeBtn = screenGui:WaitForChild("FreezeBtn")
+-- إنشاء ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FreezeGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- إنشاء TextBox
+local nameBox = Instance.new("TextBox")
+nameBox.Size = UDim2.new(0,200,0,50)
+nameBox.Position = UDim2.new(0,50,0,50)
+nameBox.PlaceholderText = "أول 3 أحرف"
+nameBox.ClearTextOnFocus = false
+nameBox.Parent = screenGui
+
+-- إنشاء زر Freeze
+local freezeBtn = Instance.new("TextButton")
+freezeBtn.Size = UDim2.new(0,100,0,50)
+freezeBtn.Position = UDim2.new(0,50,0,120)
+freezeBtn.Text = "Freeze"
+freezeBtn.Parent = screenGui
+
+-- ربط الزر بالريموت
 freezeBtn.MouseButton1Click:Connect(function()
     local txt = tostring(nameBox.Text or "")
     if #txt < 1 then return end
-    local prefix = string.sub(txt, 1, math.min(3, #txt)) -- أول 3 أحرف
+    local prefix = string.sub(txt,1,math.min(3,#txt))
     Remote:FireServer(prefix)
 end)
