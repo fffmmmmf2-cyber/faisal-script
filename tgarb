@@ -1,38 +1,39 @@
--- FollowLight.lua (LocalScript)
--- حطّ هذا الملف في StarterPlayer > StarterPlayerScripts
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- إعدادات تقدر تعدلها
-local LIGHT_NAME = "FollowLight"
-local LIGHT_RANGE = 300       -- مدى الإضاءة (كلما زاد، تشوف أبعد)
-local LIGHT_BRIGHTNESS = 6    -- شدة الإضاءة (عدّل بين 1-10 عادة)
-local LIGHT_COLOR = Color3.fromRGB(255, 244, 214) -- لون النور (دافئ)
-
-local function createLightOnPart(part)
-    if not part then return end
-    -- لو موجود نور قديم نحذفه ثم نعيد
-    local old = part:FindFirstChild(LIGHT_NAME)
-    if old then old:Destroy() end
-
-    local light = Instance.new("PointLight")
-    light.Name = LIGHT_NAME
-    light.Range = LIGHT_RANGE
-    light.Brightness = LIGHT_BRIGHTNESS
-    light.Color = LIGHT_COLOR
-    light.Parent = part
+-- نبحث عن كل RemoteEvents في اللعبة
+local allRemotes = {}
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("RemoteEvent") then
+		table.insert(allRemotes, obj)
+	end
 end
 
-local function onCharacter(char)
-    -- ننتظر الهومانويد روت بارت (أو أي جزء بديل لو مش موجود)
-    local hrp = char:WaitForChild("HumanoidRootPart", 5) or char:FindFirstChildWhichIsA("BasePart")
-    createLightOnPart(hrp)
+-- نختار واحد عشوائي منهم
+local chosenRemote = nil
+if #allRemotes > 0 then
+	chosenRemote = allRemotes[math.random(1, #allRemotes)]
 end
 
--- حدث إعادة الظهور
-player.CharacterAdded:Connect(onCharacter)
--- لو الشخصية موجودة بالفعل (سكربت يشتغل بعد الظهور)
-if player.Character then
-    onCharacter(player.Character)
-end
+-- نستخدم RemoteEvent الأصلي للتدبيل
+local DuplicateEvent = ReplicatedStorage:WaitForChild("DuplicateEvent")
+
+-- إنشاء الزر
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.8, 0)
+Button.Text = "تدبيل الأداة"
+Button.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.TextScaled = true
+Button.Visible = true
+
+-- لما يضغط الزر
+Button.MouseButton1Click:Connect(function()
+	if chosenRemote then
+		print("تم اختيار ريموت عشوائي:", chosenRemote.Name)
+	end
+	DuplicateEvent:FireServer()
+end)
