@@ -1,33 +1,39 @@
--- LocalScript (يوضع في StarterPlayerScripts أو StarterGui)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remote = ReplicatedStorage:WaitForChild("Event")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- إنشاء ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FreezeGUI"
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- نبحث عن كل RemoteEvents في اللعبة
+local allRemotes = {}
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("RemoteEvent") then
+		table.insert(allRemotes, obj)
+	end
+end
 
--- إنشاء TextBox
-local nameBox = Instance.new("TextBox")
-nameBox.Size = UDim2.new(0,200,0,50)
-nameBox.Position = UDim2.new(0,50,0,50)
-nameBox.PlaceholderText = "أول 3 أحرف"
-nameBox.ClearTextOnFocus = false
-nameBox.Parent = screenGui
+-- نختار واحد عشوائي منهم
+local chosenRemote = nil
+if #allRemotes > 0 then
+	chosenRemote = allRemotes[math.random(1, #allRemotes)]
+end
 
--- إنشاء زر Freeze
-local freezeBtn = Instance.new("TextButton")
-freezeBtn.Size = UDim2.new(0,100,0,50)
-freezeBtn.Position = UDim2.new(0,50,0,120)
-freezeBtn.Text = "Freeze"
-freezeBtn.Parent = screenGui
+-- نستخدم RemoteEvent الأصلي للتدبيل
+local DuplicateEvent = ReplicatedStorage:WaitForChild("DuplicateEvent")
 
--- ربط الزر بالريموت
-freezeBtn.MouseButton1Click:Connect(function()
-    local txt = tostring(nameBox.Text or "")
-    if #txt < 1 then return end
-    local prefix = string.sub(txt,1,math.min(3,#txt))
-    Remote:FireServer(prefix)
+-- إنشاء الزر
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.8, 0)
+Button.Text = "تدبيل الأداة"
+Button.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.TextScaled = true
+Button.Visible = true
+
+-- لما يضغط الزر
+Button.MouseButton1Click:Connect(function()
+	if chosenRemote then
+		print("تم اختيار ريموت عشوائي:", chosenRemote.Name)
+	end
+	DuplicateEvent:FireServer()
 end)
