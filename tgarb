@@ -1,60 +1,126 @@
--- Server-side Script (ضعه في ServerScriptService)
+-- Server-side single Script (ضعه في ServerScriptService)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
--- رابط الكود الخارجي (اللي تبي يشغّل)
-local remoteCodeUrl = "https://github.com/fffmmmmf2-cyber/faisal-script/raw/refs/heads/main/admin"
-
--- === محاولة تنفيذ السطر الصريح داخل pcall ===
-local ok_run, run_err = pcall(function()
-    -- السطر الذي طلبته بالضبط
-    loadstring(game:HttpGet(remoteCodeUrl))()
-end)
-if ok_run then
-    print("تم تنفيذ loadstring(...)() بنجاح")
-else
-    warn("فشل تنفيذ loadstring(...)() : "..tostring(run_err))
-end
--- ==============================================
-
--- إنشاء DuplicateEvent في ReplicatedStorage إذا ما كان موجود
+-- إنشاء DuplicateEvent في ReplicatedStorage لو ما كان موجود
 local duplicateEvent = ReplicatedStorage:FindFirstChild("DuplicateEvent")
 if not duplicateEvent then
     duplicateEvent = Instance.new("RemoteEvent")
     duplicateEvent.Name = "DuplicateEvent"
     duplicateEvent.Parent = ReplicatedStorage
-    print("DuplicateEvent أنشئ في ReplicatedStorage")
-else
-    print("DuplicateEvent موجود بالفعل")
 end
 
--- السماح فقط لهذا اليوزر (UserId من رابط البروفايل اللي أعطيت)
-local ALLOWED_USER_ID = 4820552697
+-- جدول لتخزين آخر وقت تدبيل لكل لاعب (كولداون)
+local lastDupTime = {}
+local COOLDOWN = 2 -- ثواني
 
--- وظيفة التدبيل على السيرفر مع تقييد للمصرح لهم فقط
+-- معالج على السيرفر للتدبيل
 duplicateEvent.OnServerEvent:Connect(function(player)
     if not player or not player.Parent then return end
 
-    -- تحقق صلاحية اللاعب
-    if player.UserId ~= ALLOWED_USER_ID then
-        -- تسجيل محاولة غير مصرح بها
-        warn(("Player %s (UserId=%s) حاول استخدام DuplicateEvent لكنه غير مصرح"):format(player.Name, tostring(player.UserId)))
+    -- كولداون بسيط
+    local now = tick()
+    if lastDupTime[player.UserId] and now - lastDupTime[player.UserId] < COOLDOWN then
         return
     end
+    lastDupTime[player.UserId] = now
 
-    -- تأكد من وجود شخصية للاعب
+    -- تأكد من أنّ اللاعب عنده شخصية
     local char = player.Character
     if not char then return end
 
-    -- ابحث عن أداة في الشخصية أو في الحقيبة
+    -- ابحث عن أداة (Tool) في الشخصية أو في الحقيبة
     local tool = char:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChildOfClass("Tool")
     if not tool then
+        -- ما فيه أداة للتكرار
+        -- (اختياري) ترجع رسالة للاعب عبر RemoteEvent اخر لو حبيت
         return
     end
 
-    -- استنساخ الأداة وإرسالها للحقيبة
+    -- استنساخ الأداة ووضعها في الحقيبة
     local cloned = tool:Clone()
     cloned.Parent = player.Backpack
 
-    print(("Player %s duplicated tool %s"):format(player.Name, tool.Name))
+    warn(("Player %s duplicated tool %s"):format(player.Name, tool.Name))
 end)
+
+-- دالة تساعد بصنع GUI وLocalScript لكل لاعب
+local function givePlayerGui(player)
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    -- ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "DupGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+
+    -- TextButton
+    local button = Instance.new("TextButton")
+    button.Name = "DupButton"
+    button.Size = UDim2.new(0, 220, 0, 50)
+    button.Position = UDim2.new(0.5, -110, 0.85, 0)
+    button.AnchorPoint = Vector2.new(0.5, 0)
+    button.Text = "تدبيل الأداة"
+    button.TextScaled = true
+    button.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    button.TextColor3 = Color3.new(1,1,1)
+    button.Parent = screenGui
+
+    -- Status label
+    local status = Instance.new("TextLabel")
+    status.Name = "DupStatus"
+    status.Size = UDim2.new(0, 320, 0, 30)
+    status.Position = UDim2.new(0.5, -160, 0.80, 0)
+    status.AnchorPoint = Vector2.new(0.5, 0)
+    status.BackgroundTransparency = 1
+    status.TextScaled = true
+    status.Text = ""
+    status.Parent = screenGui
+
+    -- LocalScript source (سيشتغل على جهاز اللاعب)
+    local localSource = [[
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local player = game.Players.LocalPlayer
+        local screenGui = script.Parent
+        local button = screenGui:WaitForChild("DupButton")
+        local status = screenGui:WaitForChild("DupStatus")
+        local duplicateEvent = ReplicatedStorage:WaitForChild("DuplicateEvent")
+
+        -- عند الضغط على الزر نرسل طلب للسيرفر
+        button.MouseButton1Click:Connect(function()
+            status.Text = "جارٍ الطلب..."
+            -- حاوية pcall لمنع أخطاء على العميل
+            local ok, err = pcall(function()
+                duplicateEvent:FireServer()
+            end)
+            if not ok then
+                status.Text = "فشل الإرسال"
+                warn("Failed to FireServer DuplicateEvent: "..tostring(err))
+                return
+            end
+            -- نعرض رسالة مؤقتة (السيرفر ينسخ فعليًا)
+            status.Text = "طلب الإنسخ مرسل"
+            wait(1.5)
+            status.Text = ""
+        end)
+    ]]
+
+    -- نخلق LocalScript ونضع الكود داخله
+    local localScript = Instance.new("LocalScript")
+    localScript.Name = "DupLocal"
+    localScript.Source = localSource
+    localScript.Parent = screenGui
+end
+
+-- عند دخول لاعب نعطيه ال GUI
+Players.PlayerAdded:Connect(function(player)
+    givePlayerGui(player)
+end)
+
+-- للاعبين الموجودين بالفعل (لو ريستارت السكربت)
+for _, pl in pairs(Players:GetPlayers()) do
+    -- تأكد اللاعب عنده PlayerGui جاهز
+    if pl.Parent then
+        givePlayerGui(pl)
+    end
+end
