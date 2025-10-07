@@ -3,7 +3,7 @@ local player = game.Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local runService = game:GetService("RunService")
 
-local radius = 40 -- 40 ستود
+local radius = 35 -- 40 ستود
 local updateInterval = 0.1 -- كل 0.7 ثانية
 local labels = {}
 
