@@ -1,13 +1,17 @@
 -- LocalScript داخل StarterGui
 
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
 -- إنشاء GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Frame = Instance.new("Frame")
 Frame.Size = UDim2.new(0, 180, 0, 100)
-Frame.Position = UDim2.new(0.5, -90, 0.5, -50) -- في النص تمام
+Frame.Position = UDim2.new(0.5, -90, 0.5, -50)
 Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Frame.BackgroundTransparency = 0.4
 Frame.Active = true
@@ -36,57 +40,47 @@ SpeedBox.Font = Enum.Font.SourceSans
 SpeedBox.TextScaled = true
 SpeedBox.Parent = Frame
 
--- المتغيرات
+-- متغيرات
 local flying = false
-local platform = nil
-local weld = nil
+local bodyGyro, bodyPos
 
 FlyButton.MouseButton1Click:Connect(function()
-	local player = game.Players.LocalPlayer
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	
-	if flying == false then
+	if not flying then
 		flying = true
 		FlyButton.Text = "إيقاف الطيران"
 		
-		-- إنشاء البارت تحت اللاعب
-		platform = Instance.new("Part")
-		platform.Size = Vector3.new(6, 1, 6)
-		platform.Anchored = false
-		platform.CanCollide = true
-		platform.Transparency = 0.4
-		platform.Color = Color3.fromRGB(60, 60, 60)
-		platform.Parent = workspace
-		
-		-- لحامه مع اللاعب عشان يكون ملزق تحته
-		weld = Instance.new("WeldConstraint")
-		weld.Part0 = platform
-		weld.Part1 = hrp
-		weld.Parent = platform
-		
-		-- تعديل موضعه تحت الرجلين
-		platform.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
-		
 		local speed = tonumber(SpeedBox.Text) or 9
 		
-		-- يرفع البارت مع اللاعب
+		bodyGyro = Instance.new("BodyGyro")
+		bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+		bodyGyro.P = 3000
+		bodyGyro.CFrame = hrp.CFrame
+		bodyGyro.Parent = hrp
+
+		bodyPos = Instance.new("BodyPosition")
+		bodyPos.MaxForce = Vector3.new(400000, 400000, 400000)
+		bodyPos.P = 3000
+		bodyPos.Position = hrp.Position
+		bodyPos.Parent = hrp
+		
 		task.spawn(function()
-			while flying and platform do
+			while flying do
 				task.wait(0.1)
-				platform.CFrame = platform.CFrame * CFrame.new(0, speed/10, 0)
+				bodyGyro.CFrame = hrp.CFrame
+				bodyPos.Position = hrp.Position + Vector3.new(0, speed/10, 0)
 			end
 		end)
 	else
 		flying = false
 		FlyButton.Text = "طيران"
-		if weld then
-			weld:Destroy()
-			weld = nil
+		
+		if bodyGyro then
+			bodyGyro:Destroy()
+			bodyGyro = nil
 		end
-		if platform then
-			platform:Destroy()
-			platform = nil
+		if bodyPos then
+			bodyPos:Destroy()
+			bodyPos = nil
 		end
 	end
 end)
