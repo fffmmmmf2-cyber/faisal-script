@@ -10,8 +10,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 180, 0, 100)
-Frame.Position = UDim2.new(0.5, -90, 0.5, -50)
+Frame.Size = UDim2.new(0, 180, 0, 80)
+Frame.Position = UDim2.new(0.5, -90, 0.5, -40)
 Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Frame.BackgroundTransparency = 0.4
 Frame.Active = true
@@ -19,8 +19,8 @@ Frame.Draggable = true
 Frame.Parent = ScreenGui
 
 local FlyButton = Instance.new("TextButton")
-FlyButton.Size = UDim2.new(0, 160, 0, 35)
-FlyButton.Position = UDim2.new(0, 10, 0, 10)
+FlyButton.Size = UDim2.new(0, 160, 0, 50)
+FlyButton.Position = UDim2.new(0, 10, 0, 15)
 FlyButton.Text = "طيران"
 FlyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -28,59 +28,57 @@ FlyButton.Font = Enum.Font.SourceSansBold
 FlyButton.TextScaled = true
 FlyButton.Parent = Frame
 
-local SpeedBox = Instance.new("TextBox")
-SpeedBox.Size = UDim2.new(0, 160, 0, 30)
-SpeedBox.Position = UDim2.new(0, 10, 0, 55)
-SpeedBox.PlaceholderText = "كم يرتفع بالثانية (مثلاً 9)"
-SpeedBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedBox.Text = ""
-SpeedBox.ClearTextOnFocus = false
-SpeedBox.Font = Enum.Font.SourceSans
-SpeedBox.TextScaled = true
-SpeedBox.Parent = Frame
-
--- متغيرات
+-- المتغيرات
 local flying = false
-local bodyGyro, bodyPos
+local platform = nil
+local weld = nil
+local bodyVelocity = nil
 
 FlyButton.MouseButton1Click:Connect(function()
 	if not flying then
 		flying = true
 		FlyButton.Text = "إيقاف الطيران"
 		
-		local speed = tonumber(SpeedBox.Text) or 9
+		local speed = 160 -- سرعة ثابتة
 		
-		bodyGyro = Instance.new("BodyGyro")
-		bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
-		bodyGyro.P = 3000
-		bodyGyro.CFrame = hrp.CFrame
-		bodyGyro.Parent = hrp
+		-- إنشاء البارت تحت اللاعب
+		platform = Instance.new("Part")
+		platform.Size = Vector3.new(6, 1, 6)
+		platform.Anchored = false
+		platform.CanCollide = true
+		platform.Transparency = 0.4
+		platform.Color = Color3.fromRGB(60, 60, 60)
+		platform.Parent = workspace
+		platform.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
+		
+		-- لحام البارت بالرجل
+		weld = Instance.new("WeldConstraint")
+		weld.Part0 = platform
+		weld.Part1 = hrp
+		weld.Parent = platform
 
-		bodyPos = Instance.new("BodyPosition")
-		bodyPos.MaxForce = Vector3.new(400000, 400000, 400000)
-		bodyPos.P = 3000
-		bodyPos.Position = hrp.Position
-		bodyPos.Parent = hrp
-		
-		task.spawn(function()
-			while flying do
-				task.wait(0.1)
-				bodyGyro.CFrame = hrp.CFrame
-				bodyPos.Position = hrp.Position + Vector3.new(0, speed/10, 0)
-			end
-		end)
+		-- جسم يتحكم بالسرعة
+		bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
+		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+		bodyVelocity.P = 1250
+		bodyVelocity.Parent = hrp
+
 	else
 		flying = false
 		FlyButton.Text = "طيران"
-		
-		if bodyGyro then
-			bodyGyro:Destroy()
-			bodyGyro = nil
+
+		if bodyVelocity then
+			bodyVelocity:Destroy()
+			bodyVelocity = nil
 		end
-		if bodyPos then
-			bodyPos:Destroy()
-			bodyPos = nil
+		if weld then
+			weld:Destroy()
+			weld = nil
+		end
+		if platform then
+			platform:Destroy()
+			platform = nil
 		end
 	end
 end)
