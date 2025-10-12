@@ -39,14 +39,14 @@ FlyButton.MouseButton1Click:Connect(function()
 		flying = true
 		FlyButton.Text = "إيقاف الطيران"
 		
-		local speed = 15 -- سرعة الطيران ثابتة
+		local speed = 15 -- سرعة ثابتة
 
 		-- إنشاء البارت تحت اللاعب
 		platform = Instance.new("Part")
-		platform.Size = Vector3.new(4, 0.5, 4)
+		platform.Size = Vector3.new(3, 0.5, 3) -- صغر البارت شوي
 		platform.Anchored = false
 		platform.CanCollide = true
-		platform.Transparency = 0.4
+		platform.Transparency = 0.99 -- شبه مخفي
 		platform.Color = Color3.fromRGB(60, 60, 60)
 		platform.Parent = workspace
 		platform.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
@@ -61,9 +61,9 @@ FlyButton.MouseButton1Click:Connect(function()
 		bodyVelocity = Instance.new("BodyVelocity")
 		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
 		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
-		bodyVelocity.Parent = platform -- نخليها على البارت نفسه بدل HRP
+		bodyVelocity.Parent = platform
 
-		-- نحدث السرعة باستمرار عشان تظل ثابتة
+		-- تحديث السرعة باستمرار لضمان الثبات
 		task.spawn(function()
 			while flying and bodyVelocity do
 				task.wait(0.1)
