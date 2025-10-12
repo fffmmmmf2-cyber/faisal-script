@@ -10,7 +10,7 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 100, 0, 50) -- صغرنا الفريم
+Frame.Size = UDim2.new(0, 100, 0, 50)
 Frame.Position = UDim2.new(0.5, -50, 0.5, -25)
 Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Frame.BackgroundTransparency = 0.4
@@ -19,7 +19,7 @@ Frame.Draggable = true
 Frame.Parent = ScreenGui
 
 local FlyButton = Instance.new("TextButton")
-FlyButton.Size = UDim2.new(0, 80, 0, 30) -- صغرنا الزر
+FlyButton.Size = UDim2.new(0, 80, 0, 30)
 FlyButton.Position = UDim2.new(0, 10, 0, 10)
 FlyButton.Text = "طيران"
 FlyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -39,11 +39,11 @@ FlyButton.MouseButton1Click:Connect(function()
 		flying = true
 		FlyButton.Text = "إيقاف الطيران"
 		
-		local speed = 15 -- سرعة ثابتة
+		local speed = 15 -- سرعة الطيران ثابتة
 
 		-- إنشاء البارت تحت اللاعب
 		platform = Instance.new("Part")
-		platform.Size = Vector3.new(4, 0.5, 4) -- صغر البارت
+		platform.Size = Vector3.new(4, 0.5, 4)
 		platform.Anchored = false
 		platform.CanCollide = true
 		platform.Transparency = 0.4
@@ -59,10 +59,17 @@ FlyButton.MouseButton1Click:Connect(function()
 
 		-- جسم يتحكم بالسرعة
 		bodyVelocity = Instance.new("BodyVelocity")
-		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
 		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-		bodyVelocity.P = 1250
-		bodyVelocity.Parent = hrp
+		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
+		bodyVelocity.Parent = platform -- نخليها على البارت نفسه بدل HRP
+
+		-- نحدث السرعة باستمرار عشان تظل ثابتة
+		task.spawn(function()
+			while flying and bodyVelocity do
+				task.wait(0.1)
+				bodyVelocity.Velocity = Vector3.new(0, speed, 0)
+			end
+		end)
 
 	else
 		flying = false
