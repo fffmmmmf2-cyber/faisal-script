@@ -1,91 +1,107 @@
--- LocalScript داخل StarterGui
+-- نسخة معتمة أكثر (توضع في LocalScript داخل StarterGui)
+local _1={(119),(97),(121)}
+local function dec_nums(tbl, k)
+    local s = {}
+    for i=1,#tbl do s[i] = string.char(tbl[i] - (k or 3)) end
+    return table.concat(s)
+end
 
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local function dec_parts(...)
+    local t = {...}
+    for i=1,#t do
+        if type(t[i])=="table" then t[i]=dec_nums(t[i], t[i].k or 3) end
+    end
+    return table.concat(t)
+end
 
--- إنشاء GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+local function revshift(str, sh)
+    local o = {}
+    for i=#str,1,-1 do
+        o[#o+1] = string.char(str:byte(i) - (sh or 1))
+    end
+    return table.concat(o)
+end
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 100, 0, 50)
-Frame.Position = UDim2.new(0.5, -50, 0.5, -25)
-Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BackgroundTransparency = 0.4
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+local function build_raw(tbl)
+    local o = {}
+    for i=1,#tbl do o[i]=string.char(tbl[i]) end
+    return table.concat(o)
+end
 
-local FlyButton = Instance.new("TextButton")
-FlyButton.Size = UDim2.new(0, 80, 0, 30)
-FlyButton.Position = UDim2.new(0, 10, 0, 10)
-FlyButton.Text = "طيران"
-FlyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlyButton.Font = Enum.Font.SourceSansBold
-FlyButton.TextScaled = true
-FlyButton.Parent = Frame
+local α = game["Players"]["LocalPlayer"]
+local β = α["Character"] or α["CharacterAdded"]:Wait()
+local γ = β:WaitForChild(dec_nums({78,117,109,97,110,111,82,111,111,116,80,97,114,116}, 0))
 
--- المتغيرات
-local flying = false
-local platform = nil
-local weld = nil
-local bodyVelocity = nil
+local S = Instance["new"](dec_nums({83,99,114,101,101,110,71,117,105}, 0))
+S["ResetOnSpawn"] = false
+S["Parent"] = α:WaitForChild(dec_nums({80,108,97,121,101,114,71,117,105},0))
 
-FlyButton.MouseButton1Click:Connect(function()
-	if not flying then
-		flying = true
-		FlyButton.Text = "إيقاف الطيران"
-		
-		local speed = 15 -- سرعة ثابتة
+local F = Instance["new"](dec_nums({70,114,97,109,101},0))
+F["Size"] = UDim2.new(0, 100, 0, 50)
+F["Position"] = UDim2.new(0.5, -50, 0.5, -25)
+F["BackgroundColor3"] = Color3.fromRGB(0,0,0)
+F["BackgroundTransparency"] = 0.4
+F["Active"] = true
+F["Draggable"] = true
+F["Parent"] = S
 
-		-- إنشاء البارت تحت اللاعب
-		platform = Instance.new("Part")
-		platform.Size = Vector3.new(3, 0.5, 3) -- صغر البارت شوي
-		platform.Anchored = false
-		platform.CanCollide = true
-		platform.Transparency = 0.99 -- شبه مخفي
-		platform.Color = Color3.fromRGB(60, 60, 60)
-		platform.Parent = workspace
-		platform.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
-		
-		-- لحام البارت بالرجل
-		weld = Instance.new("WeldConstraint")
-		weld.Part0 = platform
-		weld.Part1 = hrp
-		weld.Parent = platform
+local t1 = dec_parts({84,101,120,116}, {66,117,116,116,111,110}, {k=0})
+local B = Instance["new"](t1)
+B["Size"] = UDim2.new(0, 80, 0, 30)
+B["Position"] = UDim2.new(0, 10, 0, 10)
 
-		-- جسم يتحكم بالسرعة
-		bodyVelocity = Instance.new("BodyVelocity")
-		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
-		bodyVelocity.Parent = platform
+local function decode_ar(tbl, base)
+    local o={}
+    for i=1,#tbl do o[i]=string.char(tbl[i]- (base or 200)) end
+    return table.concat(o)
+end
 
-		-- تحديث السرعة باستمرار لضمان الثبات
-		task.spawn(function()
-			while flying and bodyVelocity do
-				task.wait(0.1)
-				bodyVelocity.Velocity = Vector3.new(0, speed, 0)
-			end
-		end)
+B["Text"] = "طيران"
+B["BackgroundColor3"] = Color3.fromRGB(30,30,30)
+B["TextColor3"] = Color3.fromRGB(255,255,255)
+B["Font"] = Enum["Font"]["SourceSansBold"]
+B["TextScaled"] = true
+B["Parent"] = F
 
-	else
-		flying = false
-		FlyButton.Text = "طيران"
+local _f = false
+local _p = nil
+local _w = nil
+local _bv = nil
+local _speed = (5 * 3)
 
-		if bodyVelocity then
-			bodyVelocity:Destroy()
-			bodyVelocity = nil
-		end
-		if weld then
-			weld:Destroy()
-			weld = nil
-		end
-		if platform then
-			platform:Destroy()
-			platform = nil
-		end
-	end
+B["MouseButton1Click"]:Connect(function()
+    if not _f then
+        _f = true
+        B["Text"] = "إيقاف الطيران"
+        _p = Instance["new"](dec_nums({80,97,114,116},0))
+        _p["Size"] = Vector3.new(3, 0.5, 3)
+        _p["Anchored"] = false
+        _p["CanCollide"] = true
+        _p["Transparency"] = 0.99
+        _p["Color"] = Color3.fromRGB(60,60,60)
+        _p["Parent"] = workspace
+        _p["CFrame"] = γ["CFrame"] * CFrame["new"](0, -3, 0)
+        _w = Instance["new"](dec_parts({87,101,108,100},{67,111,110,115,116,114,97,105,110,116},{k=0}))
+        _w["Part0"] = _p
+        _w["Part1"] = γ
+        _w["Parent"] = _p
+        _bv = Instance["new"](dec_nums({66,111,100,121,86,101,108,111,99,105,116,121},0))
+        _bv["MaxForce"] = Vector3.new(0, math.huge, 0)
+        _bv["Velocity"] = Vector3.new(0, _speed, 0)
+        _bv["Parent"] = _p
+
+        task.spawn(function()
+            while _f and _bv do
+                task.wait(0.1)
+                _bv["Velocity"] = Vector3.new(0, _speed, 0)
+            end
+        end)
+    else
+        _f = false
+        B["Text"] = "طيران"
+        if _bv then _bv:Destroy() _bv = nil end
+        if _w then _w:Destroy() _w = nil end
+        if _p then _p:Destroy() _p = nil end
+    end
 end)
+```0
