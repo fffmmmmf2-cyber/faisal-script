@@ -1,90 +1,421 @@
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+-- LocalScript: Client-only GUI + ESP + simple aimbot (local camera) + health viewer
+-- ضع هذا السكربت في StarterPlayerScripts أو داخل PlayerScripts/PlayerGui كـ LocalScript
 
--- إنشاء GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 100, 0, 50)
-Frame.Position = UDim2.new(0.5, -50, 0.5, -25)
-Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BackgroundTransparency = 0.4
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+-- إعداد GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FaisalToolsGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local FlyButton = Instance.new("TextButton")
-FlyButton.Size = UDim2.new(0, 80, 0, 30)
-FlyButton.Position = UDim2.new(0, 10, 0, 10)
-FlyButton.Text = "طيران"
-FlyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-FlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlyButton.Font = Enum.Font.SourceSansBold
-FlyButton.TextScaled = true
-FlyButton.Parent = Frame
+local container = Instance.new("Frame")
+container.Name = "FaisalContainer"
+container.Size = UDim2.new(0,180,0,110)
+container.AnchorPoint = Vector2.new(1,1)
+container.Position = UDim2.new(1,1,1,-1) -- زاوية يمين تحت (قابل للتعديل)
+container.BackgroundTransparency = 0.6
+container.BackgroundColor3 = Color3.fromRGB(0,0,0)
+container.BorderSizePixel = 0
+container.Parent = screenGui
+container.ClipsDescendants = true
+container.Visible = true
+container.Modal = false
 
--- المتغيرات
-local flying = false
-local platform = nil
-local weld = nil
-local bodyVelocity = nil
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,22)
+title.Position = UDim2.new(0,0,0,0)
+title.BackgroundTransparency = 1
+title.Text = "created by faisal"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextScaled = true
+title.Font = Enum.Font.SourceSansBold
+title.Parent = container
 
-FlyButton.MouseButton1Click:Connect(function()
-if not flying then
-flying = true
-FlyButton.Text = "إيقاف الطيران"
-
-local speed = 15 -- سرعة ثابتة  
-
-	-- إنشاء البارت تحت اللاعب  
-	platform = Instance.new("Part")  
-	platform.Size = Vector3.new(3, 0.5, 3) -- صغر البارت شوي  
-	platform.Anchored = false  
-	platform.CanCollide = true  
-	platform.Transparency = 0.99 -- شبه مخفي  
-	platform.Color = Color3.fromRGB(60, 60, 60)  
-	platform.Parent = workspace  
-	platform.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)  
-	  
-	-- لحام البارت بالرجل  
-	weld = Instance.new("WeldConstraint")  
-	weld.Part0 = platform  
-	weld.Part1 = hrp  
-	weld.Parent = platform  
-
-	-- جسم يتحكم بالسرعة  
-	bodyVelocity = Instance.new("BodyVelocity")  
-	bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)  
-	bodyVelocity.Velocity = Vector3.new(0, speed, 0)  
-	bodyVelocity.Parent = platform  
-
-	-- تحديث السرعة باستمرار لضمان الثبات  
-	task.spawn(function()  
-		while flying and bodyVelocity do  
-			task.wait(0.1)  
-			bodyVelocity.Velocity = Vector3.new(0, speed, 0)  
-		end  
-	end)  
-
-else  
-	flying = false  
-	FlyButton.Text = "طيران"  
-
-	if bodyVelocity then  
-		bodyVelocity:Destroy()  
-		bodyVelocity = nil  
-	end  
-	if weld then  
-		weld:Destroy()  
-		weld = nil  
-	end  
-	if platform then  
-		platform:Destroy()  
-		platform = nil  
-	end  
+local function makeToggle(y,text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-10,0,26)
+    btn.Position = UDim2.new(0,5,0,y)
+    btn.BackgroundTransparency = 0.4
+    btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    btn.BorderSizePixel = 0
+    btn.Text = text .. " : OFF"
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.SourceSans
+    btn.Parent = container
+    return btn
 end
 
+local espBtn = makeToggle(0.28, "player ESP")
+local aimBtn = makeToggle(0.60, "aimbot")
+local healthBtn = makeToggle(0.92, "health viewer")
+
+-- حالات التشغيل
+local ESP_ENABLED = false
+local AIM_ENABLED = false
+local HEALTH_ENABLED = false
+
+-- Toggle UI behavior
+local function toggleButton(btn, state, label)
+    if state then
+        btn.Text = label .. " : ON"
+    else
+        btn.Text = label .. " : OFF"
+    end
+end
+
+espBtn.MouseButton1Click:Connect(function()
+    ESP_ENABLED = not ESP_ENABLED
+    toggleButton(espBtn, ESP_ENABLED, "player ESP")
+    if not ESP_ENABLED then
+        -- إزالة الأنماط المضافة
+        for _,p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                local hl = p.Character:FindFirstChild("EnemyHighlight")
+                if hl then hl:Destroy() end
+                local bb = p.Character:FindFirstChild("EnemyBillboard")
+                if bb then bb:Destroy() end
+                local hpGui = p.Character:FindFirstChild("FaisalHealthNumber")
+                if hpGui then hpGui:Destroy() end
+            end
+        end
+    else
+        -- نفّذ فوراً على اللاعبين الحاليين
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                spawn(function() applyForPlayer(p) end)
+            end
+        end
+    end
 end)
+
+aimBtn.MouseButton1Click:Connect(function()
+    AIM_ENABLED = not AIM_ENABLED
+    toggleButton(aimBtn, AIM_ENABLED, "aimbot")
+    if not AIM_ENABLED then
+        -- ارجع الكاميرا للوضع الافتراضي
+        pcall(function()
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or Camera.CameraSubject
+        end)
+    end
+end)
+
+healthBtn.MouseButton1Click:Connect(function()
+    HEALTH_ENABLED = not HEALTH_ENABLED
+    toggleButton(healthBtn, HEALTH_ENABLED, "health viewer")
+    if not HEALTH_ENABLED then
+        for _,p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                local hpGui = p.Character:FindFirstChild("FaisalHealthNumber")
+                if hpGui then hpGui:Destroy() end
+            end
+        end
+    end
+end)
+
+-- ==== وظائف مساعدة لـ ESP و Health number ====
+
+local function createBillboardForCharacter(player, humanoid)
+    if not humanoid or not player.Character then return end
+    local char = player.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    if not hrp then return end
+
+    -- إزالة سابق
+    local old = char:FindFirstChild("EnemyBillboard")
+    if old then old:Destroy() end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "EnemyBillboard"
+    billboard.Adornee = hrp
+    billboard.Size = UDim2.new(0,150,0,40)
+    billboard.StudsOffset = Vector3.new(0,3.5,0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = char
+
+    local nameLabel = Instance.new("TextLabel", billboard)
+    nameLabel.Size = UDim2.new(1,0,0.5,0)
+    nameLabel.Position = UDim2.new(0,0,0,0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255,0,0)
+    nameLabel.TextScaled = true
+
+    local healthFrame = Instance.new("Frame", billboard)
+    healthFrame.Size = UDim2.new(1,0,0.3,0)
+    healthFrame.Position = UDim2.new(0,0,0.6,0)
+    healthFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    healthFrame.BorderSizePixel = 0
+
+    local healthBar = Instance.new("Frame", healthFrame)
+    healthBar.Name = "FaisalHealthBar"
+    healthBar.Size = UDim2.new(1,0,1,0)
+    healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    healthBar.BorderSizePixel = 0
+
+    -- تحديث الصحة عند تغيرها
+    if humanoid then
+        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            local p = humanoid.Health / (humanoid.MaxHealth > 0 and humanoid.MaxHealth or 1)
+            healthBar.Size = UDim2.new(math.clamp(p,0,1),0,1,0)
+        end)
+        -- تحديث اولي
+        local p = humanoid.Health / (humanoid.MaxHealth > 0 and humanoid.MaxHealth or 1)
+        healthBar.Size = UDim2.new(math.clamp(p,0,1),0,1,0)
+    end
+end
+
+local function createHighlightForCharacter(player)
+    local char = player.Character
+    if not char then return end
+    -- ازاله سابق
+    local old = char:FindFirstChild("EnemyHighlight")
+    if old then old:Destroy() end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "EnemyHighlight"
+    highlight.Adornee = char
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor = Color3.fromRGB(255,0,0)
+    highlight.FillTransparency = 0
+    highlight.OutlineTransparency = 0.7
+    highlight.Parent = char
+end
+
+-- Health number (تحديث سريع 0.05 ثانية)
+local function createHealthNumber(player, humanoid)
+    if not humanoid or not player.Character then return end
+    local char = player.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    if not hrp then return end
+
+    -- إزالة سابق
+    local old = char:FindFirstChild("FaisalHealthNumber")
+    if old then old:Destroy() end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "FaisalHealthNumber"
+    billboard.Adornee = hrp
+    billboard.Size = UDim2.new(0,80,0,22)
+    billboard.StudsOffset = Vector3.new(0,2,0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = char
+
+    local label = Instance.new("TextLabel", billboard)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.SourceSansBold
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+
+    -- تحديث كل 0.05 ثانية
+    local alive = true
+    spawn(function()
+        while HEALTH_ENABLED and humanoid.Parent and humanoid.Health and humanoid.MaxHealth and alive do
+            if humanoid.Health <= 0 then
+                label.Visible = false
+            else
+                label.Visible = true
+                label.Text = string.format("%d / %d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+            end
+            wait(0.05)
+        end
+        if billboard and billboard.Parent then billboard:Destroy() end
+    end)
+end
+
+-- ربط اللاعبين: إنشاؤها عند الدخول أو عند السبawn
+local function applyForPlayer(player)
+    if not player or player == LocalPlayer then return end
+    -- عند وجود شخصية
+    local function onChar(char)
+        if not char or not ESP_ENABLED then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+
+        -- Highlight و Billboard
+        if ESP_ENABLED then
+            createHighlightForCharacter(player)
+            createBillboardForCharacter(player, humanoid)
+        end
+
+        -- Health viewer منفصل (بناءً على HEALTH_ENABLED)
+        if HEALTH_ENABLED then
+            createHealthNumber(player, humanoid)
+        end
+
+        -- تأكد أن لوحة الصحة تبقى بعد الريسباون
+        humanoid.Died:Connect(function()
+            local hpGui = char:FindFirstChild("FaisalHealthNumber")
+            if hpGui then hpGui:Destroy() end
+            local bb = char:FindFirstChild("EnemyBillboard")
+            if bb then bb:Destroy() end
+            local hl = char:FindFirstChild("EnemyHighlight")
+            if hl then hl:Destroy() end
+        end)
+    end
+
+    if player.Character then
+        onChar(player.Character)
+    end
+    player.CharacterAdded:Connect(onChar)
+end
+
+-- استمع للاعبين الحاليين والجدد
+for _,p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        spawn(function() applyForPlayer(p) end)
+    end
+end
+
+Players.PlayerAdded:Connect(function(p)
+    if p ~= LocalPlayer then
+        spawn(function() applyForPlayer(p) end)
+    end
+end)
+
+-- حلقة تصليح/تحديث دورية للـ ESP (تتأكد من وجود الـ Billboard و Highlight كل 5 ثواني)
+spawn(function()
+    while true do
+        if ESP_ENABLED then
+            for _,p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character.Parent then
+                    local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        -- اضبط الـ Billboard و Highlight إذا احتاج
+                        if not p.Character:FindFirstChild("EnemyHighlight") then
+                            createHighlightForCharacter(p)
+                        end
+                        if not p.Character:FindFirstChild("EnemyBillboard") then
+                            createBillboardForCharacter(p, humanoid)
+                        end
+                    end
+                end
+            end
+        end
+        wait(5)
+    end
+end)
+
+-- ===== Aimbot (كاميرا محلية تتبع أقرب لاعب) =====
+local function getNearestTarget(maxRange)
+    local myChar = LocalPlayer.Character
+    if not myChar then return nil end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    local best, bestDist = nil, math.huge
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character.Parent then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("Torso") or p.Character:FindFirstChild("UpperTorso")
+            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and humanoid and humanoid.Health > 0 then
+                local dist = (hrp.Position - myHRP.Position).Magnitude
+                if dist < bestDist and (not maxRange or dist <= maxRange) then
+                    best = p
+                    bestDist = dist
+                end
+            end
+        end
+    end
+    return best, bestDist
+end
+
+-- تابع الايمبوت: كل 0.5 ثانية يجدد أقرب لاعب ويثبت الكاميرا على بطنه
+spawn(function()
+    local lastTarget = nil
+    while true do
+        if AIM_ENABLED then
+            local target, d = getNearestTarget()
+            if target and target.Character and target.Character.Parent then
+                local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
+                local targetHRP = target.Character:FindFirstChild("HumanoidRootPart") or target.Character:FindFirstChild("UpperTorso") or target.Character:FindFirstChild("Torso")
+                if targetHum and targetHRP then
+                    -- نجرب جعل الكاميرا تتبع الهدف عن طريق CameraSubject
+                    pcall(function()
+                        Camera.CameraType = Enum.CameraType.Custom
+                        Camera.CameraSubject = targetHum
+                    end)
+                    lastTarget = target
+                end
+            else
+                -- لا يوجد هدف: ارجع للكاميرا العادية
+                pcall(function()
+                    Camera.CameraType = Enum.CameraType.Custom
+                    Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or Camera.CameraSubject
+                end)
+                lastTarget = nil
+            end
+        else
+            -- غير مفعل: تأكد الكاميرا طبيعية
+            pcall(function()
+                Camera.CameraType = Enum.CameraType.Custom
+                Camera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or Camera.CameraSubject
+            end)
+            lastTarget = nil
+        end
+        wait(0.5)
+    end
+end)
+
+-- ===== Health viewer: تحديث سريع + تأكد كل 0.5 ثانية أن العداد فوق كل لاعب حتى لو ريسبawn =====
+spawn(function()
+    while true do
+        if HEALTH_ENABLED then
+            for _,p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character.Parent then
+                    local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        if not p.Character:FindFirstChild("FaisalHealthNumber") then
+                            createHealthNumber(p, humanoid)
+                        end
+                    else
+                        local gui = p.Character:FindFirstChild("FaisalHealthNumber")
+                        if gui then gui:Destroy() end
+                    end
+                end
+            end
+        end
+        wait(0.5)
+    end
+end)
+
+-- cleanup عند خروج اللاعب
+Players.PlayerRemoving:Connect(function(plr)
+    if plr.Character then
+        local hl = plr.Character:FindFirstChild("EnemyHighlight")
+        if hl then hl:Destroy() end
+        local bb = plr.Character:FindFirstChild("EnemyBillboard")
+        if bb then bb:Destroy() end
+        local hp = plr.Character:FindFirstChild("FaisalHealthNumber")
+        if hp then hp:Destroy() end
+    end
+end)
+
+-- عند سباون اللاعب نفسه: تأكد الكاميرا صحيحة
+LocalPlayer.CharacterAdded:Connect(function(char)
+    wait(0.1)
+    pcall(function()
+        if not AIM_ENABLED then
+            Camera.CameraType = Enum.CameraType.Custom
+            Camera.CameraSubject = char:FindFirstChildOfClass("Humanoid") or Camera.CameraSubject
+        end
+    end)
+end)
+
+-- رسالة صغيرة في البداية توضح أن كل شيء محلي
+local startupLabel = Instance.new("TextLabel", container)
+startupLabel.Size = UDim2.new(1,0,0,16)
+startupLabel.Position = UDim2.new(0,0,0,86)
+startupLabel.BackgroundTransparency = 1
+startupLabel.Text = "Local only — visual & camera"
+startupLabel.TextScaled = true
+startupLabel.TextColor3 = Color3.fromRGB(200,200,200)
+startupLabel.Font = Enum.Font.SourceSansItalic
+
+-- انتهى السكربت
