@@ -1,4 +1,4 @@
--- LocalScript: Faisal Vertical GUI + ESP + Aimbot fixed on belly + Health viewer
+-- LocalScript: Faisal Compact Vertical GUI (Local only)
 -- ضع هذا السكربت في StarterPlayerScripts
 
 local Players = game:GetService("Players")
@@ -6,19 +6,19 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- ===== GUI عمودي ضيق =====
+-- ====== GUI صغير ومرتب ======
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FaisalToolsGui"
+screenGui.Name = "FaisalCompactGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local container = Instance.new("Frame")
-container.Name = "FaisalContainer"
-container.Size = UDim2.new(0,120,0,320) -- عرض قليل وطول كبير
-container.Position = UDim2.new(1,-130,0.5,-160) -- يمين منتصف الشاشة، قابل للتعديل
+container.Name = "Container"
+container.Size = UDim2.new(0,92,0,240) -- ضيق وصغير
+container.Position = UDim2.new(1,-100,0.5,-120) -- يمين منتصف الشاشة
 container.AnchorPoint = Vector2.new(0,0)
 container.BackgroundColor3 = Color3.fromRGB(0,0,0)
-container.BackgroundTransparency = 0.45
+container.BackgroundTransparency = 0.5
 container.BorderSizePixel = 0
 container.Parent = screenGui
 container.ClipsDescendants = true
@@ -30,15 +30,15 @@ title.BackgroundTransparency = 1
 title.Text = "created by faisal"
 title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextScaled = true
-title.Font = Enum.Font.SourceSansBold
+title.Font = Enum.Font.GothamBold
 title.Parent = container
 
-local function makeBigToggle(y,text)
+local function makeBtn(offsetY, text)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,-12,0,64) -- زر كبير
-    btn.Position = UDim2.new(0,6,0,y)
+    btn.Size = UDim2.new(1,-10,0,44) -- زر متوسط الحجم
+    btn.Position = UDim2.new(0,5,0,offsetY)
     btn.BackgroundTransparency = 0.15
-    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.BackgroundColor3 = Color3.fromRGB(25,25,25)
     btn.BorderSizePixel = 0
     btn.Text = text.." : OFF"
     btn.TextColor3 = Color3.fromRGB(255,255,255)
@@ -48,127 +48,114 @@ local function makeBigToggle(y,text)
     return btn
 end
 
-local espBtn = makeBigToggle(0.12, "player ESP")
-local aimBtn = makeBigToggle(0.38, "aimbot (fix belly)")
-local healthBtn = makeBigToggle(0.64, "health viewer")
+local espBtn = makeBtn(42, "ESP")
+local aimBtn = makeBtn(96, "AIM (belly)")
+local healthBtn = makeBtn(150, "HEALTH")
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1,-12,0,36)
-statusLabel.Position = UDim2.new(0,6,0,260)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Local only — visual & camera"
-statusLabel.TextScaled = true
-statusLabel.TextColor3 = Color3.fromRGB(200,200,200)
-statusLabel.Font = Enum.Font.SourceSansItalic
-statusLabel.Parent = container
+local note = Instance.new("TextLabel")
+note.Size = UDim2.new(1,-10,0,36)
+note.Position = UDim2.new(0,5,0,202)
+note.BackgroundTransparency = 1
+note.Text = "local only"
+note.TextScaled = true
+note.TextColor3 = Color3.fromRGB(200,200,200)
+note.Font = Enum.Font.SourceSansItalic
+note.Parent = container
 
--- حالات
+-- ===== حالات التشغيل =====
 local ESP_ENABLED = false
 local AIM_ENABLED = false
 local HEALTH_ENABLED = false
 
-local function toggleButton(btn, state, label)
-    if state then
-        btn.Text = label.." : ON"
-    else
-        btn.Text = label.." : OFF"
+local function setBtnText(btn, label, state)
+    btn.Text = label .. " : " .. (state and "ON" or "OFF")
+end
+
+-- ===== وظائف ESP =====
+local function safeDestroy(inst)
+    if inst and inst.Parent then
+        pcall(function() inst:Destroy() end)
     end
 end
 
--- ===== ESP & Health functions =====
 local function createBillboard(player)
     if not player.Character then return end
     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
     local hrp = player.Character:FindFirstChild("HumanoidRootPart") or player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso")
     if not humanoid or not hrp then return end
 
-    if player.Character:FindFirstChild("EnemyBillboard") then
-        player.Character.EnemyBillboard:Destroy()
-    end
-
+    safeDestroy(player.Character:FindFirstChild("FC_Billboard"))
     local billboard = Instance.new("BillboardGui")
-    billboard.Name = "EnemyBillboard"
+    billboard.Name = "FC_Billboard"
     billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0,160,0,46)
-    billboard.StudsOffset = Vector3.new(0,3.2,0)
+    billboard.Size = UDim2.new(0,140,0,36)
+    billboard.StudsOffset = Vector3.new(0,3,0)
     billboard.AlwaysOnTop = true
     billboard.Parent = player.Character
 
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1,0,0,22)
+    local nameLabel = Instance.new("TextLabel", billboard)
+    nameLabel.Size = UDim2.new(1,0,0,18)
     nameLabel.Position = UDim2.new(0,0,0,0)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = player.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255,0,0)
+    nameLabel.TextColor3 = Color3.fromRGB(255,120,120)
     nameLabel.TextScaled = true
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.Parent = billboard
+    nameLabel.Font = Enum.Font.Gotham
 
-    local healthFrame = Instance.new("Frame")
-    healthFrame.Size = UDim2.new(1,0,0,18)
-    healthFrame.Position = UDim2.new(0,0,0,26)
-    healthFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    healthFrame.BorderSizePixel = 0
-    healthFrame.Parent = billboard
+    local barFrame = Instance.new("Frame", billboard)
+    barFrame.Size = UDim2.new(1,0,0,14)
+    barFrame.Position = UDim2.new(0,0,0,20)
+    barFrame.BackgroundTransparency = 0.3
+    barFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    barFrame.BorderSizePixel = 0
 
-    local healthBar = Instance.new("Frame")
-    healthBar.Name = "FaisalHealthBar"
+    local healthBar = Instance.new("Frame", barFrame)
+    healthBar.Name = "FC_HealthBar"
     healthBar.Size = UDim2.new(1,0,1,0)
-    healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
     healthBar.BorderSizePixel = 0
-    healthBar.Parent = healthFrame
+    healthBar.BackgroundColor3 = Color3.fromRGB(0,200,0)
 
     humanoid:GetPropertyChangedSignal("Health"):Connect(function()
         local denom = (humanoid.MaxHealth > 0 and humanoid.MaxHealth) or 1
-        healthBar.Size = UDim2.new(math.clamp(humanoid.Health/denom,0,1),0,1,0)
+        healthBar.Size = UDim2.new(math.clamp(humanoid.Health / denom, 0, 1), 0, 1, 0)
     end)
-    -- تحديث أولي
-    do
-        local denom = (humanoid.MaxHealth > 0 and humanoid.MaxHealth) or 1
-        healthBar.Size = UDim2.new(math.clamp(humanoid.Health/denom,0,1),0,1,0)
-    end
 end
 
 local function createHighlight(player)
     if not player.Character then return end
-    if player.Character:FindFirstChild("EnemyHighlight") then
-        player.Character.EnemyHighlight:Destroy()
-    end
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "EnemyHighlight"
-    highlight.Adornee = player.Character
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.FillColor = Color3.fromRGB(255,0,0)
-    highlight.FillTransparency = 0
-    highlight.OutlineTransparency = 0.7
-    highlight.Parent = player.Character
+    safeDestroy(player.Character:FindFirstChild("FC_Highlight"))
+    local hl = Instance.new("Highlight")
+    hl.Name = "FC_Highlight"
+    hl.Adornee = player.Character
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.FillColor = Color3.fromRGB(255,80,80)
+    hl.FillTransparency = 0
+    hl.OutlineTransparency = 0.8
+    hl.Parent = player.Character
 end
 
+-- ===== Health number (تحديث سريع) =====
 local function createHealthNumber(player)
     if not player.Character then return end
     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
     local hrp = player.Character:FindFirstChild("HumanoidRootPart") or player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso")
     if not humanoid or not hrp then return end
 
-    if player.Character:FindFirstChild("FaisalHealthNumber") then
-        player.Character.FaisalHealthNumber:Destroy()
-    end
-
+    safeDestroy(player.Character:FindFirstChild("FC_HealthNumber"))
     local billboard = Instance.new("BillboardGui")
-    billboard.Name = "FaisalHealthNumber"
+    billboard.Name = "FC_HealthNumber"
     billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0,90,0,24)
-    billboard.StudsOffset = Vector3.new(0,2.2,0)
+    billboard.Size = UDim2.new(0,72,0,18)
+    billboard.StudsOffset = Vector3.new(0,2,0)
     billboard.AlwaysOnTop = true
     billboard.Parent = player.Character
 
-    local label = Instance.new("TextLabel")
+    local label = Instance.new("TextLabel", billboard)
     label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.Parent = billboard
+    label.TextColor3 = Color3.fromRGB(230,230,230)
 
     spawn(function()
         while HEALTH_ENABLED and humanoid.Parent do
@@ -176,16 +163,16 @@ local function createHealthNumber(player)
                 label.Visible = false
             else
                 label.Visible = true
-                label.Text = string.format("%d / %d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+                label.Text = string.format("%d/%d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
             end
             wait(0.05)
         end
-        if billboard and billboard.Parent then billboard:Destroy() end
+        safeDestroy(billboard)
     end)
 end
 
--- ربط اللاعبين
-local function applyPlayer(player)
+-- ===== تطبيق على كل لاعب =====
+local function applyToPlayer(player)
     if player == LocalPlayer then return end
     local function onChar(char)
         if ESP_ENABLED then
@@ -198,28 +185,30 @@ local function applyPlayer(player)
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.Died:Connect(function()
-                if char:FindFirstChild("FaisalHealthNumber") then char.FaisalHealthNumber:Destroy() end
-                if char:FindFirstChild("EnemyBillboard") then char.EnemyBillboard:Destroy() end
-                if char:FindFirstChild("EnemyHighlight") then char.EnemyHighlight:Destroy() end
+                safeDestroy(char:FindFirstChild("FC_HealthNumber"))
+                safeDestroy(char:FindFirstChild("FC_Billboard"))
+                safeDestroy(char:FindFirstChild("FC_Highlight"))
             end)
         end
     end
-
-    if player.Character then
-        onChar(player.Character)
-    end
+    if player.Character then onChar(player.Character) end
     player.CharacterAdded:Connect(onChar)
 end
 
-for _,p in pairs(Players:GetPlayers()) do
-    applyPlayer(p)
-end
-Players.PlayerAdded:Connect(function(p) applyPlayer(p) end)
+for _,p in pairs(Players:GetPlayers()) do applyToPlayer(p) end
+Players.PlayerAdded:Connect(function(p) applyToPlayer(p) end)
+Players.PlayerRemoving:Connect(function(p)
+    if p.Character then
+        safeDestroy(p.Character:FindFirstChild("FC_HealthNumber"))
+        safeDestroy(p.Character:FindFirstChild("FC_Billboard"))
+        safeDestroy(p.Character:FindFirstChild("FC_Highlight"))
+    end
+end)
 
--- أزرار التشغيل
+-- ===== أزرار التفعيل =====
 espBtn.MouseButton1Click:Connect(function()
     ESP_ENABLED = not ESP_ENABLED
-    toggleButton(espBtn, ESP_ENABLED, "player ESP")
+    setBtnText(espBtn, "ESP", ESP_ENABLED)
     if ESP_ENABLED then
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
@@ -230,8 +219,8 @@ espBtn.MouseButton1Click:Connect(function()
     else
         for _,p in pairs(Players:GetPlayers()) do
             if p.Character then
-                if p.Character:FindFirstChild("EnemyHighlight") then p.Character.EnemyHighlight:Destroy() end
-                if p.Character:FindFirstChild("EnemyBillboard") then p.Character.EnemyBillboard:Destroy() end
+                safeDestroy(p.Character:FindFirstChild("FC_Highlight"))
+                safeDestroy(p.Character:FindFirstChild("FC_Billboard"))
             end
         end
     end
@@ -239,7 +228,7 @@ end)
 
 healthBtn.MouseButton1Click:Connect(function()
     HEALTH_ENABLED = not HEALTH_ENABLED
-    toggleButton(healthBtn, HEALTH_ENABLED, "health viewer")
+    setBtnText(healthBtn, "HEALTH", HEALTH_ENABLED)
     if HEALTH_ENABLED then
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
@@ -248,57 +237,45 @@ healthBtn.MouseButton1Click:Connect(function()
         end
     else
         for _,p in pairs(Players:GetPlayers()) do
-            if p.Character and p.Character:FindFirstChild("FaisalHealthNumber") then
-                p.Character.FaisalHealthNumber:Destroy()
-            end
+            if p.Character then safeDestroy(p.Character:FindFirstChild("FC_HealthNumber")) end
         end
     end
 end)
 
--- ===== Aimbot ثابت على بطن الهدف =====
--- سلوك: كل 0.5 ثانية يحدد أقرب لاعب حي ثم يثبت الكاميرا Scriptable بحيث تكون مواجهة ومركزة على بطنه
+-- ===== Aimbot ثابت على البطن =====
 local currentTarget = nil
-local findInterval = 0.5
+local findRate = 0.5
 local lastFind = 0
+local savedCamType = Camera.CameraType
+local savedCamSubject = Camera.CameraSubject
 
 local function findNearest()
     local myChar = LocalPlayer.Character
     if not myChar then return nil end
     local myHRP = myChar:FindFirstChild("HumanoidRootPart") or myChar:FindFirstChild("UpperTorso") or myChar:FindFirstChild("Torso")
     if not myHRP then return nil end
-
-    local best, bestDist = nil, math.huge
+    local best, bestD = nil, math.huge
     for _,p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character.Parent then
             local hrp = p.Character:FindFirstChild("HumanoidRootPart") or p.Character:FindFirstChild("UpperTorso") or p.Character:FindFirstChild("Torso")
-            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-            if hrp and humanoid and humanoid.Health > 0 then
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
                 local d = (hrp.Position - myHRP.Position).Magnitude
-                if d < bestDist then
-                    best = p
-                    bestDist = d
-                end
+                if d < bestD then best, bestD = p, d end
             end
         end
     end
     return best
 end
 
--- حفظ حالة الكاميرا القديمة حتى نرجعها
-local savedCameraType = Camera.CameraType
-local savedCameraSubject = Camera.CameraSubject
-
--- RenderStepped نستخدمه لتحديث الكاميرا بشكل ثابت وسلس
-local renderConn
-renderConn = RunService.RenderStepped:Connect(function(delta)
+-- تحديث الكاميرا كل RenderStepped بحيث تبقى ثابتة على بطن الهدف
+RunService.RenderStepped:Connect(function()
     if AIM_ENABLED and currentTarget and currentTarget.Character and currentTarget.Character.Parent then
         local hrp = currentTarget.Character:FindFirstChild("HumanoidRootPart") or currentTarget.Character:FindFirstChild("UpperTorso") or currentTarget.Character:FindFirstChild("Torso")
         if hrp then
-            -- موضع الكاميرا: إزاحة أمامية قليلا ومرفوعة بحيث تركز على البطن/الجذع
-            local cameraOffset = Vector3.new(0, 1.2, 6) -- اعدل القيم لو تبي أقرب أو أبعد
             local targetPos = hrp.Position
-            local camPos = targetPos + cameraOffset
-            -- ننظر مباشرة إلى نقطة البطن (رفع بسيط)
+            local camOffset = Vector3.new(0, 1.2, 6) -- تعديل المسافة والارتفاع لو تبي
+            local camPos = targetPos + camOffset
             local lookAt = targetPos + Vector3.new(0, 0.6, 0)
             Camera.CFrame = CFrame.new(camPos, lookAt)
             Camera.CameraType = Enum.CameraType.Scriptable
@@ -306,19 +283,13 @@ renderConn = RunService.RenderStepped:Connect(function(delta)
     end
 end)
 
--- حلقة تحديد أقرب لاعب كل 0.5 ثانية
+-- تجديد الهدف كل 0.5 ثانية (أقرب لاعب)
 spawn(function()
     while true do
         if AIM_ENABLED then
-            local now = tick()
-            if now - lastFind >= findInterval then
-                lastFind = now
-                local nearest = findNearest()
-                if nearest then
-                    currentTarget = nearest
-                else
-                    currentTarget = nil
-                end
+            if tick() - lastFind >= findRate then
+                lastFind = tick()
+                currentTarget = findNearest()
             end
         else
             currentTarget = nil
@@ -329,35 +300,24 @@ end)
 
 aimBtn.MouseButton1Click:Connect(function()
     AIM_ENABLED = not AIM_ENABLED
-    toggleButton(aimBtn, AIM_ENABLED, "aimbot (fix belly)")
-    if not AIM_ENABLED then
-        -- استرجاع الكاميرا لو كانت مُغيّرة
+    setBtnText(aimBtn, "AIM (belly)", AIM_ENABLED)
+    if AIM_ENABLED then
+        savedCamType = Camera.CameraType
+        savedCamSubject = Camera.CameraSubject
+    else
         pcall(function()
             Camera.CameraType = Enum.CameraType.Custom
             if LocalPlayer.Character then
-                Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or savedCameraSubject
+                Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or savedCamSubject
             else
-                Camera.CameraSubject = savedCameraSubject
+                Camera.CameraSubject = savedCamSubject
             end
         end)
         currentTarget = nil
-    else
-        -- تفعيل فورياً: نحفظ الحالة الحالية
-        savedCameraType = Camera.CameraType
-        savedCameraSubject = Camera.CameraSubject
     end
 end)
 
--- تنظيف عند الخروج
-Players.PlayerRemoving:Connect(function(plr)
-    if plr.Character then
-        if plr.Character:FindFirstChild("EnemyHighlight") then plr.Character.EnemyHighlight:Destroy() end
-        if plr.Character:FindFirstChild("EnemyBillboard") then plr.Character.EnemyBillboard:Destroy() end
-        if plr.Character:FindFirstChild("FaisalHealthNumber") then plr.Character.FaisalHealthNumber:Destroy() end
-    end
-end)
-
--- لو اللاعب سباون رجع، نضمن أن الكاميرا ما تبقى مقفولة لو الـ aimbot مطفي
+-- تأكد من استرجاع الكاميرا عند سباون
 LocalPlayer.CharacterAdded:Connect(function(char)
     wait(0.1)
     if not AIM_ENABLED then
@@ -368,5 +328,4 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end
 end)
 
--- تأكد أن السكربت آمن وما يطلع أخطاء لو بعض الأجزاء ناقصة
 -- انتهى السكربت
