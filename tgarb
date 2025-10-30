@@ -1,18 +1,79 @@
--- LocalScript داخل StarterPlayerScripts
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local workspace = game:GetService("Workspace")
 
-local player = game.Players.LocalPlayer
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 local camera = workspace.CurrentCamera
 
--- إعدادات الزوم الطبيعية
-player.CameraMinZoomDistance = 0.5
-player.CameraMaxZoomDistance = 128
+-- ==========================
+-- 1) إعدادات الزوم الغصبية (Zoom Out 10) وعدم القدرة على الحركة
+-- ==========================
+local ZOOM_VALUE = 10
+player.CameraMinZoomDistance = ZOOM_VALUE
+player.CameraMaxZoomDistance = ZOOM_VALUE
+player.CameraMode = Enum.CameraMode.LockFirstPerson -- Lock الكاميرا
 
--- السماح للاعب يحرك الكاميرا بحرية
-player.CameraMode = Enum.CameraMode.Classic
+-- نضمن أن الكاميرا تظل مقفلة على Zoom Out
+RunService.RenderStepped:Connect(function()
+	player.CameraMinZoomDistance = ZOOM_VALUE
+	player.CameraMaxZoomDistance = ZOOM_VALUE
+	player.CameraMode = Enum.CameraMode.LockFirstPerson
+end)
 
--- نضمن أن الكاميرا تظل قابلة للتحريك كل فريم
-game:GetService("RunService").RenderStepped:Connect(function()
-	player.CameraMode = Enum.CameraMode.Classic
-	player.CameraMinZoomDistance = 0.5
-	player.CameraMaxZoomDistance = 128
+-- ==========================
+-- 2) Beam بين Muz و Parts
+-- ==========================
+-- تابع لإيجاد Muz قريب منك ≤ 4 studs
+local function getNearbyMuz()
+	local closest, minDist = nil, math.huge
+	for _, p in pairs(workspace:GetDescendants()) do
+		if p:IsA("BasePart") and p.Name == "Muz" then
+			local dist = (p.Position - character.HumanoidRootPart.Position).Magnitude
+			if dist < minDist and dist <= 4 then
+				minDist = dist
+				closest = p
+			end
+		end
+	end
+	return closest
+end
+
+-- إزالة جميع Beams قديمة
+local function clearBeams()
+	for _, b in pairs(workspace:GetChildren()) do
+		if b.Name == "MuzBeam" then
+			b:Destroy()
+		end
+	end
+end
+
+-- إنشاء Beam بين جزئين
+local function createBeam(part1, part2)
+	local att0 = Instance.new("Attachment", part1)
+	local att1 = Instance.new("Attachment", part2)
+
+	local beam = Instance.new("Beam")
+	beam.Name = "MuzBeam"
+	beam.Attachment0 = att0
+	beam.Attachment1 = att1
+	beam.Width0 = 0.05
+	beam.Width1 = 0.05
+	beam.Color = ColorSequence.new(Color3.fromRGB(255,0,0))
+	beam.FaceCamera = true
+	beam.Parent = workspace
+end
+
+-- تحديث كل فريم للـ Beam
+RunService.RenderStepped:Connect(function()
+	clearBeams() -- نمسح القديم
+	local muz = getNearbyMuz()
+	if muz then
+		-- لكل Part اسمه "Part" نسوي خط
+		for _, p in pairs(workspace:GetDescendants()) do
+			if p:IsA("BasePart") and p.Name == "Part" then
+				createBeam(muz, p)
+			end
+		end
+	end
 end)
