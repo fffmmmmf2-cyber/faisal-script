@@ -7,23 +7,19 @@ local character = player.Character or player.CharacterAdded:Wait()
 local camera = workspace.CurrentCamera
 
 -- ==========================
--- 1) إعدادات الزوم الغصبية (Zoom Out 10) وعدم القدرة على الحركة
+-- 1) الكاميرا طبيعية: تتحرك وتعمل Zoom بحرية
 -- ==========================
-local ZOOM_VALUE = 10
-player.CameraMinZoomDistance = ZOOM_VALUE
-player.CameraMaxZoomDistance = ZOOM_VALUE
-player.CameraMode = Enum.CameraMode.LockFirstPerson -- Lock الكاميرا
-
--- نضمن أن الكاميرا تظل مقفلة على Zoom Out
-RunService.RenderStepped:Connect(function()
-	player.CameraMinZoomDistance = ZOOM_VALUE
-	player.CameraMaxZoomDistance = ZOOM_VALUE
-	player.CameraMode = Enum.CameraMode.LockFirstPerson
-end)
+player.CameraMode = Enum.CameraMode.Classic
+player.CameraMinZoomDistance = 0.5
+player.CameraMaxZoomDistance = 128
 
 -- ==========================
--- 2) Beam بين Muz و Parts
+-- 2) إعدادات الخطوط (Muz -> Parts)
 -- ==========================
+local UPDATE_DELAY = 0.25
+local LINE_THICKNESS = 0.1
+local LINE_COLOR = Color3.fromRGB(255,0,0)
+
 -- تابع لإيجاد Muz قريب منك ≤ 4 studs
 local function getNearbyMuz()
 	local closest, minDist = nil, math.huge
@@ -39,41 +35,39 @@ local function getNearbyMuz()
 	return closest
 end
 
--- إزالة جميع Beams قديمة
-local function clearBeams()
-	for _, b in pairs(workspace:GetChildren()) do
-		if b.Name == "MuzBeam" then
-			b:Destroy()
+-- حذف كل الخطوط القديمة
+local function clearLines()
+	for _, c in pairs(workspace:GetChildren()) do
+		if c.Name == "MuzLine" then
+			c:Destroy()
 		end
 	end
 end
 
--- إنشاء Beam بين جزئين
-local function createBeam(part1, part2)
-	local att0 = Instance.new("Attachment", part1)
-	local att1 = Instance.new("Attachment", part2)
-
-	local beam = Instance.new("Beam")
-	beam.Name = "MuzBeam"
-	beam.Attachment0 = att0
-	beam.Attachment1 = att1
-	beam.Width0 = 0.05
-	beam.Width1 = 0.05
-	beam.Color = ColorSequence.new(Color3.fromRGB(255,0,0))
-	beam.FaceCamera = true
-	beam.Parent = workspace
+-- إنشاء خط Part بين جزئين
+local function createLine(part1, part2)
+	local distance = (part2.Position - part1.Position).Magnitude
+	local line = Instance.new("Part")
+	line.Name = "MuzLine"
+	line.Anchored = true
+	line.CanCollide = false
+	line.Size = Vector3.new(LINE_THICKNESS, LINE_THICKNESS, distance)
+	line.Color = LINE_COLOR
+	line.Material = Enum.Material.Neon
+	line.CFrame = CFrame.new(part1.Position, part2.Position) * CFrame.new(0,0,-distance/2)
+	line.Parent = workspace
 end
 
--- تحديث كل فريم للـ Beam
-RunService.RenderStepped:Connect(function()
-	clearBeams() -- نمسح القديم
+-- التحديث كل ربع ثانية
+while true do
+	wait(UPDATE_DELAY)
+	clearLines()
 	local muz = getNearbyMuz()
 	if muz then
-		-- لكل Part اسمه "Part" نسوي خط
 		for _, p in pairs(workspace:GetDescendants()) do
 			if p:IsA("BasePart") and p.Name == "Part" then
-				createBeam(muz, p)
+				createLine(muz, p)
 			end
 		end
 	end
-end)
+end
