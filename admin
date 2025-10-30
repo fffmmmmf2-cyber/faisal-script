@@ -1,89 +1,110 @@
--- LocalScript: StarterPlayerScripts/CenterESP.lua
+-- LocalScript: StarterPlayerScripts/RobustCenterESP.lua
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local camera = workspace.CurrentCamera
 
 local localPlayer = Players.LocalPlayer
-if not localPlayer then return end
+if not localPlayer then
+    warn("CenterESP: LocalPlayer not found (script not running as LocalScript?)")
+    return
+end
 
--- اسم الهلايت اللي بنستخدمه
 local HIGHLIGHT_NAME = "CenterESP_Highlight"
+local lastTarget = nil
+local CHECK_INTERVAL = 0.03 -- تردد فريم (تقريباً 30ms)
 
--- يمسح الهلايت القديم من كل الكاركترات
-local function clearAllHighlights()
-	for _, p in pairs(Players:GetPlayers()) do
-		if p.Character then
-			local existing = p.Character:FindFirstChild(HIGHLIGHT_NAME)
-			if existing then existing:Destroy() end
-		end
-	end
-end
-
--- يضيف Highlight لكاركتر معين
+-- إضافة Highlight لكاركتر
 local function addHighlightToCharacter(char)
-	if not char or not char.Parent then return end
-	-- امنع تكرار
-	if char:FindFirstChild(HIGHLIGHT_NAME) then return end
+    if not char or not char.Parent then return end
+    if char:FindFirstChild(HIGHLIGHT_NAME) then return end
 
-	-- Highlight (متوافق وأقل مشاكل من تغيير اللون مباشرة)
-	local hl = Instance.new("Highlight")
-	hl.Name = HIGHLIGHT_NAME
-	hl.Adornee = char
-	hl.FillTransparency = 1 -- لا نملأ الجسم، نخلي الإطار فقط
-	hl.OutlineTransparency = 0
-	hl.OutlineColor = Color3.fromRGB(255, 0, 0)
-	hl.Parent = char
+    local hl = Instance.new("Highlight")
+    hl.Name = HIGHLIGHT_NAME
+    hl.Adornee = char
+    hl.FillTransparency = 1
+    hl.OutlineTransparency = 0
+    hl.OutlineColor = Color3.fromRGB(255, 0, 0)
+    hl.Parent = char
 end
 
--- يحدد أقرب لاعب لمركز الشاشة (نستخدم رأس أو HRP إن متوفر)
+-- إزالة Highlight من كاركتر
+local function removeHighlightFromCharacter(char)
+    if not char then return end
+    local existing = char:FindFirstChild(HIGHLIGHT_NAME)
+    if existing then existing:Destroy() end
+end
+
+-- إرجاع أقرب لاعب لمركز الشاشة (يرجع Player أو nil)
 local function getClosestPlayerToScreenCenter()
-	if not camera then return nil end
-	local screenCenter = Vector2.new(camera.ViewportSize.X * 0.5, camera.ViewportSize.Y * 0.5)
-	local closestPlayer = nil
-	local bestDist = math.huge
+    if not camera then return nil end
+    local screenCenter = Vector2.new(camera.ViewportSize.X * 0.5, camera.ViewportSize.Y * 0.5)
+    local bestPlayer = nil
+    local bestDist = math.huge
 
-	for _, other in pairs(Players:GetPlayers()) do
-		if other ~= localPlayer and other.Character and other.Character.Parent then
-			-- نحاول استخدام Head أولًا ثم HumanoidRootPart كباك أب
-			local part = other.Character:FindFirstChild("Head") or other.Character:FindFirstChild("HumanoidRootPart")
-			if part then
-				local screenPoint, onScreen = camera:WorldToViewportPoint(part.Position)
-				-- WorldToViewportPoint يرجع onScreen true حتى لو الزد (z) موجب؛ نتحقق من z
-				if screenPoint.Z > 0 then
-					local pos2 = Vector2.new(screenPoint.X, screenPoint.Y)
-					local dist = (pos2 - screenCenter).Magnitude
-					if dist < bestDist then
-						bestDist = dist
-						closestPlayer = other
-					end
-				end
-			end
-		end
-	end
+    for _, other in pairs(Players:GetPlayers()) do
+        if other ~= localPlayer and other.Character and other.Character.Parent then
+            local part = other.Character:FindFirstChild("Head") or other.Character:FindFirstChild("HumanoidRootPart")
+            if part then
+                local screenPoint, onScreen = camera:WorldToViewportPoint(part.Position)
+                -- تأكد أن الجزء أمام الكاميرا (z > 0)
+                if screenPoint.Z > 0 then
+                    local pos2 = Vector2.new(screenPoint.X, screenPoint.Y)
+                    local dist = (pos2 - screenCenter).Magnitude
+                    if dist < bestDist then
+                        bestDist = dist
+                        bestPlayer = other
+                    end
+                end
+            end
+        end
+    end
 
-	return closestPlayer
+    return bestPlayer, bestDist
 end
 
--- تحديث كل فريم: نمسح القديم ونضيف هلايت للاقرب
-RunService.RenderStepped:Connect(function()
-	-- حماية لو ما فيه كاميرا أو شخصية
-	if not camera or not localPlayer.Character then
-		clearAllHighlights()
-		return
-	end
+-- دالة لمتابعة التغيير
+local timeAccumulator = 0
+RunService.RenderStepped:Connect(function(dt)
+    timeAccumulator = timeAccumulator + dt
+    if timeAccumulator < CHECK_INTERVAL then return end
+    timeAccumulator = 0
 
-	-- نحسب أقرب لاعب
-	local target = getClosestPlayerToScreenCenter()
+    -- تأكد من وجود شخصية للاعب المحلي وكاميرا
+    if not localPlayer.Character or not camera then
+        if lastTarget then
+            removeHighlightFromCharacter(lastTarget.Character)
+            lastTarget = nil
+        end
+        return
+    end
 
-	-- لو ما فيه هدف نمسح كل الهلايتات
-	if not target then
-		clearAllHighlights()
-		return
-	end
+    local target, dist = getClosestPlayerToScreenCenter()
 
-	-- نمسح الكل وبعدين نضع هلايت على الهدف فقط
-	clearAllHighlights()
-	if target.Character then
-		addHighlightToCharacter(target.Character)
-	end
+    if target ~= lastTarget then
+        -- نزيل هلايت القديم
+        if lastTarget and lastTarget.Character then
+            removeHighlightFromCharacter(lastTarget.Character)
+            print("CenterESP: Removed highlight from", lastTarget.Name)
+        end
+
+        if target and target.Character then
+            addHighlightToCharacter(target.Character)
+            print(("CenterESP: Added highlight to %s (dist=%.1f)"):format(target.Name, dist or 0))
+        else
+            print("CenterESP: No target found")
+        end
+
+        lastTarget = target
+    end
+end)
+
+-- تنظيف عند الخروج أو إعادة التحميل
+local function cleanup()
+    if lastTarget and lastTarget.Character then
+        removeHighlightFromCharacter(lastTarget.Character)
+    end
+end
+
+localPlayer.AncestryChanged:Connect(function()
+    cleanup()
 end)
