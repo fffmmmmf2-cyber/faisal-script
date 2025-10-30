@@ -1,24 +1,18 @@
--- Script داخل ServerScriptService
+-- LocalScript داخل StarterPlayerScripts
 
-local Players = game:GetService("Players")
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
 
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Connect(function(character)
-		local root = character:WaitForChild("HumanoidRootPart")
+-- إعدادات الزوم الطبيعية
+player.CameraMinZoomDistance = 0.5
+player.CameraMaxZoomDistance = 128
 
-		root.Touched:Connect(function(hit)
-			if hit:IsA("BasePart") then
-				local keepPart = hit
+-- السماح للاعب يحرك الكاميرا بحرية
+player.CameraMode = Enum.CameraMode.Classic
 
-				-- نحذف كل الأجزاء ما عدا اللي لمسها اللاعب
-				for _, obj in pairs(workspace:GetDescendants()) do
-					if obj:IsA("BasePart") and obj ~= keepPart and not obj:IsDescendantOf(character) then
-						obj:Destroy()
-					end
-				end
-
-				print(player.Name .. " حذف كل شيء إلا الجزء اللي لامسه.")
-			end
-		end)
-	end)
+-- نضمن أن الكاميرا تظل قابلة للتحريك كل فريم
+game:GetService("RunService").RenderStepped:Connect(function()
+	player.CameraMode = Enum.CameraMode.Classic
+	player.CameraMinZoomDistance = 0.5
+	player.CameraMaxZoomDistance = 128
 end)
