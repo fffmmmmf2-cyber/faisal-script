@@ -1,26 +1,19 @@
--- Script (Server) ضع هذا في ServerScriptService
-local Players = game:GetService("Players")
-local workspace = game:GetService("Workspace")
+-- Script: ServerScriptService/DeleteNamedParts.lua
 
-local CHECK_INTERVAL = 1         -- يفحص كل ثانية
-local RANGE = 20                 -- المسافة بالـ studs
+local function deleteParts()
+	for _, obj in pairs(workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name == "Part" then
+			obj:Destroy()
+		end
+	end
+	print("✅ تم حذف جميع الأجزاء اللي اسمها Part")
+end
 
+-- يحذفها مرة عند بداية اللعبة
+deleteParts()
+
+-- ولو تبي يخليها تلقائي (كل فترة يتأكد)
 while true do
-    for _, player in ipairs(Players:GetPlayers()) do
-        local char = player.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-            if hrp and hrp:IsA("BasePart") then
-                for _, obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") and obj.Name == "Door" then
-                        local distance = (obj.Position - hrp.Position).Magnitude
-                        if distance <= RANGE then
-                            obj:Destroy()
-                        end
-                    end
-                end
-            end
-        end
-    end
-    task.wait(CHECK_INTERVAL)
+	wait(5) -- كل 5 ثواني
+	deleteParts()
 end
