@@ -1,73 +1,16 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local workspace = game:GetService("Workspace")
-
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local player = game.Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- ==========================
--- 1) الكاميرا طبيعية: تتحرك وتعمل Zoom بحرية
--- ==========================
-player.CameraMode = Enum.CameraMode.Classic
+-- إعدادات الزوم الطبيعية
 player.CameraMinZoomDistance = 0.5
 player.CameraMaxZoomDistance = 128
 
--- ==========================
--- 2) إعدادات الخطوط (Muz -> Parts)
--- ==========================
-local UPDATE_DELAY = 0.25
-local LINE_THICKNESS = 0.1
-local LINE_COLOR = Color3.fromRGB(255,0,0)
+-- السماح للاعب يحرك الكاميرا بحرية
+player.CameraMode = Enum.CameraMode.Classic
 
--- تابع لإيجاد Muz قريب منك ≤ 4 studs
-local function getNearbyMuz()
-	local closest, minDist = nil, math.huge
-	for _, p in pairs(workspace:GetDescendants()) do
-		if p:IsA("BasePart") and p.Name == "Muz" then
-			local dist = (p.Position - character.HumanoidRootPart.Position).Magnitude
-			if dist < minDist and dist <= 4 then
-				minDist = dist
-				closest = p
-			end
-		end
-	end
-	return closest
-end
-
--- حذف كل الخطوط القديمة
-local function clearLines()
-	for _, c in pairs(workspace:GetChildren()) do
-		if c.Name == "MuzLine" then
-			c:Destroy()
-		end
-	end
-end
-
--- إنشاء خط Part بين جزئين
-local function createLine(part1, part2)
-	local distance = (part2.Position - part1.Position).Magnitude
-	local line = Instance.new("Part")
-	line.Name = "MuzLine"
-	line.Anchored = true
-	line.CanCollide = false
-	line.Size = Vector3.new(LINE_THICKNESS, LINE_THICKNESS, distance)
-	line.Color = LINE_COLOR
-	line.Material = Enum.Material.Neon
-	line.CFrame = CFrame.new(part1.Position, part2.Position) * CFrame.new(0,0,-distance/2)
-	line.Parent = workspace
-end
-
--- التحديث كل ربع ثانية
-while true do
-	wait(UPDATE_DELAY)
-	clearLines()
-	local muz = getNearbyMuz()
-	if muz then
-		for _, p in pairs(workspace:GetDescendants()) do
-			if p:IsA("BasePart") and p.Name == "Part" then
-				createLine(muz, p)
-			end
-		end
-	end
-end
+-- نضمن أن الكاميرا تظل قابلة للتحريك كل فريم
+game:GetService("RunService").RenderStepped:Connect(function()
+	player.CameraMode = Enum.CameraMode.Classic
+	player.CameraMinZoomDistance = 0.5
+	player.CameraMaxZoomDistance = 128
+end)
