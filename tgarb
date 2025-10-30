@@ -1,19 +1,24 @@
--- Script: ServerScriptService/DeleteNamedParts.lua
+-- Script داخل ServerScriptService
 
-local function deleteParts()
-	for _, obj in pairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and obj.Name == "Part" then
-			obj:Destroy()
-		end
-	end
-	print("✅ تم حذف جميع الأجزاء اللي اسمها Part")
-end
+local Players = game:GetService("Players")
 
--- يحذفها مرة عند بداية اللعبة
-deleteParts()
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		local root = character:WaitForChild("HumanoidRootPart")
 
--- ولو تبي يخليها تلقائي (كل فترة يتأكد)
-while true do
-	wait(5) -- كل 5 ثواني
-	deleteParts()
-end
+		root.Touched:Connect(function(hit)
+			if hit:IsA("BasePart") then
+				local keepPart = hit
+
+				-- نحذف كل الأجزاء ما عدا اللي لمسها اللاعب
+				for _, obj in pairs(workspace:GetDescendants()) do
+					if obj:IsA("BasePart") and obj ~= keepPart and not obj:IsDescendantOf(character) then
+						obj:Destroy()
+					end
+				end
+
+				print(player.Name .. " حذف كل شيء إلا الجزء اللي لامسه.")
+			end
+		end)
+	end)
+end)
