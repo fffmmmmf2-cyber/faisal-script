@@ -1,5 +1,4 @@
--- ⛔️ صنع بواسطة فيصل و GPT-5
--- 🟥 يحدد أقرب موديل ويعطيه تأثير رينبو ناعم عند الضغط على زر "تحديد"
+-- 🌈 سكربت فيصل - تحديد أقرب موديل تلقائيًا وتلوينه بالرينبو الناعم
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -7,49 +6,11 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
 local SEARCH_RADIUS = 60
-local LINE_THICKNESS = 0.5
-local LINE_COLOR = Color3.fromRGB(255, 0, 0)
-local FOLDER_NAME = "LocalBorderLines"
 
--- واجهة العرض
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "ModelSelector"
-
--- فريم خلفي
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(1, -210, 0.5, -50)
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.BackgroundTransparency = 0.3
-frame.BorderSizePixel = 0
-frame.Visible = true
-
--- نص اسم الموديل
-local label = Instance.new("TextLabel", frame)
-label.Size = UDim2.new(1, 0, 0.5, 0)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255, 0, 0)
-label.Font = Enum.Font.SourceSansBold
-label.TextScaled = true
-label.Text = "الموديل: ---"
-
--- زر التحديد
-local selectButton = Instance.new("TextButton", frame)
-selectButton.Size = UDim2.new(1, 0, 0.5, 0)
-selectButton.Position = UDim2.new(0, 0, 0.5, 0)
-selectButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-selectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-selectButton.Font = Enum.Font.SourceSansBold
-selectButton.TextScaled = true
-selectButton.Text = "تحديد"
-
--------------------------------------------------
 -- 🔍 البحث عن أقرب موديل
--------------------------------------------------
 local function findNearestModel()
-	local char = player.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	local char = player.Character or player.CharacterAdded:Wait()
+	local root = char:WaitForChild("HumanoidRootPart")
 
 	local nearest, nearestDist
 	for _, obj in ipairs(workspace:GetDescendants()) do
@@ -64,9 +25,7 @@ local function findNearestModel()
 	return nearest
 end
 
--------------------------------------------------
 -- 🌈 تأثير الرينبو الناعم
--------------------------------------------------
 local function StartRainbow(model)
 	task.spawn(function()
 		local hue = 0
@@ -83,16 +42,11 @@ local function StartRainbow(model)
 	end)
 end
 
--------------------------------------------------
--- 📌 عند الضغط على زر التحديد
--------------------------------------------------
-selectButton.MouseButton1Click:Connect(function()
-	local target = findNearestModel()
-	if target then
-		label.Text = "الموديل: " .. target.Name
-		selectButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-		task.wait(0.2)
-		selectButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-		StartRainbow(target)
+-- 🚀 أول ما يرسبن اللاعب
+player.CharacterAdded:Connect(function(char)
+	task.wait(2) -- انتظار بسيط لتجنب التحميل المبكر
+	local model = findNearestModel()
+	if model then
+		StartRainbow(model)
 	end
 end)
