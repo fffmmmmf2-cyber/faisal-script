@@ -1,5 +1,5 @@
 -- ✅ LocalScript (StarterPlayerScripts)
--- تصميم فيصلي 🔥 by ChatGPT
+-- نسخة مصغّرة أنيقة 🔥 by ChatGPT & Faisal
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,8 +14,8 @@ screenGui.Name = "ControlPanel"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 230, 0, 100)
-mainFrame.Position = UDim2.new(0.5, -115, 0.8, 0)
+mainFrame.Size = UDim2.new(0, 150, 0, 60) -- ⬅️ تم تصغير الحجم للنصف
+mainFrame.Position = UDim2.new(0.5, -75, 0.8, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 mainFrame.BorderSizePixel = 0
 mainFrame.BackgroundTransparency = 0.3
@@ -29,7 +29,7 @@ uiCorner.Parent = mainFrame
 
 local layout = Instance.new("UIListLayout")
 layout.FillDirection = Enum.FillDirection.Horizontal
-layout.Padding = UDim.new(0, 10)
+layout.Padding = UDim.new(0, 6)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
 layout.Parent = mainFrame
@@ -39,7 +39,7 @@ layout.Parent = mainFrame
 -------------------------------------------------
 local function createButton(name)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 100, 0, 60)
+	btn.Size = UDim2.new(0, 65, 0, 40) -- ⬅️ الأزرار أصغر
 	btn.Text = name
 	btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -57,8 +57,8 @@ end
 -------------------------------------------------
 -- 🟥 الزرين
 -------------------------------------------------
-local button1 = createButton("الخانة 1")
-local button2 = createButton("الخانة 2")
+local button1 = createButton("خانة 1")
+local button2 = createButton("خانة 2")
 
 -------------------------------------------------
 -- 🔹 سكربت 1 (حدود الموديل)
@@ -76,8 +76,8 @@ local FOLDER_NAME = "LocalBorderLines"
 local borderLabelGui = Instance.new("ScreenGui", player.PlayerGui)
 borderLabelGui.Name = "ModelNameDisplay"
 local borderLabel = Instance.new("TextLabel")
-borderLabel.Size = UDim2.new(0, 300, 0, 50)
-borderLabel.Position = UDim2.new(1, -310, 0.5, -25)
+borderLabel.Size = UDim2.new(0, 200, 0, 35)
+borderLabel.Position = UDim2.new(1, -210, 0.5, -25)
 borderLabel.BackgroundTransparency = 0.3
 borderLabel.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
 borderLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
@@ -173,7 +173,7 @@ button1.MouseButton1Click:Connect(function()
 		borderThread = task.spawn(function()
 			while borderRunning do
 				updateBorders()
-				task.wait(REFRESH_INTERVAL)
+				task.wait(0.4)
 			end
 			clearFolder()
 			borderLabel.Visible = false
@@ -211,7 +211,7 @@ local function createLabel(part)
 	if labels[part] then return labels[part] end
 	local billboard = Instance.new("BillboardGui")
 	billboard.Adornee = part
-	billboard.Size = UDim2.new(0, 100, 0, 20)
+	billboard.Size = UDim2.new(0, 80, 0, 18)
 	billboard.StudsOffset = Vector3.new(0, 2, 0)
 	billboard.AlwaysOnTop = true
 	local textLabel = Instance.new("TextLabel")
