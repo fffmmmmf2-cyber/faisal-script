@@ -1,40 +1,33 @@
--- 🌈 سكربت فيصل - تحديد أقرب موديل تلقائيًا وتلوينه بالرينبو الناعم
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local function getClosestModel()
+	local closestModel = nil
+	local shortestDistance = math.huge
 
-local SEARCH_RADIUS = 60
-
--- 🔍 البحث عن أقرب موديل
-local function findNearestModel()
-	local char = player.Character or player.CharacterAdded:Wait()
-	local root = char:WaitForChild("HumanoidRootPart")
-
-	local nearest, nearestDist
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") and obj.PrimaryPart and obj ~= char then
-			local dist = (obj.PrimaryPart.Position - root.Position).Magnitude
-			if dist <= SEARCH_RADIUS and (not nearestDist or dist < nearestDist) then
-				nearest = obj
-				nearestDist = dist
+	for _, model in ipairs(workspace:GetChildren()) do
+		if model:IsA("Model") and model:FindFirstChildWhichIsA("BasePart") then
+			local part = model:FindFirstChildWhichIsA("BasePart")
+			local distance = (hrp.Position - part.Position).Magnitude
+			if distance < shortestDistance then
+				shortestDistance = distance
+				closestModel = model
 			end
 		end
 	end
-	return nearest
+
+	return closestModel
 end
 
--- 🌈 تأثير الرينبو الناعم
-local function StartRainbow(model)
+local function applyRainbow(model)
 	task.spawn(function()
-		local hue = 0
 		while model and model.Parent do
-			hue = (hue + 0.002) % 1
-			local color = Color3.fromHSV(hue, 1, 1)
+			local t = tick() % 5 / 5
+			local color = Color3.fromHSV(t, 1, 1)
 			for _, part in ipairs(model:GetDescendants()) do
 				if part:IsA("BasePart") then
-					TweenService:Create(part, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Color = color}):Play()
+					part.Color = color
 				end
 			end
 			task.wait(0.05)
@@ -42,11 +35,9 @@ local function StartRainbow(model)
 	end)
 end
 
--- 🚀 أول ما يرسبن اللاعب
-player.CharacterAdded:Connect(function(char)
-	task.wait(2) -- انتظار بسيط لتجنب التحميل المبكر
-	local model = findNearestModel()
-	if model then
-		StartRainbow(model)
-	end
-end)
+-- بعد ما يرسبن اللاعب
+task.wait(1)
+local closest = getClosestModel()
+if closest then
+	applyRainbow(closest)
+end
