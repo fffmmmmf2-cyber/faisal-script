@@ -7,7 +7,7 @@ local function getClosestModel()
 	local shortestDistance = math.huge
 
 	for _, model in ipairs(workspace:GetChildren()) do
-		if model:IsA("Model") and model:FindFirstChildWhichIsA("BasePart") then
+		if model:IsA("Model") and model ~= character and model:FindFirstChildWhichIsA("BasePart") then
 			local part = model:FindFirstChildWhichIsA("BasePart")
 			local distance = (hrp.Position - part.Position).Magnitude
 			if distance < shortestDistance then
