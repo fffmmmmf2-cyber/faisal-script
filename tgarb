@@ -3,19 +3,28 @@ local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- دالة لإخفاء جميع الواجهات
-local function hideAllGUIs()
-	for _, gui in ipairs(playerGui:GetChildren()) do
-		if gui:IsA("ScreenGui") then
-			gui.Enabled = false
-		end
-	end
+-- دالة لإنشاء واجهة التحديد
+local function createSelectionGUI()
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "SelectGUI"
+	screenGui.Parent = playerGui
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 200, 0, 60)
+	button.Position = UDim2.new(0.5, -100, 0.8, 0)
+	button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextScaled = true
+	button.Text = "تحديد"
+	button.Parent = screenGui
+
+	return screenGui, button
 end
 
--- دالة لإيجاد أقرب موديل للاعب
+-- دالة لإيجاد أقرب موديل
 local function getClosestModel(maxDistance)
 	local closestModel = nil
-	local shortestDistance = maxDistance or 30
+	local shortestDistance = maxDistance or 50
 
 	for _, model in ipairs(workspace:GetChildren()) do
 		if model:IsA("Model") and model ~= character and model:FindFirstChildWhichIsA("BasePart") then
@@ -47,11 +56,13 @@ local function applyRainbow(model)
 	end)
 end
 
--- بعد ما يرسبن اللاعب
-task.wait(1)
+-- إنشاء واجهة التحديد
+local gui, button = createSelectionGUI()
 
-local closest = getClosestModel(30)
-if closest then
-	hideAllGUIs()
-	applyRainbow(closest)
-end
+button.MouseButton1Click:Connect(function()
+	local closest = getClosestModel(50)
+	if closest then
+		applyRainbow(closest)
+	end
+	gui:Destroy() -- حذف الواجهة بعد التحديد
+end)
