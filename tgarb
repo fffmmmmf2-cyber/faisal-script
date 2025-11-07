@@ -1,249 +1,150 @@
--- LocalScript (StarterPlayerScripts)
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+-- صنع واجهة
+local player = game.Players.LocalPlayer
+local cam = workspace.CurrentCamera
+local rs = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local nameLabel = Instance.new("TextLabel", gui)
+local selectButton = Instance.new("TextButton", gui)
+local cancelButton = Instance.new("TextButton", gui)
 
--- إعدادات عامة
-local SEARCH_RADIUS = 60
-local REFRESH_INTERVAL = 0.4
-local LINE_THICKNESS = 0.5
-local LINE_COLOR = Color3.fromRGB(255, 0, 0)
-local LOCKED_LINE_COLOR = Color3.fromRGB(255, 255, 0)
-local FOLDER_NAME = "LocalBorderLines"
+-- إعداد النصوص
+gui.ResetOnSpawn = false
+nameLabel.Size = UDim2.new(0, 250, 0, 40)
+nameLabel.Position = UDim2.new(1, -260, 0, 100)
+nameLabel.AnchorPoint = Vector2.new(0, 0)
+nameLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+nameLabel.Font = Enum.Font.SourceSansBold
+nameLabel.TextScaled = true
+nameLabel.Text = "لا يوجد موديل قريب"
 
--------------------------------------------------
--- واجهة العرض
--------------------------------------------------
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ModelNameDisplay"
-screenGui.Parent = player:WaitForChild("PlayerGui")
+selectButton.Size = UDim2.new(0, 120, 0, 40)
+selectButton.Position = UDim2.new(1, -130, 0, 150)
+selectButton.AnchorPoint = Vector2.new(0, 0)
+selectButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+selectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectButton.Font = Enum.Font.SourceSansBold
+selectButton.TextScaled = true
+selectButton.Text = "تحديد"
 
-local labelFrame = Instance.new("Frame")
-labelFrame.Size = UDim2.new(0, 400, 0, 50)
-labelFrame.Position = UDim2.new(1, -410, 0.5, -25)
-labelFrame.BackgroundTransparency = 0.3
-labelFrame.BackgroundColor3 = Color3.fromRGB(30, 0, 0)
-labelFrame.Parent = screenGui
-labelFrame.Visible = false
+cancelButton.Size = UDim2.new(0, 120, 0, 40)
+cancelButton.Position = UDim2.new(1, -130, 0, 200)
+cancelButton.AnchorPoint = Vector2.new(0, 0)
+cancelButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+cancelButton.Font = Enum.Font.SourceSansBold
+cancelButton.TextScaled = true
+cancelButton.Text = "إلغاء التحديد"
+cancelButton.Visible = false
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(0.6, 0, 1, 0)
-label.Position = UDim2.new(0, 10, 0, 0)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.fromRGB(255, 0, 0)
-label.Font = Enum.Font.SourceSansBold
-label.TextScaled = true
-label.Text = ""
-label.Parent = labelFrame
+local selectedModel = nil
+local fixedModel = false
+local rainbowActive = false
 
-local lockButton = Instance.new("TextButton")
-lockButton.Size = UDim2.new(0.35, 0, 1, 0)
-lockButton.Position = UDim2.new(0.63, 0, 0, 0)
-lockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lockButton.Font = Enum.Font.SourceSansBold
-lockButton.TextScaled = true
-lockButton.Text = "تحديد"
-lockButton.Parent = labelFrame
-
--------------------------------------------------
--- متغيرات التحديد
--------------------------------------------------
-local lockedModel = nil
-local folder = nil
-local rainbowConnection = nil
-local rainbowSpeed = 0.3 -- السرعة (كل ما قلت صارت أهدأ)
-
--------------------------------------------------
--- دوال المساعدة
--------------------------------------------------
-local function getOrCreateFolder()
-	if not folder or not folder.Parent then
-		folder = Instance.new("Folder")
-		folder.Name = FOLDER_NAME
-		folder.Parent = camera
-	else
-		folder:ClearAllChildren()
-	end
-	return folder
-end
-
-local function clearFolder()
-	if folder then
-		folder:Destroy()
-		folder = nil
+-- دالة لصنع حدود حمراء حول الموديل
+local function highlightModel(model)
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local selectionBox = Instance.new("SelectionBox")
+			selectionBox.Adornee = part
+			selectionBox.Color3 = Color3.fromRGB(255, 0, 0)
+			selectionBox.LineThickness = 0.1
+			selectionBox.Parent = part
+		end
 	end
 end
 
-local function makeEdge(a, b, thickness, color, parent)
-	local dir = (b - a)
-	local dist = dir.Magnitude
-	if dist <= 0.001 then return nil end
-	local part = Instance.new("Part")
-	part.Size = Vector3.new(thickness, thickness, dist)
-	part.Anchored = true
-	part.CanCollide = false
-	part.Material = Enum.Material.Neon
-	part.Color = color
-	part.TopSurface = Enum.SurfaceType.Smooth
-	part.BottomSurface = Enum.SurfaceType.Smooth
-	part.CFrame = CFrame.new(a, b) * CFrame.new(0, 0, -dist / 2)
-	part.Parent = parent
-	return part
+local function removeHighlights(model)
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:FindFirstChildOfClass("SelectionBox") then
+			part:FindFirstChildOfClass("SelectionBox"):Destroy()
+		end
+	end
 end
 
-local function boundingBoxCorners(cf, size)
-	local hx, hy, hz = size.X / 2, size.Y / 2, size.Z / 2
-	local signs = {
-		Vector3.new(-1, -1, -1),
-		Vector3.new(-1, -1, 1),
-		Vector3.new(-1, 1, -1),
-		Vector3.new(-1, 1, 1),
-		Vector3.new(1, -1, -1),
-		Vector3.new(1, -1, 1),
-		Vector3.new(1, 1, -1),
-		Vector3.new(1, 1, 1),
-	}
-	local corners = {}
-	for _, s in ipairs(signs) do
-		table.insert(corners, cf:PointToWorldSpace(Vector3.new(s.X * hx, s.Y * hy, s.Z * hz)))
-	end
-	return corners, signs
+-- دالة الرينبو
+local function startRainbow(model)
+	rainbowActive = true
+	task.spawn(function()
+		local hue = 0
+		while rainbowActive and model and model.Parent do
+			hue = (hue + 0.003) % 1
+			local color = Color3.fromHSV(hue, 1, 1)
+			for _, part in ipairs(model:GetDescendants()) do
+				if part:IsA("BasePart") then
+					TweenService:Create(part, TweenInfo.new(0.15, Enum.EasingStyle.Linear), {Color = color}):Play()
+				end
+			end
+			task.wait(0.05)
+		end
+	end)
 end
 
--------------------------------------------------
--- 🌈 تأثير الألوان المتغيرة
--------------------------------------------------
-local function startRainbowEffect(model)
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-	end
-
-	rainbowConnection = RunService.Heartbeat:Connect(function(deltaTime)
-		local time = tick() * rainbowSpeed
-		local hue = (time % 1)
-		local color = Color3.fromHSV(hue, 1, 1)
-
+local function stopRainbow(model)
+	rainbowActive = false
+	if model and model.Parent then
 		for _, part in ipairs(model:GetDescendants()) do
 			if part:IsA("BasePart") then
-				part.Color = color
-				part.Material = Enum.Material.Neon
+				part.Color = part.BrickColor.Color
 			end
 		end
-	end)
-end
-
-local function stopRainbowEffect()
-	if rainbowConnection then
-		rainbowConnection:Disconnect()
-		rainbowConnection = nil
 	end
 end
 
--------------------------------------------------
 -- البحث عن أقرب موديل
--------------------------------------------------
-local function findNearestModel()
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local myPos = root and root.Position or camera.CFrame.Position
-
-	local nearestModel = nil
-	local nearestDist = math.huge
-
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Model") and obj.PrimaryPart and obj ~= player.Character then
-			local bbCFrame, bbSize = obj:GetBoundingBox()
-			local d = (bbCFrame.Position - myPos).Magnitude
-			if d < nearestDist and d <= SEARCH_RADIUS then
-				nearestDist = d
-				nearestModel = {model = obj, cframe = bbCFrame, size = bbSize}
+local function getClosestModel()
+	local closest, distance = nil, math.huge
+	for _, model in ipairs(workspace:GetChildren()) do
+		if model:IsA("Model") and model ~= player.Character then
+			local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+			if primary then
+				local dist = (primary.Position - cam.CFrame.Position).Magnitude
+				if dist < distance and dist < 40 then
+					closest, distance = model, dist
+				end
 			end
 		end
 	end
-
-	return nearestModel
+	return closest
 end
 
--------------------------------------------------
--- رسم الحدود
--------------------------------------------------
-local function drawModel(modelData, color)
-	local cf, size = modelData.cframe, modelData.size
-	local corners, signs = boundingBoxCorners(cf, size)
-	local folder = getOrCreateFolder()
-	for i = 1, #corners do
-		for j = i + 1, #corners do
-			local diff = 0
-			local si, sj = signs[i], signs[j]
-			if si.X ~= sj.X then diff += 1 end
-			if si.Y ~= sj.Y then diff += 1 end
-			if si.Z ~= sj.Z then diff += 1 end
-			if diff == 1 then
-				makeEdge(corners[i], corners[j], LINE_THICKNESS, color, folder)
-			end
-		end
-	end
-end
-
--------------------------------------------------
--- تحديث التحديد
--------------------------------------------------
-local function updateBorders()
-	if lockedModel then
-		clearFolder()
-		local bbCFrame, bbSize = lockedModel:GetBoundingBox()
-		drawModel({cframe = bbCFrame, size = bbSize}, LOCKED_LINE_COLOR)
-		label.Text = "الموديل (ثابت): " .. lockedModel.Name
-		labelFrame.Visible = true
-		lockButton.Text = "إلغاء التحديد"
-		lockButton.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
-		return
-	end
-
-	local target = findNearestModel()
-	if not target then
-		labelFrame.Visible = false
-		clearFolder()
-		return
-	end
-
-	clearFolder()
-	drawModel(target, LINE_COLOR)
-	label.Text = "الموديل: " .. target.model.Name
-	labelFrame.Visible = true
-	lockButton.Text = "تحديد"
-	lockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-
-	lockButton.MouseButton1Click:Connect(function()
-		if not lockedModel then
-			lockedModel = target.model
-			startRainbowEffect(lockedModel)
+-- متابعة التحديد التلقائي
+rs.RenderStepped:Connect(function()
+	if fixedModel then return end
+	local model = getClosestModel()
+	if model ~= selectedModel then
+		if selectedModel then removeHighlights(selectedModel) end
+		selectedModel = model
+		if model then
+			highlightModel(model)
+			nameLabel.Text = "الموديل: " .. model.Name
 		else
-			stopRainbowEffect()
-			lockedModel = nil
+			nameLabel.Text = "لا يوجد موديل قريب"
 		end
-	end)
-end
-
--------------------------------------------------
--- حلقة التحديث
--------------------------------------------------
-task.spawn(function()
-	while true do
-		updateBorders()
-		task.wait(REFRESH_INTERVAL)
 	end
 end)
 
-player.AncestryChanged:Connect(function()
-	if not player:IsDescendantOf(game) then
-		clearFolder()
+-- عند الضغط على زر "تحديد"
+selectButton.MouseButton1Click:Connect(function()
+	if selectedModel then
+		fixedModel = true
+		selectButton.Visible = false
+		cancelButton.Visible = true
+		startRainbow(selectedModel)
 	end
 end)
 
-game:BindToClose(function()
-	clearFolder()
-	stopRainbowEffect()
+-- عند الضغط على زر "إلغاء التحديد"
+cancelButton.MouseButton1Click:Connect(function()
+	if selectedModel then
+		stopRainbow(selectedModel)
+		removeHighlights(selectedModel)
+		fixedModel = false
+		selectButton.Visible = true
+		cancelButton.Visible = false
+		nameLabel.Text = "لا يوجد موديل قريب"
+		selectedModel = nil
+	end
 end)
