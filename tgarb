@@ -1,10 +1,21 @@
 local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
-local function getClosestModel()
+-- دالة لإخفاء جميع الواجهات
+local function hideAllGUIs()
+	for _, gui in ipairs(playerGui:GetChildren()) do
+		if gui:IsA("ScreenGui") then
+			gui.Enabled = false
+		end
+	end
+end
+
+-- دالة لإيجاد أقرب موديل للاعب
+local function getClosestModel(maxDistance)
 	local closestModel = nil
-	local shortestDistance = math.huge
+	local shortestDistance = maxDistance or 30
 
 	for _, model in ipairs(workspace:GetChildren()) do
 		if model:IsA("Model") and model ~= character and model:FindFirstChildWhichIsA("BasePart") then
@@ -20,6 +31,7 @@ local function getClosestModel()
 	return closestModel
 end
 
+-- دالة لتطبيق الرينبو الناعم
 local function applyRainbow(model)
 	task.spawn(function()
 		while model and model.Parent do
@@ -37,7 +49,9 @@ end
 
 -- بعد ما يرسبن اللاعب
 task.wait(1)
-local closest = getClosestModel()
+
+local closest = getClosestModel(30)
 if closest then
+	hideAllGUIs()
 	applyRainbow(closest)
 end
