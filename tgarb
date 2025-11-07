@@ -1,38 +1,35 @@
--- صنع واجهة
 local player = game.Players.LocalPlayer
 local cam = workspace.CurrentCamera
 local rs = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+-- واجهة العرض
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local nameLabel = Instance.new("TextLabel", gui)
-local selectButton = Instance.new("TextButton", gui)
-local cancelButton = Instance.new("TextButton", gui)
-
--- إعداد النصوص
+gui.Name = "ModelSelector"
 gui.ResetOnSpawn = false
-nameLabel.Size = UDim2.new(0, 250, 0, 40)
-nameLabel.Position = UDim2.new(1, -260, 0, 100)
-nameLabel.AnchorPoint = Vector2.new(0, 0)
-nameLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
+local nameLabel = Instance.new("TextLabel", gui)
+nameLabel.Size = UDim2.new(0, 300, 0, 40)
+nameLabel.Position = UDim2.new(1, -310, 0, 100)
+nameLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 nameLabel.Font = Enum.Font.SourceSansBold
 nameLabel.TextScaled = true
 nameLabel.Text = "لا يوجد موديل قريب"
 
+local selectButton = Instance.new("TextButton", gui)
 selectButton.Size = UDim2.new(0, 120, 0, 40)
 selectButton.Position = UDim2.new(1, -130, 0, 150)
-selectButton.AnchorPoint = Vector2.new(0, 0)
 selectButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 selectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 selectButton.Font = Enum.Font.SourceSansBold
 selectButton.TextScaled = true
 selectButton.Text = "تحديد"
 
+local cancelButton = Instance.new("TextButton", gui)
 cancelButton.Size = UDim2.new(0, 120, 0, 40)
 cancelButton.Position = UDim2.new(1, -130, 0, 200)
-cancelButton.AnchorPoint = Vector2.new(0, 0)
-cancelButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+cancelButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 cancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 cancelButton.Font = Enum.Font.SourceSansBold
 cancelButton.TextScaled = true
@@ -43,41 +40,74 @@ local selectedModel = nil
 local fixedModel = false
 local rainbowActive = false
 
--- دالة لصنع حدود حمراء حول الموديل
+------------------------------------------------
+-- 🔍 البحث عن أقرب موديل بدقة عالية
+------------------------------------------------
+local function getClosestModel()
+	local closestModel = nil
+	local closestDist = math.huge
+	local camPos = cam.CFrame.Position
+
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("Model") and obj ~= player.Character and obj:FindFirstChildWhichIsA("BasePart") then
+			-- تجاهل أدوات وأشياء غير مفيدة
+			if not obj:IsDescendantOf(workspace.Terrain) and not obj:IsA("Tool") then
+				for _, part in ipairs(obj:GetDescendants()) do
+					if part:IsA("BasePart") then
+						local dist = (part.Position - camPos).Magnitude
+						if dist < closestDist and dist < 70 then
+							closestDist = dist
+							closestModel = obj
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return closestModel
+end
+
+------------------------------------------------
+-- 🟥 تمييز الموديل بإطار
+------------------------------------------------
 local function highlightModel(model)
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
-			local selectionBox = Instance.new("SelectionBox")
-			selectionBox.Adornee = part
-			selectionBox.Color3 = Color3.fromRGB(255, 0, 0)
-			selectionBox.LineThickness = 0.1
-			selectionBox.Parent = part
+			local sel = Instance.new("SelectionBox")
+			sel.Adornee = part
+			sel.Color3 = Color3.fromRGB(255, 0, 0)
+			sel.LineThickness = 0.05
+			sel.Parent = part
 		end
 	end
 end
 
 local function removeHighlights(model)
 	for _, part in ipairs(model:GetDescendants()) do
-		if part:FindFirstChildOfClass("SelectionBox") then
-			part:FindFirstChildOfClass("SelectionBox"):Destroy()
+		if part:IsA("BasePart") then
+			local sel = part:FindFirstChildOfClass("SelectionBox")
+			if sel then sel:Destroy() end
 		end
 	end
 end
 
--- دالة الرينبو
+------------------------------------------------
+-- 🌈 تأثير الرينبو
+------------------------------------------------
 local function startRainbow(model)
 	rainbowActive = true
 	task.spawn(function()
 		local hue = 0
 		while rainbowActive and model and model.Parent do
-			hue = (hue + 0.003) % 1
-			local color = Color3.fromHSV(hue, 1, 1)
+			hue = (hue + 0.002) % 1
+			local rainbowColor = Color3.fromHSV(hue, 1, 1)
 			for _, part in ipairs(model:GetDescendants()) do
 				if part:IsA("BasePart") then
-					TweenService:Create(part, TweenInfo.new(0.15, Enum.EasingStyle.Linear), {Color = color}):Play()
+					TweenService:Create(part, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {Color = rainbowColor}):Play()
 				end
 			end
-			task.wait(0.05)
+			task.wait(0.03)
 		end
 	end)
 end
@@ -93,40 +123,31 @@ local function stopRainbow(model)
 	end
 end
 
--- البحث عن أقرب موديل
-local function getClosestModel()
-	local closest, distance = nil, math.huge
-	for _, model in ipairs(workspace:GetChildren()) do
-		if model:IsA("Model") and model ~= player.Character then
-			local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-			if primary then
-				local dist = (primary.Position - cam.CFrame.Position).Magnitude
-				if dist < distance and dist < 40 then
-					closest, distance = model, dist
-				end
-			end
-		end
-	end
-	return closest
-end
-
--- متابعة التحديد التلقائي
+------------------------------------------------
+-- 🔁 التحديث المستمر
+------------------------------------------------
 rs.RenderStepped:Connect(function()
 	if fixedModel then return end
-	local model = getClosestModel()
-	if model ~= selectedModel then
-		if selectedModel then removeHighlights(selectedModel) end
-		selectedModel = model
-		if model then
-			highlightModel(model)
-			nameLabel.Text = "الموديل: " .. model.Name
+	local newModel = getClosestModel()
+
+	if newModel ~= selectedModel then
+		if selectedModel then
+			removeHighlights(selectedModel)
+		end
+		selectedModel = newModel
+
+		if newModel then
+			nameLabel.Text = "الموديل: " .. newModel.Name
+			highlightModel(newModel)
 		else
 			nameLabel.Text = "لا يوجد موديل قريب"
 		end
 	end
 end)
 
--- عند الضغط على زر "تحديد"
+------------------------------------------------
+-- 🔘 الأزرار
+------------------------------------------------
 selectButton.MouseButton1Click:Connect(function()
 	if selectedModel then
 		fixedModel = true
@@ -136,7 +157,6 @@ selectButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- عند الضغط على زر "إلغاء التحديد"
 cancelButton.MouseButton1Click:Connect(function()
 	if selectedModel then
 		stopRainbow(selectedModel)
