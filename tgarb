@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -8,9 +9,10 @@ highlightFolder.Parent = workspace
 
 local highlights = {}
 local currentTarget = nil
-local lastGreenTime = 0
+local lastPositions = {}
+local stationaryTime = {}
 
--- يعطي اللاعب Highlight إذا ما عنده
+-- يضيف Highlight إذا ناقص
 local function getHighlight(char)
     if not char then return end
     if highlights[char] then return highlights[char] end
@@ -36,21 +38,21 @@ local function isVisible(targetChar)
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = {LocalPlayer.Character}
 
-    local direction = target - origin
-    local result = workspace:Raycast(origin, direction, params)
+    local dir = target - origin
+    local ray = workspace:Raycast(origin, dir, params)
 
-    if not result then
+    if not ray then
         return true
     end
 
-    if result.Instance and result.Instance:IsDescendantOf(targetChar) then
+    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then
         return true
     end
 
     return false
 end
 
--- يحدد اللون الأحمر/الأخضر بدون إعادة كل شيء
+-- تحديث اللون بدون إعادة كل شيء
 local function updateColors()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
@@ -59,36 +61,67 @@ local function updateColors()
             h.Adornee = char
 
             if isVisible(char) then
-                h.FillColor = Color3.fromRGB(0,255,0) -- أخضر
+                h.FillColor = Color3.fromRGB(0,255,0)
                 h.OutlineColor = Color3.fromRGB(0,255,0)
             else
-                h.FillColor = Color3.fromRGB(255,0,0) -- أحمر
+                h.FillColor = Color3.fromRGB(255,0,0)
                 h.OutlineColor = Color3.fromRGB(255,0,0)
             end
         end
     end
 end
 
--- اختيار أقرب لاعب أخضر فقط كل 0.3 ثانية
+-- كل 10 ثواني يتأكد من كل اللاعبين ويضيف Highlight إذا ناقص
+task.spawn(function()
+    while true do
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                getHighlight(plr.Character)
+            end
+        end
+        task.wait(10)
+    end
+end)
+
+-- تسجيل آخر موقع اللاعب
+local function updatePlayerMovement()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = plr.Character.HumanoidRootPart
+            local lastPos = lastPositions[plr] or hrp.Position
+            local dist = (hrp.Position - lastPos).Magnitude
+
+            if dist < 0.1 then
+                stationaryTime[plr] = (stationaryTime[plr] or 0) + 0.1
+            else
+                stationaryTime[plr] = 0
+            end
+
+            lastPositions[plr] = hrp.Position
+        end
+    end
+end
+
+-- اختيار أقرب لاعب أخضر متحرك فقط
 local function updateTarget()
     local nearest = nil
     local nearestDist = math.huge
-
-    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return end
-    local myPos = LocalPlayer.Character.Head.Position
+    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then return end
+    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
             local char = plr.Character
             local h = highlights[char]
+            local stationary = stationaryTime[plr] or 0
 
-            if h and h.FillColor == Color3.fromRGB(0,255,0) then
-                local head = char:FindFirstChild("Head")
-                if head then
-                    local dist = (head.Position - myPos).Magnitude
+            if h and h.FillColor == Color3.fromRGB(0,255,0) and stationary < 7 then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - myPos).Magnitude
                     if dist < nearestDist then
-                        nearest = char
                         nearestDist = dist
+                        nearest = char
                     end
                 end
             end
@@ -98,7 +131,7 @@ local function updateTarget()
     currentTarget = nearest
 end
 
--- تتبع الكاميرا للهدف الأخضر (تثبيت قوي)
+-- تتبع الكاميرا
 local function updateCameraFollow()
     if currentTarget and currentTarget:FindFirstChild("Head") then
         local head = currentTarget.Head
@@ -106,15 +139,16 @@ local function updateCameraFollow()
     end
 end
 
--- تحديث اللون سريع
+-- كل 0.1 ثانية تحديث الألوان
 task.spawn(function()
     while true do
         updateColors()
+        updatePlayerMovement()
         task.wait(0.1)
     end
 end)
 
--- اختيار أقرب هدف
+-- كل 0.3 ثانية تحديث الهدف
 task.spawn(function()
     while true do
         updateTarget()
@@ -122,10 +156,10 @@ task.spawn(function()
     end
 end)
 
--- تتبع الكاميرا
+-- تحديث الكاميرا بسرعة عالية لتثبيت التتبع
 task.spawn(function()
     while true do
         updateCameraFollow()
-        task.wait(0.02) -- تتبع ناعم جداً
+        task.wait(0.02)
     end
 end)
