@@ -9,20 +9,17 @@ local Camera = workspace.CurrentCamera
 local function createESP(char)
     if not char:FindFirstChild("HumanoidRootPart") then return end
 
-    -- إزالة القديم
     if char:FindFirstChild("ESP_Box") then char.ESP_Box:Destroy() end
     if char:FindFirstChild("ESP_Line") then char.ESP_Line:Destroy() end
 
-    -- الهلايت
     local h = Instance.new("Highlight")
     h.Name = "ESP_Box"
     h.FillTransparency = 0.2
     h.OutlineTransparency = 0
-    h.FillColor = Color3.new(1, 0, 0) -- أحمر
+    h.FillColor = Color3.new(1, 0, 0)
     h.OutlineColor = Color3.new(1, 0, 0)
     h.Parent = char
 
-    -- الخط
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
 
@@ -44,10 +41,10 @@ local function createESP(char)
 end
 
 -- =============================
---  فحص الرؤية (بدون جدار)
+--  دالة فحص الرؤية (الإصلاح)
 -- =============================
 local function isVisible(targetChar)
-    if not (LocalPlayer.Character and LocalPlayer.Character:FindChild("Head")) then return false end
+    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return false end
     if not (targetChar and targetChar:FindFirstChild("Head")) then return false end
 
     local origin = LocalPlayer.Character.Head.Position
@@ -57,10 +54,17 @@ local function isVisible(targetChar)
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = {LocalPlayer.Character}
 
-    local ray = workspace:Raycast(origin, (target - origin).Unit * 9999, params)
+    local dir = (target - origin)
+    local ray = workspace:Raycast(origin, dir, params)
 
-    if not ray then return true end
-    if ray.Instance:IsDescendantOf(targetChar) then return true end
+    if not ray then
+        return true
+    end
+
+    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then
+        return true
+    end
+
     return false
 end
 
@@ -76,7 +80,6 @@ local function updateColors()
 
             if box then
                 if isVisible(char) then
-                    -- أخضر
                     box.FillColor = Color3.new(0, 1, 0)
                     box.OutlineColor = Color3.new(0, 1, 0)
                     if line then
@@ -84,7 +87,6 @@ local function updateColors()
                         line.Color = ColorSequence.new(Color3.new(0,1,0))
                     end
                 else
-                    -- أحمر
                     box.FillColor = Color3.new(1, 0, 0)
                     box.OutlineColor = Color3.new(1, 0, 0)
                     if line then
@@ -97,7 +99,7 @@ local function updateColors()
 end
 
 -- =============================
---  تحديث ESP لكل اللاعبين
+--  إنشاء ESP لكل اللاعبين
 -- =============================
 local function refreshAll()
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -113,7 +115,6 @@ local function refreshAll()
     end
 end
 
--- تحديث كل 3 ثواني
 task.spawn(function()
     while true do
         refreshAll()
@@ -121,7 +122,6 @@ task.spawn(function()
     end
 end)
 
--- تحديث الأخضر كل 0.1 ثانية
 task.spawn(function()
     while true do
         updateColors()
@@ -158,10 +158,10 @@ local function findClosestGreen()
             end
         end
     end
+
     closestGreen = best
 end
 
--- كل 0.3 ثانية يحدد أقرب لاعب أخضر
 task.spawn(function()
     while true do
         findClosestGreen()
@@ -184,7 +184,7 @@ RunService.RenderStepped:Connect(function()
 
         cam.CFrame = cam.CFrame:Lerp(
             CFrame.new(camPos, headPos),
-            0.15 -- نعومة الحركة
+            0.15
         )
     end
 end)
