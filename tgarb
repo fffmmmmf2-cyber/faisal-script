@@ -1,68 +1,134 @@
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- دالة لإنشاء واجهة التحديد
-local function createSelectionGUI()
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "SelectGUI"
-	screenGui.Parent = playerGui
+-- ESP + Highlight
+local function createESP(char)
+    if not char then return end
+    if char:FindFirstChild("HumanoidRootPart") == nil then return end
 
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0, 200, 0, 60)
-	button.Position = UDim2.new(0.5, -100, 0.8, 0)
-	button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.TextScaled = true
-	button.Text = "تحديد"
-	button.Parent = screenGui
+    if char:FindFirstChild("ESP_Box") then
+        char.ESP_Box:Destroy()
+    end
+    if char:FindFirstChild("ESP_Line") then
+        char.ESP_Line:Destroy()
+    end
 
-	return screenGui, button
+    local h = Instance.new("Highlight")
+    h.Name = "ESP_Box"
+    h.FillTransparency = 0.2
+    h.OutlineTransparency = 0
+    h.FillColor = Color3.new(1, 0, 0)
+    h.OutlineColor = Color3.new(1, 0, 0)
+    h.Parent = char
+
+    -- الخط (Beam)
+    local a0 = Instance.new("Attachment")
+    a0.Name = "StartPoint"
+    a0.Parent = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or nil
+
+    local a1 = Instance.new("Attachment")
+    a1.Name = "EndPoint"
+    a1.Parent = char:FindFirstChild("HumanoidRootPart")
+
+    local beam = Instance.new("Beam")
+    beam.Name = "ESP_Line"
+    beam.Attachment0 = a0
+    beam.Attachment1 = a1
+    beam.FaceCamera = true
+    beam.Enabled = false   -- الخط ما يشتغل إلا لما يصبح أخضر
+    beam.Width0 = 0.15
+    beam.Width1 = 0.15
+    beam.Parent = char
 end
 
--- دالة لإيجاد أقرب موديل
-local function getClosestModel(maxDistance)
-	local closestModel = nil
-	local shortestDistance = maxDistance or 50
+-- فحص الجدار
+local function isVisible(targetChar)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then return false end
+    if not targetChar or not targetChar:FindFirstChild("Head") then return false end
 
-	for _, model in ipairs(workspace:GetChildren()) do
-		if model:IsA("Model") and model ~= character and model:FindFirstChildWhichIsA("BasePart") then
-			local part = model:FindFirstChildWhichIsA("BasePart")
-			local distance = (hrp.Position - part.Position).Magnitude
-			if distance < shortestDistance then
-				shortestDistance = distance
-				closestModel = model
-			end
-		end
-	end
+    local origin = LocalPlayer.Character.Head.Position
+    local target = targetChar.Head.Position
 
-	return closestModel
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+
+    local ray = workspace:Raycast(origin, (target - origin).Unit * 9999, rayParams)
+
+    if not ray then
+        return true
+    end
+
+    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then
+        return true
+    end
+
+    return false
 end
 
--- دالة لتطبيق الرينبو الناعم
-local function applyRainbow(model)
-	task.spawn(function()
-		while model and model.Parent do
-			local t = tick() % 5 / 5
-			local color = Color3.fromHSV(t, 1, 1)
-			for _, part in ipairs(model:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Color = color
-				end
-			end
-			task.wait(0.05)
-		end
-	end)
+-- تحديث الألوان + الخط
+local function updateColors()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
+            if char and char:FindFirstChild("ESP_Box") then
+                local box = char:FindFirstChild("ESP_Box")
+                local line = char:FindFirstChild("ESP_Line")
+
+                if isVisible(char) then
+                    -- اللون الأخضر
+                    box.FillColor = Color3.new(0, 1, 0)
+                    box.OutlineColor = Color3.new(0, 1, 0)
+
+                    -- تشغيل الخط
+                    if line then
+                        line.Enabled = true
+                        line.Color = ColorSequence.new(Color3.new(0,1,0))
+                    end
+                else
+                    -- الأحمر
+                    box.FillColor = Color3.new(1, 0, 0)
+                    box.OutlineColor = Color3.new(1, 0, 0)
+
+                    -- إطفاء الخط
+                    if line then
+                        line.Enabled = false
+                    end
+                end
+            end
+        end
+    end
 end
 
--- إنشاء واجهة التحديد
-local gui, button = createSelectionGUI()
+-- إضافة ESP لكل اللاعبين
+local function refreshAll()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            if plr.Character then
+                createESP(plr.Character)
+            end
+            plr.CharacterAdded:Connect(function(ch)
+                task.wait(1)
+                createESP(ch)
+            end)
+        end
+    end
+end
 
-button.MouseButton1Click:Connect(function()
-	local closest = getClosestModel(50)
-	if closest then
-		applyRainbow(closest)
-	end
-	gui:Destroy() -- حذف الواجهة بعد التحديد
+-- تحديث كل 3 ثواني
+task.spawn(function()
+    while true do
+        refreshAll()
+        task.wait(3)
+    end
+end)
+
+-- فحص الرؤية + الخط كل 0.5 ثانية
+task.spawn(function()
+    while true do
+        updateColors()
+        task.wait(0.5)
+    end
 end)
