@@ -1,48 +1,30 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =============================
---  ESP (Highlight + Beam)
--- =============================
-local function createESP(char)
-    if not char:FindFirstChild("HumanoidRootPart") then return end
+local highlightFolder = Instance.new("Folder")
+highlightFolder.Name = "PlayerHighlights"
+highlightFolder.Parent = workspace
 
-    if char:FindFirstChild("ESP_Box") then char.ESP_Box:Destroy() end
-    if char:FindFirstChild("ESP_Line") then char.ESP_Line:Destroy() end
+local highlights = {}
+local currentTarget = nil
+local lastGreenTime = 0
+
+-- يعطي اللاعب Highlight إذا ما عنده
+local function getHighlight(char)
+    if not char then return end
+    if highlights[char] then return highlights[char] end
 
     local h = Instance.new("Highlight")
-    h.Name = "ESP_Box"
-    h.FillTransparency = 0.2
+    h.FillTransparency = 0.3
     h.OutlineTransparency = 0
-    h.FillColor = Color3.new(1, 0, 0)
-    h.OutlineColor = Color3.new(1, 0, 0)
-    h.Parent = char
+    h.Parent = highlightFolder
+    highlights[char] = h
 
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    local a0 = Instance.new("Attachment", root)
-    a0.Name = "StartPoint"
-
-    local a1 = Instance.new("Attachment", char.HumanoidRootPart)
-    a1.Name = "EndPoint"
-
-    local beam = Instance.new("Beam")
-    beam.Name = "ESP_Line"
-    beam.Attachment0 = a0
-    beam.Attachment1 = a1
-    beam.FaceCamera = true
-    beam.Enabled = false
-    beam.Width0 = 0.15
-    beam.Width1 = 0.15
-    beam.Parent = char
+    return h
 end
 
--- =============================
---  دالة فحص الرؤية (الإصلاح)
--- =============================
+-- فحص رؤية
 local function isVisible(targetChar)
     if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return false end
     if not (targetChar and targetChar:FindFirstChild("Head")) then return false end
@@ -54,74 +36,77 @@ local function isVisible(targetChar)
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = {LocalPlayer.Character}
 
-    local dir = (target - origin)
-    local ray = workspace:Raycast(origin, dir, params)
+    local direction = target - origin
+    local result = workspace:Raycast(origin, direction, params)
 
-    if not ray then
+    if not result then
         return true
     end
 
-    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then
+    if result.Instance and result.Instance:IsDescendantOf(targetChar) then
         return true
     end
 
     return false
 end
 
--- =============================
---  تحديث الألوان + الخط
--- =============================
+-- يحدد اللون الأحمر/الأخضر بدون إعادة كل شيء
 local function updateColors()
-    for _, plr in pairs(Players:GetPlayers()) do
+    for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
             local char = plr.Character
-            local box = char:FindFirstChild("ESP_Box")
-            local line = char:FindFirstChild("ESP_Line")
+            local h = getHighlight(char)
+            h.Adornee = char
 
-            if box then
-                if isVisible(char) then
-                    box.FillColor = Color3.new(0, 1, 0)
-                    box.OutlineColor = Color3.new(0, 1, 0)
-                    if line then
-                        line.Enabled = true
-                        line.Color = ColorSequence.new(Color3.new(0,1,0))
-                    end
-                else
-                    box.FillColor = Color3.new(1, 0, 0)
-                    box.OutlineColor = Color3.new(1, 0, 0)
-                    if line then
-                        line.Enabled = false
+            if isVisible(char) then
+                h.FillColor = Color3.fromRGB(0,255,0) -- أخضر
+                h.OutlineColor = Color3.fromRGB(0,255,0)
+            else
+                h.FillColor = Color3.fromRGB(255,0,0) -- أحمر
+                h.OutlineColor = Color3.fromRGB(255,0,0)
+            end
+        end
+    end
+end
+
+-- اختيار أقرب لاعب أخضر فقط كل 0.3 ثانية
+local function updateTarget()
+    local nearest = nil
+    local nearestDist = math.huge
+
+    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return end
+    local myPos = LocalPlayer.Character.Head.Position
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local char = plr.Character
+            local h = highlights[char]
+
+            if h and h.FillColor == Color3.fromRGB(0,255,0) then
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local dist = (head.Position - myPos).Magnitude
+                    if dist < nearestDist then
+                        nearest = char
+                        nearestDist = dist
                     end
                 end
             end
         end
     end
+
+    currentTarget = nearest
 end
 
--- =============================
---  إنشاء ESP لكل اللاعبين
--- =============================
-local function refreshAll()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if plr.Character then
-                createESP(plr.Character)
-            end
-            plr.CharacterAdded:Connect(function(ch)
-                task.wait(1)
-                createESP(ch)
-            end)
-        end
+-- تتبع الكاميرا للهدف الأخضر (تثبيت قوي)
+local function updateCameraFollow()
+    if currentTarget and currentTarget:FindFirstChild("Head") then
+        local head = currentTarget.Head
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
     end
 end
 
-task.spawn(function()
-    while true do
-        refreshAll()
-        task.wait(3)
-    end
-end)
-
+-- تحديث اللون سريع
 task.spawn(function()
     while true do
         updateColors()
@@ -129,62 +114,18 @@ task.spawn(function()
     end
 end)
 
--- =============================
---  اختيار أقرب لاعب أخضر كل 0.3 ثانية
--- =============================
-local closestGreen = nil
-
-local function findClosestGreen()
-    local myChar = LocalPlayer.Character
-    if not (myChar and myChar:FindFirstChild("HumanoidRootPart")) then return end
-
-    local myPos = myChar.HumanoidRootPart.Position
-    local bestDist = math.huge
-    local best = nil
-
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local char = plr.Character
-            local box = char:FindFirstChild("ESP_Box")
-            if box and box.FillColor == Color3.new(0,1,0) then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local d = (hrp.Position - myPos).Magnitude
-                    if d < bestDist then
-                        bestDist = d
-                        best = char
-                    end
-                end
-            end
-        end
-    end
-
-    closestGreen = best
-end
-
+-- اختيار أقرب هدف
 task.spawn(function()
     while true do
-        findClosestGreen()
+        updateTarget()
         task.wait(0.3)
     end
 end)
 
--- =============================
---  تتبع الكاميرا لأقرب لاعب أخضر
--- =============================
-RunService.RenderStepped:Connect(function()
-    if closestGreen
-    and closestGreen:FindFirstChild("Head")
-    and LocalPlayer.Character
-    and LocalPlayer.Character:FindFirstChild("Head") then
-
-        local headPos = closestGreen.Head.Position
-        local cam = workspace.CurrentCamera
-        local camPos = cam.CFrame.Position
-
-        cam.CFrame = cam.CFrame:Lerp(
-            CFrame.new(camPos, headPos),
-            0.15
-        )
+-- تتبع الكاميرا
+task.spawn(function()
+    while true do
+        updateCameraFollow()
+        task.wait(0.02) -- تتبع ناعم جداً
     end
 end)
