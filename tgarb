@@ -8,10 +8,10 @@ highlightFolder.Name = "PlayerHighlights"
 highlightFolder.Parent = workspace
 
 local highlights = {}
+local beams = {}
 local currentTarget = nil
 local lastPositions = {}
 local stationaryTime = {}
-local beams = {}
 
 -- يعطي اللاعب Highlight إذا ناقص
 local function getHighlight(char)
@@ -27,7 +27,7 @@ local function getHighlight(char)
     return h
 end
 
--- Beam بين الكاميرا ورأس اللاعب الأخضر
+-- Beam من كاميرا اللاعب لرأس أي لاعب أخضر
 local function createBeam(char)
     if beams[char] then return beams[char] end
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
@@ -65,14 +65,12 @@ local function isVisible(targetChar)
     params.FilterDescendantsInstances = {LocalPlayer.Character}
 
     local ray = workspace:Raycast(origin, target - origin, params)
-
     if not ray then return true end
     if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then return true end
-
     return false
 end
 
--- تحديث الألوان والخط
+-- تحديث اللون والخط لكل لاعب
 local function updateColors()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
@@ -95,20 +93,7 @@ local function updateColors()
     end
 end
 
--- كل 10 ثواني تحقق من كل اللاعبين وأضف Highlight إذا ناقص
-task.spawn(function()
-    while true do
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character then
-                getHighlight(plr.Character)
-                createBeam(plr.Character)
-            end
-        end
-        task.wait(10)
-    end
-end)
-
--- تتبع حركة اللاعبين لتحديد الوقوف
+-- متابعة حركة اللاعبين لتحديد الوقوف
 local function updatePlayerMovement()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -156,14 +141,27 @@ local function updateTarget()
     currentTarget = nearest
 end
 
--- الكاميرا مثبتة بقوة جدًا
+-- تحديث الكاميرا بشكل قوي جدًا
 RunService.RenderStepped:Connect(function()
     if currentTarget and currentTarget:FindFirstChild("Head") then
         Camera.CFrame = CFrame.new(Camera.CFrame.Position, currentTarget.Head.Position)
     end
 end)
 
--- التحديثات
+-- التحقق من Highlight كل 10 ثواني
+task.spawn(function()
+    while true do
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                getHighlight(plr.Character)
+                createBeam(plr.Character)
+            end
+        end
+        task.wait(10)
+    end
+end)
+
+-- تحديث الألوان وحركة اللاعبين
 task.spawn(function()
     while true do
         updateColors()
@@ -172,9 +170,36 @@ task.spawn(function()
     end
 end)
 
+-- تحديث اختيار أقرب لاعب أخضر متحرك
 task.spawn(function()
     while true do
         updateTarget()
         task.wait(0.3)
     end
 end)
+
+-- ✨ التعامل مع Respawn
+local function onCharacterAdded(char)
+    -- إعادة تهيئة بيانات اللاعب
+    highlights[char] = nil
+    beams[char] = nil
+    lastPositions[Players:GetPlayerFromCharacter(char)] = nil
+    stationaryTime[Players:GetPlayerFromCharacter(char)] = 0
+
+    -- إنشاء Highlight وBeam
+    getHighlight(char)
+    if char:FindFirstChild("Head") then
+        createBeam(char)
+    end
+end
+
+-- لكل اللاعبين الحاليين
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr.Character then
+        onCharacterAdded(plr.Character)
+    end
+    plr.CharacterAdded:Connect(onCharacterAdded)
+end
+
+-- LocalPlayer عند Respawn
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
