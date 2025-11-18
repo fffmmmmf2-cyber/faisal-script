@@ -11,8 +11,9 @@ local highlights = {}
 local currentTarget = nil
 local lastPositions = {}
 local stationaryTime = {}
+local beams = {}
 
--- يضيف Highlight إذا ناقص
+-- يعطي اللاعب Highlight إذا ناقص
 local function getHighlight(char)
     if not char then return end
     if highlights[char] then return highlights[char] end
@@ -26,7 +27,32 @@ local function getHighlight(char)
     return h
 end
 
--- فحص رؤية
+-- Beam بين الكاميرا ورأس اللاعب الأخضر
+local function createBeam(char)
+    if beams[char] then return beams[char] end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local startAttachment = Instance.new("Attachment", LocalPlayer.Character.HumanoidRootPart)
+    startAttachment.Name = "BeamStart"
+
+    local endAttachment = Instance.new("Attachment", char.Head)
+    endAttachment.Name = "BeamEnd"
+
+    local beam = Instance.new("Beam")
+    beam.Attachment0 = startAttachment
+    beam.Attachment1 = endAttachment
+    beam.Width0 = 0.1
+    beam.Width1 = 0.1
+    beam.FaceCamera = true
+    beam.Color = ColorSequence.new(Color3.fromRGB(0,255,0))
+    beam.Enabled = false
+    beam.Parent = char
+
+    beams[char] = beam
+    return beam
+end
+
+-- فحص الرؤية
 local function isVisible(targetChar)
     if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return false end
     if not (targetChar and targetChar:FindFirstChild("Head")) then return false end
@@ -38,21 +64,15 @@ local function isVisible(targetChar)
     params.FilterType = Enum.RaycastFilterType.Blacklist
     params.FilterDescendantsInstances = {LocalPlayer.Character}
 
-    local dir = target - origin
-    local ray = workspace:Raycast(origin, dir, params)
+    local ray = workspace:Raycast(origin, target - origin, params)
 
-    if not ray then
-        return true
-    end
-
-    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then
-        return true
-    end
+    if not ray then return true end
+    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then return true end
 
     return false
 end
 
--- تحديث اللون بدون إعادة كل شيء
+-- تحديث الألوان والخط
 local function updateColors()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
@@ -60,30 +80,35 @@ local function updateColors()
             local h = getHighlight(char)
             h.Adornee = char
 
+            local beam = createBeam(char)
+
             if isVisible(char) then
                 h.FillColor = Color3.fromRGB(0,255,0)
                 h.OutlineColor = Color3.fromRGB(0,255,0)
+                beam.Enabled = true
             else
                 h.FillColor = Color3.fromRGB(255,0,0)
                 h.OutlineColor = Color3.fromRGB(255,0,0)
+                beam.Enabled = false
             end
         end
     end
 end
 
--- كل 10 ثواني يتأكد من كل اللاعبين ويضيف Highlight إذا ناقص
+-- كل 10 ثواني تحقق من كل اللاعبين وأضف Highlight إذا ناقص
 task.spawn(function()
     while true do
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
                 getHighlight(plr.Character)
+                createBeam(plr.Character)
             end
         end
         task.wait(10)
     end
 end)
 
--- تسجيل آخر موقع اللاعب
+-- تتبع حركة اللاعبين لتحديد الوقوف
 local function updatePlayerMovement()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -131,15 +156,14 @@ local function updateTarget()
     currentTarget = nearest
 end
 
--- تتبع الكاميرا
-local function updateCameraFollow()
+-- الكاميرا مثبتة بقوة جدًا
+RunService.RenderStepped:Connect(function()
     if currentTarget and currentTarget:FindFirstChild("Head") then
-        local head = currentTarget.Head
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, currentTarget.Head.Position)
     end
-end
+end)
 
--- كل 0.1 ثانية تحديث الألوان
+-- التحديثات
 task.spawn(function()
     while true do
         updateColors()
@@ -148,18 +172,9 @@ task.spawn(function()
     end
 end)
 
--- كل 0.3 ثانية تحديث الهدف
 task.spawn(function()
     while true do
         updateTarget()
         task.wait(0.3)
-    end
-end)
-
--- تحديث الكاميرا بسرعة عالية لتثبيت التتبع
-task.spawn(function()
-    while true do
-        updateCameraFollow()
-        task.wait(0.02)
     end
 end)
