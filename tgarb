@@ -3,14 +3,15 @@ local player = game.Players.LocalPlayer
 
 local function teleportCharacter(char)
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local pad = workspace:FindFirstChild("PadGlow", true)
-    if pad then
-        hrp.CFrame = pad.CFrame + Vector3.new(0, 5, 0)
+    local model = workspace:FindFirstChild("MailboxMachine", true)
+    if model then
+        local cf = model:GetPivot() -- يعطي مركز الموديل بشكل دقيق
+        hrp.CFrame = cf + Vector3.new(0, 5, 0)
     end
 end
+
+player.CharacterAdded:Connect(teleportCharacter)
 
 if player.Character then
     teleportCharacter(player.Character)
 end
-
-player.CharacterAdded:Connect(teleportCharacter)
