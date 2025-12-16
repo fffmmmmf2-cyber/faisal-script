@@ -1,6 +1,16 @@
 -- LocalScript
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local pad = workspace:WaitForChild("PadGlow")
-hrp.CFrame = pad.CFrame + Vector3.new(0, 5, 0)
+
+local function teleportCharacter(char)
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local pad = workspace:FindFirstChild("PadGlow", true)
+    if pad then
+        hrp.CFrame = pad.CFrame + Vector3.new(0, 5, 0)
+    end
+end
+
+if player.Character then
+    teleportCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(teleportCharacter)
