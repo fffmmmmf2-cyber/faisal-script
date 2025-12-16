@@ -1,17 +1,57 @@
 -- LocalScript
 local player = game.Players.LocalPlayer
+local rs = game:GetService("RunService")
 
-local function teleportCharacter(char)
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local textLabel = Instance.new("TextLabel", screenGui)
+textLabel.Size = UDim2.new(0, 200, 0, 50)
+textLabel.Position = UDim2.new(1, -210, 0, 10)
+textLabel.TextColor3 = Color3.fromRGB(255,255,255)
+textLabel.BackgroundTransparency = 0.5
+textLabel.BackgroundColor3 = Color3.fromRGB(0,0,0)
+textLabel.TextScaled = true
+textLabel.Text = "shinyRelic Found: 0"
+
+local function getAllShinyParts()
+    local parts = {}
+    for _, part in pairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "shinyRelic" then
+            table.insert(parts, part)
+        end
+    end
+    return parts
+end
+
+local function getClosestPart(parts, position)
+    local closest = nil
+    local minDist = math.huge
+    for _, part in pairs(parts) do
+        local dist = (part.Position - position).Magnitude
+        if dist < minDist then
+            minDist = dist
+            closest = part
+        end
+    end
+    return closest
+end
+
+local function teleportToParts()
+    local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
-    local model = workspace:FindFirstChild("MailboxMachine", true)
-    if model then
-        local cf = model:GetPivot() -- يعطي مركز الموديل بشكل دقيق
-        hrp.CFrame = cf + Vector3.new(0, 5, 0)
+    local parts = getAllShinyParts()
+    local foundCount = 0
+    while #parts > 0 do
+        local closest = getClosestPart(parts, hrp.Position)
+        if closest then
+            hrp.CFrame = CFrame.new(closest.Position + Vector3.new(0,5,0))
+            foundCount += 1
+            textLabel.Text = "shinyRelic Found: "..foundCount
+            table.remove(parts, table.find(parts, closest))
+            wait(1)
+        else
+            break
+        end
     end
 end
 
-player.CharacterAdded:Connect(teleportCharacter)
-
-if player.Character then
-    teleportCharacter(player.Character)
-end
+teleportToParts()
