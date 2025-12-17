@@ -1,7 +1,13 @@
 game.Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(char)
 		local hrp = char:WaitForChild("HumanoidRootPart")
-		local pad = workspace:WaitForChild("PadGlow")
-		hrp.CFrame = pad.CFrame + Vector3.new(0, 3, 0)
+		local model = workspace:WaitForChild("MailboxMachine")
+
+		local part = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+		if part then
+			hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+		else
+			warn("MailboxMachine ما فيها أي Part")
+		end
 	end)
 end)
