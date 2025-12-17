@@ -1,5 +1,32 @@
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local runService = game:GetService("RunService")
 
-hrp.CFrame = hrp.CFrame * CFrame.new(0, 0, -10)
+local function teleportToPad()
+	local char = player.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local pad = workspace:FindFirstChild("PadGlow")
+	if hrp and pad then
+		hrp.CFrame = pad.CFrame -- ينقلك بالضبط لمكان البارت
+	end
+end
+
+-- أول ما الشخصية تظهر
+player.CharacterAdded:Connect(function(char)
+	char:WaitForChild("HumanoidRootPart")
+	teleportToPad()
+end)
+
+-- يجبر اللاعب على البقاء في مكان البارت كل فريم إذا حاول يتحرك
+runService.RenderStepped:Connect(function()
+	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = player.Character.HumanoidRootPart
+		local pad = workspace:FindFirstChild("PadGlow")
+		if hrp and pad then
+			local distance = (hrp.Position - pad.Position).Magnitude
+			if distance > 0.1 then -- إذا حاول يتحرك
+				hrp.CFrame = pad.CFrame
+			end
+		end
+	end
+end)
