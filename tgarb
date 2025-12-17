@@ -5,7 +5,7 @@ local function teleportToPad()
 	local char = player.Character
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
-	local pad = workspace:FindFirstChild("PadGlow")
+	local pad = workspace:FindFirstChild("FakeinsideGift")
 	if hrp and pad then
 		hrp.CFrame = pad.CFrame -- ينقلك بالضبط لمكان البارت
 	end
@@ -21,7 +21,7 @@ end)
 runService.RenderStepped:Connect(function()
 	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 		local hrp = player.Character.HumanoidRootPart
-		local pad = workspace:FindFirstChild("PadGlow")
+		local pad = workspace:FindFirstChild("FakeinsideGift")
 		if hrp and pad then
 			local distance = (hrp.Position - pad.Position).Magnitude
 			if distance > 0.1 then -- إذا حاول يتحرك
