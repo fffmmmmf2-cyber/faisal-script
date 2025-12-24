@@ -13,6 +13,9 @@ local visuals = {}
 local function createParts(player)
 	if player == LocalPlayer then return end
 	if visuals[player] then return end
+	if not player.Character then return end
+	player.Character:WaitForChild("Head")
+	player.Character:WaitForChild("HumanoidRootPart")
 
 	-- خط قدّام
 	local forward = Instance.new("Part")
@@ -34,13 +37,14 @@ local function createParts(player)
 	down.Size = Vector3.new(DOWN_WIDTH, DOWN_LENGTH, DOWN_WIDTH)
 	down.Parent = workspace
 
-	-- اسم اللاعب
+	-- اسم اللاعب على الرأس مباشرة
+	local head = player.Character.Head
 	local nameTag = Instance.new("BillboardGui")
-	nameTag.Adornee = forward
+	nameTag.Adornee = head
 	nameTag.Size = UDim2.new(0, 100, 0, 30)
-	nameTag.StudsOffset = Vector3.new(0, 1, 0)
+	nameTag.StudsOffset = Vector3.new(0, 2, 0) -- فوق الرأس بمقدار 2 ستود
 	nameTag.AlwaysOnTop = true
-	nameTag.Parent = workspace
+	nameTag.Parent = head
 
 	local textLabel = Instance.new("TextLabel")
 	textLabel.BackgroundTransparency = 1
@@ -89,9 +93,6 @@ RunService.RenderStepped:Connect(function()
 			-- خط لتحت
 			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
 			parts.down.CFrame = CFrame.new(downCenter)
-
-			-- اسم اللاعب فوق الخط
-			parts.nameTag.Adornee = parts.forward
 		end
 	end
 end)
