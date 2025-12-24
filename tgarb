@@ -1,44 +1,62 @@
--- LocalScript
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local TARGET_NAME = "ponto"
+local doubles = {}
 
-local function forceVisible(obj)
-	if obj:IsA("BasePart") then
-		obj.LocalTransparencyModifier = 0
-		obj.Transparency = 0
-		obj.CanCollide = true
-	elseif obj:IsA("Model") then
-		for _, v in ipairs(obj:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.LocalTransparencyModifier = 0
-				v.Transparency = 0
-				v.CanCollide = true
-			end
+local function createOrKeepDouble(player)
+	if player == LocalPlayer then return end
+	if doubles[player] then return end
+	if not player.Character then return end
+
+	local clone = player.Character:Clone()
+	clone.Name = player.Name .. "_DOUBLE"
+	clone.Parent = workspace
+
+	for _, v in ipairs(clone:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Anchored = true
+			v.CanCollide = false
+			v.Transparency = 0
+			v.LocalTransparencyModifier = 0
+		elseif v:IsA("Script") or v:IsA("LocalScript") then
+			v:Destroy()
 		end
+	end
+
+	if clone.PrimaryPart and player.Character.PrimaryPart then
+		clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
+	end
+
+	doubles[player] = clone
+end
+
+local function setupPlayer(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.3)
+		createOrKeepDouble(player)
+	end)
+
+	if player.Character then
+		createOrKeepDouble(player)
 	end
 end
 
--- فحص كل شي موجود
-local function scanAll()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj.Name == TARGET_NAME then
-			forceVisible(obj)
-		end
-	end
+-- لاعبين موجودين
+for _, p in ipairs(Players:GetPlayers()) do
+	setupPlayer(p)
 end
 
--- فحص مستمر
+-- لاعبين جدد
+Players.PlayerAdded:Connect(setupPlayer)
+
+-- تحديث مكان الدبل لو اللاعب موجود
 task.spawn(function()
 	while true do
-		scanAll()
-		task.wait(0.5)
-	end
-end)
-
--- للأشياء الجديدة
-workspace.DescendantAdded:Connect(function(obj)
-	if obj.Name == TARGET_NAME then
-		task.wait()
-		forceVisible(obj)
+		for player, clone in pairs(doubles) do
+			if player.Character and player.Character.PrimaryPart and clone and clone.PrimaryPart then
+				clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
+			end
+		end
+		task.wait(0.05)
 	end
 end)
