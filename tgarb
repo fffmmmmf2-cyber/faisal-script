@@ -1,14 +1,50 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- إعدادات الخطوط
 local FORWARD_LENGTH = 100
 local DOWN_LENGTH = 6
+local DOWN_WIDTH = 3
 local THICKNESS = 0.3
-local COLOR = Color3.fromRGB(255, 0, 0)
+local LINE_COLOR = Color3.fromRGB(255, 0, 0)
 
+-- دبل لكل لاعب
+local doubles = {}
+
+-- الخطوط وأسماء اللاعبين
 local visuals = {}
 
+-- === إنشاء أو الاحتفاظ بالدبل ===
+local function createOrKeepDouble(player)
+	if player == LocalPlayer then return end
+	if doubles[player] then return end
+	if not player.Character then return end
+
+	local clone = player.Character:Clone()
+	clone.Name = player.Name .. "_DOUBLE"
+	clone.Parent = workspace
+
+	for _, v in ipairs(clone:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Anchored = true
+			v.CanCollide = false
+			v.Transparency = 0
+			v.LocalTransparencyModifier = 0
+		elseif v:IsA("Script") or v:IsA("LocalScript") then
+			v:Destroy()
+		end
+	end
+
+	if clone.PrimaryPart and player.Character.PrimaryPart then
+		clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
+	end
+
+	doubles[player] = clone
+end
+
+-- === إنشاء الخطوط وأسماء اللاعبين ===
 local function createParts(player)
 	if player == LocalPlayer then return end
 	if visuals[player] then return end
@@ -19,7 +55,7 @@ local function createParts(player)
 	forward.CanCollide = false
 	forward.CastShadow = false
 	forward.Material = Enum.Material.Neon
-	forward.Color = COLOR
+	forward.Color = LINE_COLOR
 	forward.Size = Vector3.new(THICKNESS, THICKNESS, FORWARD_LENGTH)
 	forward.Parent = workspace
 
@@ -29,13 +65,31 @@ local function createParts(player)
 	down.CanCollide = false
 	down.CastShadow = false
 	down.Material = Enum.Material.Neon
-	down.Color = COLOR
-	down.Size = Vector3.new(THICKNESS, DOWN_LENGTH, THICKNESS)
+	down.Color = LINE_COLOR
+	down.Size = Vector3.new(DOWN_WIDTH, DOWN_LENGTH, DOWN_WIDTH)
 	down.Parent = workspace
 
-	visuals[player] = {forward = forward, down = down}
+	-- اسم اللاعب
+	local nameTag = Instance.new("BillboardGui")
+	nameTag.Adornee = forward
+	nameTag.Size = UDim2.new(0, 100, 0, 30)
+	nameTag.StudsOffset = Vector3.new(0, 1, 0)
+	nameTag.AlwaysOnTop = true
+	nameTag.Parent = workspace
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.BackgroundTransparency = 1
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.Text = player.Name
+	textLabel.TextColor3 = Color3.new(1,1,1)
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.Parent = nameTag
+
+	visuals[player] = {forward = forward, down = down, nameTag = nameTag}
 end
 
+-- إزالة الخطوط
 local function removeParts(player)
 	if visuals[player] then
 		for _, p in pairs(visuals[player]) do
@@ -43,18 +97,32 @@ local function removeParts(player)
 		end
 		visuals[player] = nil
 	end
+	if doubles[player] then
+		doubles[player]:Destroy()
+		doubles[player] = nil
+	end
 end
 
--- لاعبين موجودين
-for _, p in ipairs(Players:GetPlayers()) do
-	createParts(p)
+-- إعداد اللاعبين الحاليين والجدد
+for _, player in ipairs(Players:GetPlayers()) do
+	createOrKeepDouble(player)
+	createParts(player)
 end
 
-Players.PlayerAdded:Connect(createParts)
+Players.PlayerAdded:Connect(function(player)
+	createOrKeepDouble(player)
+	createParts(player)
+end)
 Players.PlayerRemoving:Connect(removeParts)
 
--- تحديث ناعم بدون تعليق
+-- تحديث كل شيء ناعم
 RunService.RenderStepped:Connect(function()
+	for player, clone in pairs(doubles) do
+		if player.Character and player.Character.PrimaryPart and clone.PrimaryPart then
+			clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
+		end
+	end
+
 	for player, parts in pairs(visuals) do
 		local char = player.Character
 		if char and char:FindFirstChild("Head") and char.PrimaryPart then
@@ -71,6 +139,26 @@ RunService.RenderStepped:Connect(function()
 			-- خط لتحت
 			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
 			parts.down.CFrame = CFrame.new(downCenter)
+
+			-- اسم اللاعب فوق الخط
+			parts.nameTag.Adornee = parts.forward
 		end
 	end
 end)
+
+-- === ScreenGui مطور فيصل ===
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DeveloperTag"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Parent = screenGui
+textLabel.Text = "المطور فيصل"
+textLabel.TextColor3 = Color3.new(1, 1, 1)
+textLabel.BackgroundTransparency = 1
+textLabel.TextScaled = true
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.Size = UDim2.new(0, 120, 0, 30)
+textLabel.Position = UDim2.new(1, -130, 1, -40)
+textLabel.AnchorPoint = Vector2.new(0, 0)
