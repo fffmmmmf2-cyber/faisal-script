@@ -1,32 +1,46 @@
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
+-- LocalScript
 
-local function teleportToPad()
-	local char = player.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	local pad = workspace:FindFirstChild("FakeinsideGift")
-	if hrp and pad then
-		hrp.CFrame = pad.CFrame -- ينقلك بالضبط لمكان البارت
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function makeVisible(character)
+	for _, obj in ipairs(character:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			obj.LocalTransparencyModifier = 0
+		elseif obj:IsA("Decal") then
+			obj.Transparency = 0
+		end
 	end
 end
 
--- أول ما الشخصية تظهر
-player.CharacterAdded:Connect(function(char)
-	char:WaitForChild("HumanoidRootPart")
-	teleportToPad()
+-- لاعب موجود
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer and player.Character then
+		makeVisible(player.Character)
+	end
+
+	player.CharacterAdded:Connect(function(char)
+		task.wait(0.1)
+		makeVisible(char)
+	end)
+end
+
+-- لاعبين جدد
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		task.wait(0.1)
+		makeVisible(char)
+	end)
 end)
 
--- يجبر اللاعب على البقاء في مكان البارت كل فريم إذا حاول يتحرك
-runService.RenderStepped:Connect(function()
-	if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-		local hrp = player.Character.HumanoidRootPart
-		local pad = workspace:FindFirstChild("FakeinsideGift")
-		if hrp and pad then
-			local distance = (hrp.Position - pad.Position).Magnitude
-			if distance > 0.1 then -- إذا حاول يتحرك
-				hrp.CFrame = pad.CFrame
+-- فحص كل نص ثانية
+task.spawn(function()
+	while true do
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				makeVisible(player.Character)
 			end
 		end
+		task.wait(0.5)
 	end
 end)
