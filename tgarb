@@ -10,12 +10,26 @@ local COLOR = Color3.fromRGB(255, 0, 0)
 
 local visuals = {}
 
-local function createParts(player)
+local function cleanup(player)
+	if visuals[player] then
+		for _, obj in pairs(visuals[player]) do
+			if obj and obj.Destroy then
+				obj:Destroy()
+			end
+		end
+		visuals[player] = nil
+	end
+end
+
+local function createVisuals(player)
 	if player == LocalPlayer then return end
-	if visuals[player] then return end
 	if not player.Character then return end
-	player.Character:WaitForChild("Head")
-	player.Character:WaitForChild("HumanoidRootPart")
+
+	cleanup(player)
+
+	local char = player.Character
+	local head = char:WaitForChild("Head")
+	local root = char:WaitForChild("HumanoidRootPart")
 
 	-- خط قدّام
 	local forward = Instance.new("Part")
@@ -37,12 +51,11 @@ local function createParts(player)
 	down.Size = Vector3.new(DOWN_WIDTH, DOWN_LENGTH, DOWN_WIDTH)
 	down.Parent = workspace
 
-	-- اسم اللاعب على الرأس مباشرة
-	local head = player.Character.Head
+	-- اسم اللاعب فوق الرأس
 	local nameTag = Instance.new("BillboardGui")
 	nameTag.Adornee = head
 	nameTag.Size = UDim2.new(0, 100, 0, 30)
-	nameTag.StudsOffset = Vector3.new(0, 2, 0) -- فوق الرأس بمقدار 2 ستود
+	nameTag.StudsOffset = Vector3.new(0, 2, 0)
 	nameTag.AlwaysOnTop = true
 	nameTag.Parent = head
 
@@ -50,47 +63,55 @@ local function createParts(player)
 	textLabel.BackgroundTransparency = 1
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
 	textLabel.Text = player.Name
-	textLabel.TextColor3 = Color3.new(1, 1, 1)
+	textLabel.TextColor3 = Color3.new(1,1,1)
 	textLabel.TextScaled = true
 	textLabel.Font = Enum.Font.SourceSansBold
 	textLabel.Parent = nameTag
 
-	visuals[player] = {forward = forward, down = down, nameTag = nameTag}
+	visuals[player] = {
+		forward = forward,
+		down = down,
+		nameTag = nameTag
+	}
 end
 
-local function removeParts(player)
-	if visuals[player] then
-		for _, p in pairs(visuals[player]) do
-			p:Destroy()
-		end
-		visuals[player] = nil
+local function setupPlayer(player)
+	if player.Character then
+		createVisuals(player)
 	end
+
+	player.CharacterAdded:Connect(function()
+		task.wait(0.2)
+		createVisuals(player)
+	end)
 end
 
 -- لاعبين موجودين
-for _, p in ipairs(Players:GetPlayers()) do
-	createParts(p)
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
 end
 
-Players.PlayerAdded:Connect(createParts)
-Players.PlayerRemoving:Connect(removeParts)
+-- لاعبين جدد
+Players.PlayerAdded:Connect(setupPlayer)
 
--- تحديث ناعم
+Players.PlayerRemoving:Connect(cleanup)
+
+-- تحديث مستمر
 RunService.RenderStepped:Connect(function()
 	for player, parts in pairs(visuals) do
 		local char = player.Character
-		if char and char:FindFirstChild("Head") and char.PrimaryPart then
+		if char and char:FindFirstChild("Head") and char:FindFirstChild("HumanoidRootPart") then
 			local head = char.Head
-			local root = char.PrimaryPart
+			local root = char.HumanoidRootPart
 
 			local forwardDir = root.CFrame.LookVector
 			local topPos = head.Position + Vector3.new(0, 0.6, 0)
 
-			-- خط قدّام
+			-- الخط الأمامي
 			local forwardCenter = topPos + (forwardDir * (FORWARD_LENGTH / 2))
 			parts.forward.CFrame = CFrame.new(forwardCenter, forwardCenter + forwardDir)
 
-			-- خط لتحت
+			-- الخط العمودي
 			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
 			parts.down.CFrame = CFrame.new(downCenter)
 		end
