@@ -1,62 +1,60 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local doubles = {}
+local LINE_LENGTH = 100
+local LINE_THICKNESS = 0.3
+local LINE_COLOR = Color3.fromRGB(255, 0, 0)
 
-local function createOrKeepDouble(player)
+local lines = {}
+
+local function createLine(player)
 	if player == LocalPlayer then return end
-	if doubles[player] then return end
-	if not player.Character then return end
+	if lines[player] then return end
 
-	local clone = player.Character:Clone()
-	clone.Name = player.Name .. "_DOUBLE"
-	clone.Parent = workspace
+	local part = Instance.new("Part")
+	part.Name = player.Name .. "_HEAD_LINE"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = LINE_COLOR
+	part.Size = Vector3.new(LINE_THICKNESS, LINE_THICKNESS, LINE_LENGTH)
+	part.Parent = workspace
 
-	for _, v in ipairs(clone:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Anchored = true
-			v.CanCollide = false
-			v.Transparency = 0
-			v.LocalTransparencyModifier = 0
-		elseif v:IsA("Script") or v:IsA("LocalScript") then
-			v:Destroy()
-		end
-	end
-
-	if clone.PrimaryPart and player.Character.PrimaryPart then
-		clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
-	end
-
-	doubles[player] = clone
+	lines[player] = part
 end
 
-local function setupPlayer(player)
-	player.CharacterAdded:Connect(function()
-		task.wait(0.3)
-		createOrKeepDouble(player)
-	end)
-
-	if player.Character then
-		createOrKeepDouble(player)
+local function removeLine(player)
+	if lines[player] then
+		lines[player]:Destroy()
+		lines[player] = nil
 	end
 end
 
--- لاعبين موجودين
-for _, p in ipairs(Players:GetPlayers()) do
-	setupPlayer(p)
+-- إنشاء الخط
+for _, player in ipairs(Players:GetPlayers()) do
+	createLine(player)
 end
 
--- لاعبين جدد
-Players.PlayerAdded:Connect(setupPlayer)
+Players.PlayerAdded:Connect(createLine)
+Players.PlayerRemoving:Connect(removeLine)
 
--- تحديث مكان الدبل لو اللاعب موجود
+-- تحديث الاتجاه والمكان
 task.spawn(function()
 	while true do
-		for player, clone in pairs(doubles) do
-			if player.Character and player.Character.PrimaryPart and clone and clone.PrimaryPart then
-				clone:SetPrimaryPartCFrame(player.Character.PrimaryPart.CFrame)
+		for player, line in pairs(lines) do
+			local char = player.Character
+			if char and char:FindFirstChild("Head") and char.PrimaryPart then
+				local head = char.Head
+				local root = char.PrimaryPart
+
+				local forward = root.CFrame.LookVector
+				local startPos = head.Position + Vector3.new(0, 0.5, 0)
+				local centerPos = startPos + (forward * (LINE_LENGTH / 2))
+
+				line.CFrame = CFrame.new(centerPos, centerPos + forward)
 			end
 		end
-		task.wait(0.05)
+		task.wait(0.1)
 	end
 end)
