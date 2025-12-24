@@ -1,60 +1,76 @@
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local LINE_LENGTH = 100
-local LINE_THICKNESS = 0.3
-local LINE_COLOR = Color3.fromRGB(255, 0, 0)
+local FORWARD_LENGTH = 100
+local DOWN_LENGTH = 6
+local THICKNESS = 0.3
+local COLOR = Color3.fromRGB(255, 0, 0)
 
-local lines = {}
+local visuals = {}
 
-local function createLine(player)
+local function createParts(player)
 	if player == LocalPlayer then return end
-	if lines[player] then return end
+	if visuals[player] then return end
 
-	local part = Instance.new("Part")
-	part.Name = player.Name .. "_HEAD_LINE"
-	part.Anchored = true
-	part.CanCollide = false
-	part.CastShadow = false
-	part.Material = Enum.Material.Neon
-	part.Color = LINE_COLOR
-	part.Size = Vector3.new(LINE_THICKNESS, LINE_THICKNESS, LINE_LENGTH)
-	part.Parent = workspace
+	-- خط قدّام
+	local forward = Instance.new("Part")
+	forward.Anchored = true
+	forward.CanCollide = false
+	forward.CastShadow = false
+	forward.Material = Enum.Material.Neon
+	forward.Color = COLOR
+	forward.Size = Vector3.new(THICKNESS, THICKNESS, FORWARD_LENGTH)
+	forward.Parent = workspace
 
-	lines[player] = part
+	-- خط لتحت
+	local down = Instance.new("Part")
+	down.Anchored = true
+	down.CanCollide = false
+	down.CastShadow = false
+	down.Material = Enum.Material.Neon
+	down.Color = COLOR
+	down.Size = Vector3.new(THICKNESS, DOWN_LENGTH, THICKNESS)
+	down.Parent = workspace
+
+	visuals[player] = {forward = forward, down = down}
 end
 
-local function removeLine(player)
-	if lines[player] then
-		lines[player]:Destroy()
-		lines[player] = nil
+local function removeParts(player)
+	if visuals[player] then
+		for _, p in pairs(visuals[player]) do
+			p:Destroy()
+		end
+		visuals[player] = nil
 	end
 end
 
--- إنشاء الخط
-for _, player in ipairs(Players:GetPlayers()) do
-	createLine(player)
+-- لاعبين موجودين
+for _, p in ipairs(Players:GetPlayers()) do
+	createParts(p)
 end
 
-Players.PlayerAdded:Connect(createLine)
-Players.PlayerRemoving:Connect(removeLine)
+Players.PlayerAdded:Connect(createParts)
+Players.PlayerRemoving:Connect(removeParts)
 
--- تحديث الاتجاه والمكان
-task.spawn(function()
-	while true do
-		for player, line in pairs(lines) do
-			local char = player.Character
-			if char and char:FindFirstChild("Head") and char.PrimaryPart then
-				local head = char.Head
-				local root = char.PrimaryPart
+-- تحديث ناعم بدون تعليق
+RunService.RenderStepped:Connect(function()
+	for player, parts in pairs(visuals) do
+		local char = player.Character
+		if char and char:FindFirstChild("Head") and char.PrimaryPart then
+			local head = char.Head
+			local root = char.PrimaryPart
 
-				local forward = root.CFrame.LookVector
-				local startPos = head.Position + Vector3.new(0, 0.5, 0)
-				local centerPos = startPos + (forward * (LINE_LENGTH / 2))
+			local forwardDir = root.CFrame.LookVector
+			local topPos = head.Position + Vector3.new(0, 0.6, 0)
 
-				line.CFrame = CFrame.new(centerPos, centerPos + forward)
-			end
+			-- خط قدّام
+			local forwardCenter = topPos + (forwardDir * (FORWARD_LENGTH / 2))
+			parts.forward.CFrame = CFrame.new(forwardCenter, forwardCenter + forwardDir)
+
+			-- خط لتحت
+			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
+			parts.down.CFrame = CFrame.new(downCenter)
 		end
-		task.wait(0.1)
 	end
 end)
