@@ -1,119 +1,205 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local FORWARD_LENGTH = 100
-local DOWN_LENGTH = 6
-local DOWN_WIDTH = 3
-local THICKNESS = 0.3
-local COLOR = Color3.fromRGB(255, 0, 0)
+local highlightFolder = Instance.new("Folder")
+highlightFolder.Name = "PlayerHighlights"
+highlightFolder.Parent = workspace
 
-local visuals = {}
+local highlights = {}
+local beams = {}
+local currentTarget = nil
+local lastPositions = {}
+local stationaryTime = {}
 
-local function cleanup(player)
-	if visuals[player] then
-		for _, obj in pairs(visuals[player]) do
-			if obj and obj.Destroy then
-				obj:Destroy()
-			end
-		end
-		visuals[player] = nil
-	end
+-- يعطي اللاعب Highlight إذا ناقص
+local function getHighlight(char)
+    if not char then return end
+    if highlights[char] then return highlights[char] end
+
+    local h = Instance.new("Highlight")
+    h.FillTransparency = 0.3
+    h.OutlineTransparency = 0
+    h.Parent = highlightFolder
+    highlights[char] = h
+
+    return h
 end
 
-local function createVisuals(player)
-	if player == LocalPlayer then return end
-	if not player.Character then return end
+-- Beam من كاميرا اللاعب لرأس أي لاعب أخضر
+local function createBeam(char)
+    if beams[char] then return beams[char] end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
 
-	cleanup(player)
+    local startAttachment = Instance.new("Attachment", LocalPlayer.Character.HumanoidRootPart)
+    startAttachment.Name = "BeamStart"
 
-	local char = player.Character
-	local head = char:WaitForChild("Head")
-	local root = char:WaitForChild("HumanoidRootPart")
+    local endAttachment = Instance.new("Attachment", char.Head)
+    endAttachment.Name = "BeamEnd"
 
-	-- خط قدّام
-	local forward = Instance.new("Part")
-	forward.Anchored = true
-	forward.CanCollide = false
-	forward.CastShadow = false
-	forward.Material = Enum.Material.Neon
-	forward.Color = COLOR
-	forward.Size = Vector3.new(THICKNESS, THICKNESS, FORWARD_LENGTH)
-	forward.Parent = workspace
+    local beam = Instance.new("Beam")
+    beam.Attachment0 = startAttachment
+    beam.Attachment1 = endAttachment
+    beam.Width0 = 0.1
+    beam.Width1 = 0.1
+    beam.FaceCamera = true
+    beam.Color = ColorSequence.new(Color3.fromRGB(0,255,0))
+    beam.Enabled = false
+    beam.Parent = char
 
-	-- خط لتحت
-	local down = Instance.new("Part")
-	down.Anchored = true
-	down.CanCollide = false
-	down.CastShadow = false
-	down.Material = Enum.Material.Neon
-	down.Color = COLOR
-	down.Size = Vector3.new(DOWN_WIDTH, DOWN_LENGTH, DOWN_WIDTH)
-	down.Parent = workspace
-
-	-- اسم اللاعب فوق الرأس
-	local nameTag = Instance.new("BillboardGui")
-	nameTag.Adornee = head
-	nameTag.Size = UDim2.new(0, 100, 0, 30)
-	nameTag.StudsOffset = Vector3.new(0, 2, 0)
-	nameTag.AlwaysOnTop = true
-	nameTag.Parent = head
-
-	local textLabel = Instance.new("TextLabel")
-	textLabel.BackgroundTransparency = 1
-	textLabel.Size = UDim2.new(1, 0, 1, 0)
-	textLabel.Text = player.Name
-	textLabel.TextColor3 = Color3.new(1,1,1)
-	textLabel.TextScaled = true
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.Parent = nameTag
-
-	visuals[player] = {
-		forward = forward,
-		down = down,
-		nameTag = nameTag
-	}
+    beams[char] = beam
+    return beam
 end
 
-local function setupPlayer(player)
-	if player.Character then
-		createVisuals(player)
-	end
+-- فحص الرؤية
+local function isVisible(targetChar)
+    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")) then return false end
+    if not (targetChar and targetChar:FindFirstChild("Head")) then return false end
 
-	player.CharacterAdded:Connect(function()
-		task.wait(0.2)
-		createVisuals(player)
-	end)
+    local origin = LocalPlayer.Character.Head.Position
+    local target = targetChar.Head.Position
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+
+    local ray = workspace:Raycast(origin, target - origin, params)
+    if not ray then return true end
+    if ray.Instance and ray.Instance:IsDescendantOf(targetChar) then return true end
+    return false
 end
 
--- لاعبين موجودين
-for _, player in ipairs(Players:GetPlayers()) do
-	setupPlayer(player)
+-- تحديث اللون والخط لكل لاعب
+local function updateColors()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local char = plr.Character
+            local h = getHighlight(char)
+            h.Adornee = char
+
+            local beam = createBeam(char)
+
+            if isVisible(char) then
+                h.FillColor = Color3.fromRGB(0,255,0)
+                h.OutlineColor = Color3.fromRGB(0,255,0)
+                beam.Enabled = true
+            else
+                h.FillColor = Color3.fromRGB(255,0,0)
+                h.OutlineColor = Color3.fromRGB(255,0,0)
+                beam.Enabled = false
+            end
+        end
+    end
 end
 
--- لاعبين جدد
-Players.PlayerAdded:Connect(setupPlayer)
+-- متابعة حركة اللاعبين لتحديد الوقوف
+local function updatePlayerMovement()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = plr.Character.HumanoidRootPart
+            local lastPos = lastPositions[plr] or hrp.Position
+            local dist = (hrp.Position - lastPos).Magnitude
 
-Players.PlayerRemoving:Connect(cleanup)
+            if dist < 0.1 then
+                stationaryTime[plr] = (stationaryTime[plr] or 0) + 0.1
+            else
+                stationaryTime[plr] = 0
+            end
 
--- تحديث مستمر
+            lastPositions[plr] = hrp.Position
+        end
+    end
+end
+
+-- اختيار أقرب لاعب أخضر متحرك فقط
+local function updateTarget()
+    local nearest = nil
+    local nearestDist = math.huge
+    if not (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) then return end
+    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local char = plr.Character
+            local h = highlights[char]
+            local stationary = stationaryTime[plr] or 0
+
+            if h and h.FillColor == Color3.fromRGB(0,255,0) and stationary < 7 then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - myPos).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = char
+                    end
+                end
+            end
+        end
+    end
+
+    currentTarget = nearest
+end
+
+-- تحديث الكاميرا بشكل قوي جدًا
 RunService.RenderStepped:Connect(function()
-	for player, parts in pairs(visuals) do
-		local char = player.Character
-		if char and char:FindFirstChild("Head") and char:FindFirstChild("HumanoidRootPart") then
-			local head = char.Head
-			local root = char.HumanoidRootPart
-
-			local forwardDir = root.CFrame.LookVector
-			local topPos = head.Position + Vector3.new(0, 0.6, 0)
-
-			-- الخط الأمامي
-			local forwardCenter = topPos + (forwardDir * (FORWARD_LENGTH / 2))
-			parts.forward.CFrame = CFrame.new(forwardCenter, forwardCenter + forwardDir)
-
-			-- الخط العمودي
-			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
-			parts.down.CFrame = CFrame.new(downCenter)
-		end
-	end
+    if currentTarget and currentTarget:FindFirstChild("Head") then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, currentTarget.Head.Position)
+    end
 end)
+
+-- التحقق من Highlight كل 10 ثواني
+task.spawn(function()
+    while true do
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                getHighlight(plr.Character)
+                createBeam(plr.Character)
+            end
+        end
+        task.wait(10)
+    end
+end)
+
+-- تحديث الألوان وحركة اللاعبين
+task.spawn(function()
+    while true do
+        updateColors()
+        updatePlayerMovement()
+        task.wait(0.1)
+    end
+end)
+
+-- تحديث اختيار أقرب لاعب أخضر متحرك
+task.spawn(function()
+    while true do
+        updateTarget()
+        task.wait(0.3)
+    end
+end)
+
+-- ✨ التعامل مع Respawn
+local function onCharacterAdded(char)
+    -- إعادة تهيئة بيانات اللاعب
+    highlights[char] = nil
+    beams[char] = nil
+    lastPositions[Players:GetPlayerFromCharacter(char)] = nil
+    stationaryTime[Players:GetPlayerFromCharacter(char)] = 0
+
+    -- إنشاء Highlight وBeam
+    getHighlight(char)
+    if char:FindFirstChild("Head") then
+        createBeam(char)
+    end
+end
+
+-- لكل اللاعبين الحاليين
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr.Character then
+        onCharacterAdded(plr.Character)
+    end
+    plr.CharacterAdded:Connect(onCharacterAdded)
+end
+
+-- LocalPlayer عند Respawn
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
