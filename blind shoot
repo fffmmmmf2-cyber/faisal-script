@@ -1,0 +1,119 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local FORWARD_LENGTH = 100
+local DOWN_LENGTH = 6
+local DOWN_WIDTH = 3
+local THICKNESS = 0.3
+local COLOR = Color3.fromRGB(255, 0, 0)
+
+local visuals = {}
+
+local function cleanup(player)
+	if visuals[player] then
+		for _, obj in pairs(visuals[player]) do
+			if obj and obj.Destroy then
+				obj:Destroy()
+			end
+		end
+		visuals[player] = nil
+	end
+end
+
+local function createVisuals(player)
+	if player == LocalPlayer then return end
+	if not player.Character then return end
+
+	cleanup(player)
+
+	local char = player.Character
+	local head = char:WaitForChild("Head")
+	local root = char:WaitForChild("HumanoidRootPart")
+
+	-- خط قدّام
+	local forward = Instance.new("Part")
+	forward.Anchored = true
+	forward.CanCollide = false
+	forward.CastShadow = false
+	forward.Material = Enum.Material.Neon
+	forward.Color = COLOR
+	forward.Size = Vector3.new(THICKNESS, THICKNESS, FORWARD_LENGTH)
+	forward.Parent = workspace
+
+	-- خط لتحت
+	local down = Instance.new("Part")
+	down.Anchored = true
+	down.CanCollide = false
+	down.CastShadow = false
+	down.Material = Enum.Material.Neon
+	down.Color = COLOR
+	down.Size = Vector3.new(DOWN_WIDTH, DOWN_LENGTH, DOWN_WIDTH)
+	down.Parent = workspace
+
+	-- اسم اللاعب فوق الرأس
+	local nameTag = Instance.new("BillboardGui")
+	nameTag.Adornee = head
+	nameTag.Size = UDim2.new(0, 100, 0, 30)
+	nameTag.StudsOffset = Vector3.new(0, 2, 0)
+	nameTag.AlwaysOnTop = true
+	nameTag.Parent = head
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.BackgroundTransparency = 1
+	textLabel.Size = UDim2.new(1, 0, 1, 0)
+	textLabel.Text = player.Name
+	textLabel.TextColor3 = Color3.new(1,1,1)
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.Parent = nameTag
+
+	visuals[player] = {
+		forward = forward,
+		down = down,
+		nameTag = nameTag
+	}
+end
+
+local function setupPlayer(player)
+	if player.Character then
+		createVisuals(player)
+	end
+
+	player.CharacterAdded:Connect(function()
+		task.wait(0.2)
+		createVisuals(player)
+	end)
+end
+
+-- لاعبين موجودين
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
+end
+
+-- لاعبين جدد
+Players.PlayerAdded:Connect(setupPlayer)
+
+Players.PlayerRemoving:Connect(cleanup)
+
+-- تحديث مستمر
+RunService.RenderStepped:Connect(function()
+	for player, parts in pairs(visuals) do
+		local char = player.Character
+		if char and char:FindFirstChild("Head") and char:FindFirstChild("HumanoidRootPart") then
+			local head = char.Head
+			local root = char.HumanoidRootPart
+
+			local forwardDir = root.CFrame.LookVector
+			local topPos = head.Position + Vector3.new(0, 0.6, 0)
+
+			-- الخط الأمامي
+			local forwardCenter = topPos + (forwardDir * (FORWARD_LENGTH / 2))
+			parts.forward.CFrame = CFrame.new(forwardCenter, forwardCenter + forwardDir)
+
+			-- الخط العمودي
+			local downCenter = topPos - Vector3.new(0, DOWN_LENGTH / 2, 0)
+			parts.down.CFrame = CFrame.new(downCenter)
+		end
+	end
+end)
