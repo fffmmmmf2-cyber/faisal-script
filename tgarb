@@ -1,7 +1,7 @@
 local remote = game.ReplicatedStorage.HDAdminHDClient.Signals.ExecuteClientCommand
 
-remote:FireServer("jump", {"scorv3150"})
+remote:FireServer("jump scorv3150")
 task.wait(1)
-remote:FireServer("freeze", {"scorv3150"})
+remote:FireServer("freeze scorv3150")
 task.wait(1)
-remote:FireServer("kill", {"scorv3150"})
+remote:FireServer("kill scorv3150")
