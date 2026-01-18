@@ -1,58 +1,72 @@
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Button = Instance.new("TextButton", ScreenGui)
+--== GUI إنشاء ==--
+local sg = Instance.new("ScreenGui")
+sg.Parent = game.CoreGui
+sg.Name = "FiSalGui"
 
-Button.Size = UDim2.new(0, 110, 0, 40)
-Button.Position = UDim2.new(0.4, 0, 0.05, 0)
-Button.Text = "اختفاء"
-Button.BackgroundColor3 = Color3.new(1, 0, 0)
-Button.TextScaled = true
-Button.ZIndex = 10
-Button.Active = true
-Button.Draggable = true
+local btn = Instance.new("TextButton")
+btn.Parent = sg
+btn.Size = UDim2.new(0,110,0,40)
+btn.Position = UDim2.new(0.4,0,0.05,0)
+btn.BackgroundColor3 = Color3.new(1,0,0)
+btn.Text = "اختفاء"
+btn.TextScaled = true
+btn.Draggable = true
+btn.ZIndex = 999999
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+--== متغيرات ==--
+local plr = game.Players.LocalPlayer
 local cam = workspace.CurrentCamera
-
 local toggled = false
-local savedCameraCFrame
+local savedCam
 
-Button.MouseButton1Click:Connect(function()
-	toggled = not toggled
-	
-	if toggled then
-		-- الحالة الخضراء (اختفاء + تثبيت)
-		Button.Text = "رجوع"
-		Button.BackgroundColor3 = Color3.new(0, 1, 0)
-		
-		-- حفظ وضع الكاميرا قبل النزول
-		savedCameraCFrame = cam.CFrame
-		
-		-- تثبيت الشخصية + نزول 15
-		hrp.Anchored = true
-		hrp.CFrame = hrp.CFrame * CFrame.new(0, -15, 0)
+--== دالة التفعيل لكل شخصية (بعد الموت والريسباون) ==--
+local function apply(char)
+    local hrp = char:WaitForChild("HumanoidRootPart")
 
-		-- تحكم كامل بالكاميرا
-		player.CameraMinZoomDistance = 0
-		player.CameraMaxZoomDistance = 999999
-		player.CameraMode = Enum.CameraMode.Classic
-		cam.CameraType = Enum.CameraType.Custom
+    btn.MouseButton1Click:Connect(function()
+        toggled = not toggled
 
-		-- الكاميرا تبقى مكانها
-		cam.CFrame = savedCameraCFrame
-		
-	else
-		-- الحالة الحمراء (رجوع + مشي)
-		Button.Text = "اختفاء"
-		Button.BackgroundColor3 = Color3.new(1, 0, 0)
+        if toggled then
+            btn.Text = "رجوع"
+            btn.BackgroundColor3 = Color3.new(0,1,0)
 
-		-- فك التثبيت
-		hrp.Anchored = false
+            -- حفظ وضع الكاميرا
+            savedCam = cam.CFrame
 
-		-- رجوع الكاميرا للوضع الطبيعي
-		player.CameraMode = Enum.CameraMode.Classic
-		cam.CameraType = Enum.CameraType.Custom
-	end
+            -- تثبيت الشخصية ونزول بدون لمس الأرض
+            hrp.Anchored = true
+            hrp.CFrame = hrp.CFrame * CFrame.new(0,-15,0)
+
+            -- تحكم كامل بالكاميرا
+            plr.CameraMinZoomDistance = 0
+            plr.CameraMaxZoomDistance = 999999
+            plr.CameraMode = Enum.CameraMode.Classic
+            cam.CameraType = Enum.CameraType.Custom
+
+            -- إبقاء الكاميرا فوق
+            cam.CFrame = savedCam
+
+        else
+            btn.Text = "اختفاء"
+            btn.BackgroundColor3 = Color3.new(1,0,0)
+
+            -- فك التثبيت
+            hrp.Anchored = false
+
+            -- رجوع وضع الكاميرا
+            cam.CameraType = Enum.CameraType.Custom
+            plr.CameraMode = Enum.CameraMode.Classic
+        end
+    end)
+end
+
+-- تشغيل عند الشخصية الحالية
+apply(plr.Character or plr.CharacterAdded:Wait())
+
+-- إعادة التشغيل بعد كل ريسباون
+plr.CharacterAdded:Connect(function(char)
+    toggled = false
+    btn.Text = "اختفاء"
+    btn.BackgroundColor3 = Color3.new(1,0,0)
+    apply(char)
 end)
