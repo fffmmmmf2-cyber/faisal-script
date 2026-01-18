@@ -1,38 +1,27 @@
-local plr = game.Players.LocalPlayer
-local char = plr.Character or plr.CharacterAdded:Wait()
+local Mercy = {}
 
-local function safeFire(ev)
-    coroutine.wrap(function()
-        pcall(function()
-            ev:FireServer(plr) -- نعطي نفسك فقط
-        end)
-        task.wait(0.3)
-    end)()
+-- Alert: رسالة لشخص واحد (أنت فقط)
+function Mercy.Alert(msg)
+    rconsoleprint("[ALERT]: "..tostring(msg).."\n")
 end
 
-local function safeInvoke(fn)
-    coroutine.wrap(function()
-        pcall(function()
-            fn:InvokeServer(plr)
-        end)
-        task.wait(0.3)
-    end)()
+-- Broadcast: رسالة للجميع نفس الفكرة
+function Mercy.Broadcast(msg)
+    rconsoleprint("[BROADCAST]: "..tostring(msg).."\n")
 end
 
-local function scan(container)
-    for _,obj in ipairs(container:GetDescendants()) do
-        if obj:IsA("RemoteEvent") then
-            print("[TEST EVENT]", obj:GetFullName())
-            safeFire(obj)
-        elseif obj:IsA("RemoteFunction") then
-            print("[TEST FUNCTION]", obj:GetFullName())
-            safeInvoke(obj)
-        end
-    end
+-- Poll: تسوي طلب وترجع نتيجة
+function Mercy.Poll(msg)
+    rconsoleprint("[POLL SEND]: "..tostring(msg).."\n")
+    return "POLL RESULT: OK"
 end
 
-print("== Testing On Self ==")
-scan(game.ReplicatedStorage)
-scan(game.ReplicatedFirst)
-scan(game.Workspace)
-scan(game:GetService("Players"))
+-- Example usage
+spawn(function()
+    Mercy.Alert("Test Alert")
+    Mercy.Broadcast("Test Broadcast")
+    local result = Mercy.Poll("Ping")
+    rconsoleprint("[POLL RESPONSE]: "..result.."\n")
+end)
+
+return Mercy
