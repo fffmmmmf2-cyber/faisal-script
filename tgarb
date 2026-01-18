@@ -1,7 +1,21 @@
-local remote = game.ReplicatedStorage.HDAdminHDClient.Signals.ExecuteClientCommand
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
 
-remote:FireServer("jump scorv3150")
-task.wait(1)
-remote:FireServer("freeze scorv3150")
-task.wait(1)
-remote:FireServer("kill scorv3150")
+local function tryRemote(r)
+    local ok = pcall(function()
+        -- تجربة jump بسيطة
+        r:FireServer("Jump", lp)
+    end)
+    if ok then
+        print("[OK] Tested:", r.Name)
+    else
+        print("[FAIL] Skip:", r.Name)
+    end
+end
+
+for _, v in pairs(game:GetDescendants()) do
+    if v:IsA("RemoteEvent") then
+        print("[REMOTE]", v.Name)
+        tryRemote(v)
+    end
+end
