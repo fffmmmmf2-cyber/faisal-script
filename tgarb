@@ -1,37 +1,16 @@
--- GUI
-local sg = Instance.new("ScreenGui", game.CoreGui)
-local frame = Instance.new("ScrollingFrame", sg)
-frame.Size = UDim2.new(0.6,0,0.6,0)
-frame.Position = UDim2.new(0.2,0,0.2,0)
-frame.CanvasSize = UDim2.new(0,0,0,0)
-frame.BackgroundTransparency = 0.2
-frame.BackgroundColor3 = Color3.new(0,0,0)
-frame.ZIndex = 999999
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
 
-local layout = Instance.new("UIListLayout", frame)
-layout.Padding = UDim.new(0,4)
+-- مسار ريموت HD Admin
+local remote = game.ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.ExecuteClientCommand
 
--- جمع الريموتات
-local data = {}
+-- نجرب Jump
+remote:FireServer("jump", plr.Name)
+task.wait(1)
 
-for _,v in pairs(game:GetDescendants()) do
-	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-		table.insert(data, v.ClassName.." → "..v:GetFullName())
-	end
-end
+-- نجرب Freeze
+remote:FireServer("freeze", plr.Name)
+task.wait(1)
 
--- عرضها
-for i,txt in pairs(data) do
-	local label = Instance.new("TextLabel", frame)
-	label.Size = UDim2.new(1,0,0,20)
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.BackgroundTransparency = 1
-	label.TextScaled = false
-	label.Text = txt
-	label.Font = Enum.Font.Code
-	label.TextColor3 = Color3.new(1,1,1)
-	label.ZIndex = 999999
-end
-
--- تحديث حجم السحب
-frame.CanvasSize = UDim2.new(0,0,0,#data * 22)
+-- نجرب Kill
+remote:FireServer("kill", plr.Name)
