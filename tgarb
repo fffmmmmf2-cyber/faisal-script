@@ -1,16 +1,7 @@
-local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
+local remote = game.ReplicatedStorage.HDAdminHDClient.Signals.ExecuteClientCommand
 
--- مسار ريموت HD Admin
-local remote = game.ReplicatedStorage:WaitForChild("HDAdminHDClient").Signals.ExecuteClientCommand
-
--- نجرب Jump
-remote:FireServer("jump", plr.Name)
+remote:FireServer("jump", {"scorv3150"})
 task.wait(1)
-
--- نجرب Freeze
-remote:FireServer("freeze", plr.Name)
+remote:FireServer("freeze", {"scorv3150"})
 task.wait(1)
-
--- نجرب Kill
-remote:FireServer("kill", plr.Name)
+remote:FireServer("kill", {"scorv3150"})
