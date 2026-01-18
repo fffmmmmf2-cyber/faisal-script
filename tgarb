@@ -1,21 +1,44 @@
+-- Remote Scanner (Safe Mode)
+-- موجه للجوال + دلتا
+-- ما يسوي سبام ولا يخليك تنطرد
+
 local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
+local LP = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game.Workspace
 
-local function tryRemote(r)
-    local ok = pcall(function()
-        -- تجربة jump بسيطة
-        r:FireServer("Jump", lp)
+local ScanTargets = {
+    ReplicatedStorage,
+    Workspace,
+    game:GetService("StarterPlayer"),
+}
+
+local function safeFire(remote)
+    task.spawn(function()
+        pcall(function()
+            if remote:IsA("RemoteEvent") then
+                remote:FireServer("test") -- Ping بسيط جداً
+            elseif remote:IsA("RemoteFunction") then
+                remote:InvokeServer("test")
+            end
+        end)
     end)
-    if ok then
-        print("[OK] Tested:", r.Name)
-    else
-        print("[FAIL] Skip:", r.Name)
+end
+
+local function scanFolder(folder)
+    for _, v in ipairs(folder:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            print("[REMOTE FOUND] →", v:GetFullName())
+            task.wait(0.15) -- تأخير عشان ما ينطرد
+            safeFire(v)
+        end
     end
 end
 
-for _, v in pairs(game:GetDescendants()) do
-    if v:IsA("RemoteEvent") then
-        print("[REMOTE]", v.Name)
-        tryRemote(v)
+task.spawn(function()
+    for _, folder in ipairs(ScanTargets) do
+        scanFolder(folder)
+        task.wait(0.5)
     end
-end
+    print("✓ Scan Finished (Safe Mode)")
+end)
