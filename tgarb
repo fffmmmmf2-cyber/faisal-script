@@ -1,56 +1,38 @@
-local players = game:GetService("Players")
-local lp = players.LocalPlayer
+local plr = game.Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
 
-local remotes = {}
+local function safeFire(ev)
+    coroutine.wrap(function()
+        pcall(function()
+            ev:FireServer(plr) -- نعطي نفسك فقط
+        end)
+        task.wait(0.3)
+    end)()
+end
 
-local function hook(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        remotes[obj.Name] = obj
-        print("[Found Remote]", obj:GetFullName())
-        
-        -- sniff
+local function safeInvoke(fn)
+    coroutine.wrap(function()
+        pcall(function()
+            fn:InvokeServer(plr)
+        end)
+        task.wait(0.3)
+    end)()
+end
+
+local function scan(container)
+    for _,obj in ipairs(container:GetDescendants()) do
         if obj:IsA("RemoteEvent") then
-            obj.OnClientEvent:Connect(function(...)
-                print("[Event]",obj.Name,"<-",...)
-            end)
-        end
-        
-        if obj:IsA("RemoteFunction") then
-            obj.OnClientInvoke = function(...)
-                print("[Invoke]",obj.Name,"<-",...)
-            end
+            print("[TEST EVENT]", obj:GetFullName())
+            safeFire(obj)
+        elseif obj:IsA("RemoteFunction") then
+            print("[TEST FUNCTION]", obj:GetFullName())
+            safeInvoke(obj)
         end
     end
 end
 
-for _,v in ipairs(game:GetDescendants()) do hook(v) end
-game.DescendantAdded:Connect(hook)
-
--- simple replay framework
-local function replay(remote,...)
-    local ok,err = pcall(function()
-        if remote:IsA("RemoteEvent") then
-            remote:FireServer(...)
-        else
-            remote:InvokeServer(...)
-        end
-    end)
-    print(ok and "[OK]" or "[ERR]",remote.Name,err or "")
-end
-
--- auto test for players
-local function testPlayers(remote)
-    for _,plr in ipairs(players:GetPlayers()) do
-        if plr ~= lp then
-            replay(remote,plr)
-        end
-    end
-end
-
--- usage example
-task.delay(5,function()
-    print("Testing remote on players:")
-    for _,r in pairs(remotes) do
-        testPlayers(r)
-    end
-end)
+print("== Testing On Self ==")
+scan(game.ReplicatedStorage)
+scan(game.ReplicatedFirst)
+scan(game.Workspace)
+scan(game:GetService("Players"))
