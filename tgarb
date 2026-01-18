@@ -1,27 +1,13 @@
-local Mercy = {}
-
--- Alert: رسالة لشخص واحد (أنت فقط)
-function Mercy.Alert(msg)
-    rconsoleprint("[ALERT]: "..tostring(msg).."\n")
+-- أول شي يمسح الموجود حاليًا
+for _, obj in pairs(workspace:GetDescendants()) do
+    if obj.Name:lower():find("wave") then
+        obj:Destroy()
+    end
 end
 
--- Broadcast: رسالة للجميع نفس الفكرة
-function Mercy.Broadcast(msg)
-    rconsoleprint("[BROADCAST]: "..tostring(msg).."\n")
-end
-
--- Poll: تسوي طلب وترجع نتيجة
-function Mercy.Poll(msg)
-    rconsoleprint("[POLL SEND]: "..tostring(msg).."\n")
-    return "POLL RESULT: OK"
-end
-
--- Example usage
-spawn(function()
-    Mercy.Alert("Test Alert")
-    Mercy.Broadcast("Test Broadcast")
-    local result = Mercy.Poll("Ping")
-    rconsoleprint("[POLL RESPONSE]: "..result.."\n")
+-- بعدين يراقب الجديد ويشيله فورًا
+workspace.DescendantAdded:Connect(function(obj)
+    if obj.Name:lower():find("wave") then
+        obj:Destroy()
+    end
 end)
-
-return Mercy
