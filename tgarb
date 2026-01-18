@@ -1,72 +1,37 @@
---== GUI إنشاء ==--
-local sg = Instance.new("ScreenGui")
-sg.Parent = game.CoreGui
-sg.Name = "FiSalGui"
+-- GUI
+local sg = Instance.new("ScreenGui", game.CoreGui)
+local frame = Instance.new("ScrollingFrame", sg)
+frame.Size = UDim2.new(0.6,0,0.6,0)
+frame.Position = UDim2.new(0.2,0,0.2,0)
+frame.CanvasSize = UDim2.new(0,0,0,0)
+frame.BackgroundTransparency = 0.2
+frame.BackgroundColor3 = Color3.new(0,0,0)
+frame.ZIndex = 999999
 
-local btn = Instance.new("TextButton")
-btn.Parent = sg
-btn.Size = UDim2.new(0,110,0,40)
-btn.Position = UDim2.new(0.4,0,0.05,0)
-btn.BackgroundColor3 = Color3.new(1,0,0)
-btn.Text = "اختفاء"
-btn.TextScaled = true
-btn.Draggable = true
-btn.ZIndex = 999999
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0,4)
 
---== متغيرات ==--
-local plr = game.Players.LocalPlayer
-local cam = workspace.CurrentCamera
-local toggled = false
-local savedCam
+-- جمع الريموتات
+local data = {}
 
---== دالة التفعيل لكل شخصية (بعد الموت والريسباون) ==--
-local function apply(char)
-    local hrp = char:WaitForChild("HumanoidRootPart")
-
-    btn.MouseButton1Click:Connect(function()
-        toggled = not toggled
-
-        if toggled then
-            btn.Text = "رجوع"
-            btn.BackgroundColor3 = Color3.new(0,1,0)
-
-            -- حفظ وضع الكاميرا
-            savedCam = cam.CFrame
-
-            -- تثبيت الشخصية ونزول بدون لمس الأرض
-            hrp.Anchored = true
-            hrp.CFrame = hrp.CFrame * CFrame.new(0,-15,0)
-
-            -- تحكم كامل بالكاميرا
-            plr.CameraMinZoomDistance = 0
-            plr.CameraMaxZoomDistance = 999999
-            plr.CameraMode = Enum.CameraMode.Classic
-            cam.CameraType = Enum.CameraType.Custom
-
-            -- إبقاء الكاميرا فوق
-            cam.CFrame = savedCam
-
-        else
-            btn.Text = "اختفاء"
-            btn.BackgroundColor3 = Color3.new(1,0,0)
-
-            -- فك التثبيت
-            hrp.Anchored = false
-
-            -- رجوع وضع الكاميرا
-            cam.CameraType = Enum.CameraType.Custom
-            plr.CameraMode = Enum.CameraMode.Classic
-        end
-    end)
+for _,v in pairs(game:GetDescendants()) do
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		table.insert(data, v.ClassName.." → "..v:GetFullName())
+	end
 end
 
--- تشغيل عند الشخصية الحالية
-apply(plr.Character or plr.CharacterAdded:Wait())
+-- عرضها
+for i,txt in pairs(data) do
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(1,0,0,20)
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.BackgroundTransparency = 1
+	label.TextScaled = false
+	label.Text = txt
+	label.Font = Enum.Font.Code
+	label.TextColor3 = Color3.new(1,1,1)
+	label.ZIndex = 999999
+end
 
--- إعادة التشغيل بعد كل ريسباون
-plr.CharacterAdded:Connect(function(char)
-    toggled = false
-    btn.Text = "اختفاء"
-    btn.BackgroundColor3 = Color3.new(1,0,0)
-    apply(char)
-end)
+-- تحديث حجم السحب
+frame.CanvasSize = UDim2.new(0,0,0,#data * 22)
