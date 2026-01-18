@@ -1,44 +1,56 @@
--- Remote Scanner (Safe Mode)
--- موجه للجوال + دلتا
--- ما يسوي سبام ولا يخليك تنطرد
+local players = game:GetService("Players")
+local lp = players.LocalPlayer
 
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game.Workspace
+local remotes = {}
 
-local ScanTargets = {
-    ReplicatedStorage,
-    Workspace,
-    game:GetService("StarterPlayer"),
-}
-
-local function safeFire(remote)
-    task.spawn(function()
-        pcall(function()
-            if remote:IsA("RemoteEvent") then
-                remote:FireServer("test") -- Ping بسيط جداً
-            elseif remote:IsA("RemoteFunction") then
-                remote:InvokeServer("test")
+local function hook(obj)
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        remotes[obj.Name] = obj
+        print("[Found Remote]", obj:GetFullName())
+        
+        -- sniff
+        if obj:IsA("RemoteEvent") then
+            obj.OnClientEvent:Connect(function(...)
+                print("[Event]",obj.Name,"<-",...)
+            end)
+        end
+        
+        if obj:IsA("RemoteFunction") then
+            obj.OnClientInvoke = function(...)
+                print("[Invoke]",obj.Name,"<-",...)
             end
-        end)
-    end)
-end
-
-local function scanFolder(folder)
-    for _, v in ipairs(folder:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            print("[REMOTE FOUND] →", v:GetFullName())
-            task.wait(0.15) -- تأخير عشان ما ينطرد
-            safeFire(v)
         end
     end
 end
 
-task.spawn(function()
-    for _, folder in ipairs(ScanTargets) do
-        scanFolder(folder)
-        task.wait(0.5)
+for _,v in ipairs(game:GetDescendants()) do hook(v) end
+game.DescendantAdded:Connect(hook)
+
+-- simple replay framework
+local function replay(remote,...)
+    local ok,err = pcall(function()
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(...)
+        else
+            remote:InvokeServer(...)
+        end
+    end)
+    print(ok and "[OK]" or "[ERR]",remote.Name,err or "")
+end
+
+-- auto test for players
+local function testPlayers(remote)
+    for _,plr in ipairs(players:GetPlayers()) do
+        if plr ~= lp then
+            replay(remote,plr)
+        end
     end
-    print("✓ Scan Finished (Safe Mode)")
+end
+
+-- usage example
+task.delay(5,function()
+    print("Testing remote on players:")
+    for _,r in pairs(remotes) do
+        testPlayers(r)
+    end
 end)
