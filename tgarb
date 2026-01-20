@@ -1,22 +1,23 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات الثمانية بعد تعديل السابع والثامن
+-- الإحداثيات
 local coords = {
-	Vector3.new(199, -3, 23),    -- الموقع الأول
-	Vector3.new(285, -3, 35),    -- الموقع الثاني
-	Vector3.new(404, -3, 0),     -- الموقع الثالث
-	Vector3.new(545, -3, 8),     -- الموقع الرابع
-	Vector3.new(756, -3, 6),     -- الموقع الخامس
-	Vector3.new(1079, -3, 5),    -- الموقع السادس
-	Vector3.new(1321, 3, 13),    -- الموقع السابع الجديد
-	Vector3.new(1557, -3, 25),   -- الموقع الثامن
+	Vector3.new(199, -3, 23),    -- 1
+	Vector3.new(285, -3, 35),    -- 2
+	Vector3.new(404, -3, 0),     -- 3
+	Vector3.new(545, -3, 8),     -- 4
+	Vector3.new(756, -3, 6),     -- 5
+	Vector3.new(1079, -3, 5),    -- 6
+	Vector3.new(1321, 3, 13),    -- 7
+	Vector3.new(1557, -3, 25),   -- 8
+	Vector3.new(1856, 3, 25),    -- 9
 }
 
 local index = 1
-local root -- HumanoidRootPart الحالي
+local root
 
--- إنشاء GUI دائم في PlayerGui
+-- GUI دائم
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
@@ -25,7 +26,7 @@ if not gui then
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- إنشاء الزر إذا ما موجود
+-- الزر
 local btn = gui:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
@@ -41,48 +42,52 @@ if not btn then
 	btn.Parent = gui
 end
 
--- Rainbow effect للزر
+-- Rainbow effect
 local hue = 0
 RunService.RenderStepped:Connect(function()
 	hue = (hue + 1) % 360
 	btn.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
 end)
 
--- دالة لتحديث root
+-- تحديث root
 local function refreshRoot()
 	local char = player.Character or player.CharacterAdded:Wait()
 	root = char:WaitForChild("HumanoidRootPart")
 end
-
--- تهيئة أولية
 refreshRoot()
 
--- إعادة الربط عند تولد شخصية جديدة
 player.CharacterAdded:Connect(function()
 	refreshRoot()
-	index = 1 -- إعادة العد للموقع الأول بعد الموت
+	index = 1
 end)
 
--- دالة Teleport مع تحقق الوصول
+-- Teleport مع تحقق
 local function tp(pos)
 	if not root then refreshRoot() end
 	for i = 1, 5 do
 		if root and root.Parent then
 			root.CFrame = CFrame.new(pos)
 			task.wait(0.1)
-			if (root.Position - pos).Magnitude < 2 then
-				break
-			end
+			if (root.Position - pos).Magnitude < 2 then break end
 		end
 	end
 end
 
--- وظيفة الزر → تنتقل بالتتابع حتى آخر موقع ثم تبدأ من البداية
+-- وظيفة الزر مع دمج الموقع 7 و 8 في ضغطة واحدة
 btn.MouseButton1Click:Connect(function()
 	if not root or not root.Parent then refreshRoot() end
-	tp(coords[index])
-	index = index + 1
-	if index > #coords then
-		index = 1 -- يرجع للبداية بعد آخر موقع
+
+	if index == 7 then
+		-- ضغطة واحدة تنقل للموقع 7 ثم 8
+		tp(coords[7])
+		task.wait(0.2) -- وقت قصير بين الموقعين
+		tp(coords[8])
+		index = 9 -- بعد دمج 7 و 8، التتابع يبدأ من الموقع التاسع
+	else
+		tp(coords[index])
+		index = index + 1
+		if index > #coords then
+			index = 1
+		end
 	end
 end)
