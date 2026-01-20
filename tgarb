@@ -1,10 +1,45 @@
-local lastCoord = nil
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- TEXT LABEL (الإحداثيات + يتحدث لحظيًا)
+local coordLabel = Instance.new("TextLabel")
+coordLabel.Size = UDim2.new(0, 240, 0, 50)
+coordLabel.Position = UDim2.new(0.5, -120, 0, 10) -- بالنص فوق
+coordLabel.Text = ""
+coordLabel.TextScaled = true
+coordLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+coordLabel.BackgroundTransparency = 0.3
+coordLabel.TextColor3 = Color3.fromRGB(255,255,255)
+coordLabel.Font = Enum.Font.GothamBold
+coordLabel.Active = true
+coordLabel.Draggable = true
+coordLabel.Parent = screenGui
+
+-- COPY BUTTON (ينسخ الإحداثيات فقط)
+local copyButton = Instance.new("TextButton")
+copyButton.Size = UDim2.new(0, 240, 0, 40)
+copyButton.Position = UDim2.new(0.5, -120, 0, 62)
+copyButton.Text = "Copy"
+copyButton.TextScaled = true
+copyButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
+copyButton.BackgroundTransparency = 0.3
+copyButton.TextColor3 = Color3.fromRGB(255,255,255)
+copyButton.Font = Enum.Font.GothamBold
+copyButton.Active = true
+copyButton.Draggable = true
+copyButton.Parent = screenGui
+
+local lastX,lastZ,lastCoord
 
 hrp:GetPropertyChangedSignal("Position"):Connect(function()
 	local pos = hrp.Position
 	local x = math.floor(pos.X)
 	local z = math.floor(pos.Z)
-
 	local coord = tostring(z).."y "..tostring(x).."x"
 
 	if coord ~= lastCoord then
@@ -17,7 +52,7 @@ copyButton.MouseButton1Click:Connect(function()
 	if lastCoord then
 		setclipboard(lastCoord)
 		copyButton.Text = "Copied!"
-		task.delay(1, function()
+		task.delay(1,function()
 			copyButton.Text = "Copy"
 		end)
 	end
