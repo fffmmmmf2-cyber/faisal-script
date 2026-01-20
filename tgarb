@@ -1,52 +1,62 @@
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
-
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.ResetOnSpawn = false
-
-local button = Instance.new("TextButton", gui)
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0, 10)
-button.Text = "Teleport"
-button.TextScaled = true
-button.BackgroundColor3 = Color3.fromRGB(50,50,50)
-button.TextColor3 = Color3.fromRGB(255,255,255)
-button.Font = Enum.Font.GothamBold
+local RunService = game:GetService("RunService")
 
 -- الإحداثيات
 local locations = {
-    Vector3.new(199, -3, 23), -- الموقع الأول
-    Vector3.new(285, -3, 35)  -- الموقع الثاني
+	Vector3.new(199, -3, 23), -- الموقع الأول
+	Vector3.new(285, -3, 35)  -- الموقع الثاني
 }
 
-local index = 1 -- نبدأ بالموقع الأول
+local function setupTeleport()
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local humanoid = char:WaitForChild("Humanoid")
+	local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+	gui.ResetOnSpawn = false
 
--- دالة تيليبورت مع التحقق
-local function teleport(targetPos)
-    if hrp and hrp.Parent then
-        hrp.CFrame = CFrame.new(targetPos)
-        
-        -- تحقق مستمر حتى يوصل
-        local reached = false
-        repeat
-            task.wait(0.05)
-            local distance = (hrp.Position - targetPos).Magnitude
-            if distance < 1 then
-                reached = true
-            else
-                hrp.CFrame = CFrame.new(targetPos) -- إذا ما وصل حاول ثانية
-            end
-        until reached
-    end
+	local button = Instance.new("TextButton", gui)
+	button.Size = UDim2.new(0, 200, 0, 50)
+	button.Position = UDim2.new(0.5, -100, 0, 10)
+	button.Text = "Teleport"
+	button.TextScaled = true
+	button.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.Font = Enum.Font.GothamBold
+
+	local index = 1
+
+	local function teleport(targetPos)
+		if hrp and hrp.Parent then
+			hrp.CFrame = CFrame.new(targetPos)
+			-- تحقق مستمر حتى يوصل
+			local reached = false
+			repeat
+				task.wait(0.05)
+				if not hrp or not hrp.Parent then break end -- لو مات
+				local distance = (hrp.Position - targetPos).Magnitude
+				if distance < 1 then
+					reached = true
+				else
+					hrp.CFrame = CFrame.new(targetPos)
+				end
+			until reached
+		end
+	end
+
+	button.MouseButton1Click:Connect(function()
+		if hrp and hrp.Parent then
+			teleport(locations[index])
+			index = index % #locations + 1
+		end
+	end)
+
+	-- إذا مات اللاعب نعيد إعداد كل شيء
+	humanoid.Died:Connect(function()
+		button:Destroy()
+		gui:Destroy()
+		task.wait(0.5)
+		setupTeleport() -- إعادة النظام كامل
+	end)
 end
 
-button.MouseButton1Click:Connect(function()
-    teleport(locations[index])
-    -- تحديث الموقع للضغط القادم
-    if index == #locations then
-        index = 1
-    else
-        index = index + 1
-    end
-end)
+setupTeleport()
