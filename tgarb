@@ -10,10 +10,6 @@ local coords = {
 	Vector3.new(1079, -3, 5),
 	Vector3.new(1321, 3, 13),
 	Vector3.new(1569, -6, -28),
-	Vector3.new(1779, 3, 35),
-	Vector3.new(2085, 3, 23),
-	Vector3.new(2249, -3, 8),
-	Vector3.new(2612, -3, 8),
 }
 
 local index = 1
@@ -77,12 +73,7 @@ btn.MouseButton1Click:Connect(function()
 		tp(coords[7])
 		task.wait(0.2)
 		tp(coords[8])
-		index = 9
-	elseif index == 9 then
-		tp(coords[9])
-		task.wait(0.2)
-		tp(coords[10])
-		index = 11
+		index = 1
 	else
 		tp(coords[index])
 		index = index + 1
