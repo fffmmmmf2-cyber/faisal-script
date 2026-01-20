@@ -1,62 +1,62 @@
 local player = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
--- الإحداثيات
-local locations = {
-	Vector3.new(199, -3, 23), -- الموقع الأول
-	Vector3.new(285, -3, 35)  -- الموقع الثاني
+local coords = {
+    Vector3.new(199, -3, 23),  -- الاولى
+    Vector3.new(285, -3, 35),  -- الثانية
 }
 
-local function setupTeleport()
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-	local humanoid = char:WaitForChild("Humanoid")
-	local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-	gui.ResetOnSpawn = false
+local index = 1
 
-	local button = Instance.new("TextButton", gui)
-	button.Size = UDim2.new(0, 200, 0, 50)
-	button.Position = UDim2.new(0.5, -100, 0, 10)
-	button.Text = "Teleport"
-	button.TextScaled = true
-	button.BackgroundColor3 = Color3.fromRGB(50,50,50)
-	button.TextColor3 = Color3.fromRGB(255,255,255)
-	button.Font = Enum.Font.GothamBold
+-- GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = true
 
-	local index = 1
+local btn = Instance.new("TextButton", gui)
+btn.Size = UDim2.new(0, 120, 0, 40)
+btn.Position = UDim2.new(0.5, -60, 0, 10)
+btn.Text = "Teleport"
+btn.TextScaled = true
+btn.TextColor3 = Color3.new(1,1,1)
+btn.Font = Enum.Font.GothamBold
+btn.Active = true
+btn.Draggable = true
 
-	local function teleport(targetPos)
-		if hrp and hrp.Parent then
-			hrp.CFrame = CFrame.new(targetPos)
-			-- تحقق مستمر حتى يوصل
-			local reached = false
-			repeat
-				task.wait(0.05)
-				if not hrp or not hrp.Parent then break end -- لو مات
-				local distance = (hrp.Position - targetPos).Magnitude
-				if distance < 1 then
-					reached = true
-				else
-					hrp.CFrame = CFrame.new(targetPos)
-				end
-			until reached
-		end
-	end
+-- Rainbow
+local RunService = game:GetService("RunService")
+local hue = 0
+RunService.RenderStepped:Connect(function()
+	hue = (hue + 1) % 360
+	btn.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
+end)
 
-	button.MouseButton1Click:Connect(function()
-		if hrp and hrp.Parent then
-			teleport(locations[index])
-			index = index % #locations + 1
-		end
-	end)
-
-	-- إذا مات اللاعب نعيد إعداد كل شيء
-	humanoid.Died:Connect(function()
-		button:Destroy()
-		gui:Destroy()
-		task.wait(0.5)
-		setupTeleport() -- إعادة النظام كامل
-	end)
+-- تأكد من وجود الكركتر عند الريسباون
+local function refresh()
+	char = player.Character or player.CharacterAdded:Wait()
+	root = char:WaitForChild("HumanoidRootPart")
 end
 
-setupTeleport()
+player.CharacterAdded:Connect(function()
+	index = 1
+	refresh()
+end)
+
+-- Teleport function مع تأكيد النقل
+local function tp(pos)
+	for i = 1, 5 do
+		root.CFrame = CFrame.new(pos)
+		task.wait(0.1)
+		if (root.Position - pos).Magnitude < 2 then
+			break
+		end
+	end
+end
+
+btn.MouseButton1Click:Connect(function()
+	if not char or not root then refresh() end
+
+	tp(coords[index])
+	index = index + 1
+	if index > #coords then index = 1 end
+end)
