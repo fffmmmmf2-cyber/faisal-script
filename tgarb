@@ -10,9 +10,11 @@ local coords = {
 	Vector3.new(1079, -3, 5),
 	Vector3.new(1321, 3, 13),
 	Vector3.new(1557, -3, 25),
-	Vector3.new(1856, 3, 25),
-	Vector3.new(2226, -3, 4),
-	Vector3.new(2599, -3, 0),
+	Vector3.new(1569, -6, -28),
+	Vector3.new(1779, 3, 35),
+	Vector3.new(2085, 3, 23),
+	Vector3.new(2249, -3, 8),
+	Vector3.new(2612, -3, 8),
 }
 
 local index = 1
