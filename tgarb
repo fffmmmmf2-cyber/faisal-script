@@ -2,18 +2,53 @@ local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
 
-local lastX, lastZ = nil, nil
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local coordLabel = Instance.new("TextLabel")
+coordLabel.Size = UDim2.new(0, 180, 0, 50)
+coordLabel.Position = UDim2.new(0, 10, 0, 10) -- فوق يسار
+coordLabel.TextScaled = true
+coordLabel.BackgroundTransparency = 0.4
+coordLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+coordLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+coordLabel.Text = "Loading..."
+coordLabel.Font = Enum.Font.GothamBold
+
+-- زر نسخ
+local copyButton = Instance.new("TextButton")
+copyButton.Size = UDim2.new(0, 180, 0, 35)
+copyButton.Position = UDim2.new(0, 10, 0, 60)
+copyButton.Text = "Copy"
+copyButton.TextScaled = true
+copyButton.BackgroundTransparency = 0.4
+copyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyButton.Parent = screenGui
+
+-- تحديث الاحداثيات لحظي
+local lastX, lastZ
 
 hrp:GetPropertyChangedSignal("Position"):Connect(function()
-    local pos = hrp.Position
+	local pos = hrp.Position
+	local x = math.floor(pos.X)
+	local z = math.floor(pos.Z) -- هذا اللي بيكون Y عندك
 
-    local x = math.floor(pos.X)
-    local z = math.floor(pos.Z)
+	if x ~= lastX or z ~= lastZ then
+		lastX = x
+		lastZ = z
+		coordLabel.Text = tostring(z).."y "..tostring(x).."x"
+	end
+end)
 
-    -- ما يطبع إلا إذا تغيرت فعلاً
-    if x ~= lastX or z ~= lastZ then
-        lastX = x
-        lastZ = z
-        print(z.."y "..x.."x")
-    end
+-- نسخ للقائمة
+copyButton.MouseButton1Click:Connect(function()
+	if coordLabel.Text ~= "" then
+		setclipboard(coordLabel.Text)
+		copyButton.Text = "Copied!"
+		task.delay(1, function()
+			copyButton.Text = "Copy"
+		end)
+	end
 end)
