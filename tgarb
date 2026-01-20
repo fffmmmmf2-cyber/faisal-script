@@ -1,10 +1,13 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات
+-- الإحداثيات الخمسة
 local coords = {
-	Vector3.new(199, -3, 23),
-	Vector3.new(285, -3, 35),
+	Vector3.new(199, -3, 23),  -- الموقع الأول
+	Vector3.new(285, -3, 35),  -- الموقع الثاني
+	Vector3.new(404, -3, 0),   -- الموقع الثالث
+	Vector3.new(545, -3, 8),   -- الموقع الرابع
+	Vector3.new(756, -3, 6),   -- الموقع الخامس
 }
 
 local index = 1
