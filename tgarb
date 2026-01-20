@@ -1,59 +1,57 @@
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
+
+-- نضمن إن الشخصية جاهزة 100%
+if not char:FindFirstChild("HumanoidRootPart") then
+	char:WaitForChild("HumanoidRootPart")
+end
+
 local hrp = char:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.ResetOnSpawn = false
 
--- TEXT LABEL (الإحداثيات + يتحدث لحظيًا)
-local coordLabel = Instance.new("TextLabel")
-coordLabel.Size = UDim2.new(0, 240, 0, 50)
-coordLabel.Position = UDim2.new(0.5, -120, 0, 10) -- بالنص فوق
-coordLabel.Text = ""
-coordLabel.TextScaled = true
-coordLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
-coordLabel.BackgroundTransparency = 0.3
-coordLabel.TextColor3 = Color3.fromRGB(255,255,255)
-coordLabel.Font = Enum.Font.GothamBold
-coordLabel.Active = true
-coordLabel.Draggable = true
-coordLabel.Parent = screenGui
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(0, 240, 0, 50)
+label.Position = UDim2.new(0.5, -120, 0, 10)
+label.TextScaled = true
+label.BackgroundTransparency = 0.3
+label.BackgroundColor3 = Color3.fromRGB(20,20,20)
+label.TextColor3 = Color3.fromRGB(255,255,255)
+label.Font = Enum.Font.GothamBold
+label.Active = true
+label.Draggable = true
+label.Text = "…"
 
--- COPY BUTTON (ينسخ الإحداثيات فقط)
-local copyButton = Instance.new("TextButton")
-copyButton.Size = UDim2.new(0, 240, 0, 40)
-copyButton.Position = UDim2.new(0.5, -120, 0, 62)
-copyButton.Text = "Copy"
-copyButton.TextScaled = true
-copyButton.BackgroundColor3 = Color3.fromRGB(40,40,40)
-copyButton.BackgroundTransparency = 0.3
-copyButton.TextColor3 = Color3.fromRGB(255,255,255)
-copyButton.Font = Enum.Font.GothamBold
-copyButton.Active = true
-copyButton.Draggable = true
-copyButton.Parent = screenGui
+local copy = Instance.new("TextButton", gui)
+copy.Size = UDim2.new(0, 240, 0, 40)
+copy.Position = UDim2.new(0.5, -120, 0, 62)
+copy.Text = "Copy"
+copy.TextScaled = true
+copy.BackgroundTransparency = 0.3
+copy.BackgroundColor3 = Color3.fromRGB(40,40,40)
+copy.TextColor3 = Color3.fromRGB(255,255,255)
+copy.Font = Enum.Font.GothamBold
+copy.Active = true
+copy.Draggable = true
 
-local lastX,lastZ,lastCoord
+local lastCoord = "0y 0x"
 
-hrp:GetPropertyChangedSignal("Position"):Connect(function()
-	local pos = hrp.Position
-	local x = math.floor(pos.X)
-	local z = math.floor(pos.Z)
-	local coord = tostring(z).."y "..tostring(x).."x"
-
-	if coord ~= lastCoord then
-		lastCoord = coord
-		coordLabel.Text = coord
+RunService.RenderStepped:Connect(function()
+	if hrp and hrp.Parent ~= nil then
+		local pos = hrp.Position
+		local x = math.floor(pos.X)
+		local z = math.floor(pos.Z)
+		lastCoord = tostring(z).."y "..tostring(x).."x"
+		label.Text = lastCoord
 	end
 end)
 
-copyButton.MouseButton1Click:Connect(function()
-	if lastCoord then
-		setclipboard(lastCoord)
-		copyButton.Text = "Copied!"
-		task.delay(1,function()
-			copyButton.Text = "Copy"
-		end)
-	end
+copy.MouseButton1Click:Connect(function()
+	setclipboard(lastCoord)
+	copy.Text = "Copied!"
+	task.delay(1,function()
+		copy.Text = "Copy"
+	end)
 end)
