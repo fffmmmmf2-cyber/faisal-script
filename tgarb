@@ -1,58 +1,52 @@
 local player = game.Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
-
--- نضمن وجود HumanoidRootPart
 local hrp = char:WaitForChild("HumanoidRootPart")
-local RunService = game:GetService("RunService")
 
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.ResetOnSpawn = false
 
--- Label للإحداثيات
-local label = Instance.new("TextLabel", gui)
-label.Size = UDim2.new(0, 260, 0, 50)
-label.Position = UDim2.new(0.5, -130, 0, 10) -- فوق النص
-label.TextScaled = true
-label.BackgroundTransparency = 0.3
-label.BackgroundColor3 = Color3.fromRGB(20,20,20)
-label.TextColor3 = Color3.fromRGB(255,255,255)
-label.Font = Enum.Font.GothamBold
-label.Active = true
-label.Draggable = true
-label.Text = ""
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0, 10)
+button.Text = "Teleport"
+button.TextScaled = true
+button.BackgroundColor3 = Color3.fromRGB(50,50,50)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.Font = Enum.Font.GothamBold
 
--- زر النسخ
-local copy = Instance.new("TextButton", gui)
-copy.Size = UDim2.new(0, 260, 0, 40)
-copy.Position = UDim2.new(0.5, -130, 0, 62)
-copy.Text = "Copy"
-copy.TextScaled = true
-copy.BackgroundTransparency = 0.3
-copy.BackgroundColor3 = Color3.fromRGB(40,40,40)
-copy.TextColor3 = Color3.fromRGB(255,255,255)
-copy.Font = Enum.Font.GothamBold
-copy.Active = true
-copy.Draggable = true
+-- الإحداثيات
+local locations = {
+    Vector3.new(199, -3, 23), -- الموقع الأول
+    Vector3.new(285, -3, 35)  -- الموقع الثاني
+}
 
-local lastCoord = ""
+local index = 1 -- نبدأ بالموقع الأول
 
-RunService.RenderStepped:Connect(function()
-	if hrp and hrp.Parent ~= nil then
-		local pos = hrp.Position
-		local x = math.floor(pos.X)
-		local y = math.floor(pos.Y)
-		local z = math.floor(pos.Z)
-		lastCoord = "X:"..x.."  Y:"..y.."  Z:"..z
-		label.Text = lastCoord
-	end
-end)
+-- دالة تيليبورت مع التحقق
+local function teleport(targetPos)
+    if hrp and hrp.Parent then
+        hrp.CFrame = CFrame.new(targetPos)
+        
+        -- تحقق مستمر حتى يوصل
+        local reached = false
+        repeat
+            task.wait(0.05)
+            local distance = (hrp.Position - targetPos).Magnitude
+            if distance < 1 then
+                reached = true
+            else
+                hrp.CFrame = CFrame.new(targetPos) -- إذا ما وصل حاول ثانية
+            end
+        until reached
+    end
+end
 
-copy.MouseButton1Click:Connect(function()
-	if lastCoord ~= "" then
-		setclipboard(lastCoord)
-		copy.Text = "Copied!"
-		task.delay(1, function()
-			copy.Text = "Copy"
-		end)
-	end
+button.MouseButton1Click:Connect(function()
+    teleport(locations[index])
+    -- تحديث الموقع للضغط القادم
+    if index == #locations then
+        index = 1
+    else
+        index = index + 1
+    end
 end)
