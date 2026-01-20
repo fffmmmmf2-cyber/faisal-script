@@ -1,25 +1,23 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات
 local coords = {
-	Vector3.new(199, -3, 23),    -- 1
-	Vector3.new(285, -3, 35),    -- 2
-	Vector3.new(404, -3, 0),     -- 3
-	Vector3.new(545, -3, 8),     -- 4
-	Vector3.new(756, -3, 6),     -- 5
-	Vector3.new(1079, -3, 5),    -- 6
-	Vector3.new(1321, 3, 13),    -- 7
-	Vector3.new(1557, -3, 25),   -- 8
-	Vector3.new(1856, 3, 25),    -- 9
-	Vector3.new(2268, -3, 7),    -- 10
-	Vector3.new(2599, -3, 0),    -- 11
+	Vector3.new(199, -3, 23),
+	Vector3.new(285, -3, 35),
+	Vector3.new(404, -3, 0),
+	Vector3.new(545, -3, 8),
+	Vector3.new(756, -3, 6),
+	Vector3.new(1079, -3, 5),
+	Vector3.new(1321, 3, 13),
+	Vector3.new(1557, -3, 25),
+	Vector3.new(1856, 3, 25),
+	Vector3.new(2226, -3, 4),
+	Vector3.new(2599, -3, 0),
 }
 
 local index = 1
 local root
 
--- GUI دائم
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
@@ -28,7 +26,6 @@ if not gui then
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 
--- الزر
 local btn = gui:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
@@ -44,14 +41,12 @@ if not btn then
 	btn.Parent = gui
 end
 
--- Rainbow effect
 local hue = 0
 RunService.RenderStepped:Connect(function()
 	hue = (hue + 1) % 360
 	btn.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
 end)
 
--- تحديث root
 local function refreshRoot()
 	local char = player.Character or player.CharacterAdded:Wait()
 	root = char:WaitForChild("HumanoidRootPart")
@@ -63,7 +58,6 @@ player.CharacterAdded:Connect(function()
 	index = 1
 end)
 
--- Teleport مع تحقق
 local function tp(pos)
 	if not root then refreshRoot() end
 	for i = 1, 5 do
@@ -75,7 +69,6 @@ local function tp(pos)
 	end
 end
 
--- وظيفة الزر مع دمج المواقع 7+8 و 9+10
 btn.MouseButton1Click:Connect(function()
 	if not root or not root.Parent then refreshRoot() end
 
@@ -83,17 +76,17 @@ btn.MouseButton1Click:Connect(function()
 		tp(coords[7])
 		task.wait(0.2)
 		tp(coords[8])
-		index = 9 -- بعد دمج 7+8، التتابع يبدأ من 9
+		index = 9
 	elseif index == 9 then
 		tp(coords[9])
 		task.wait(0.2)
 		tp(coords[10])
-		index = 11 -- بعد دمج 9+10، التتابع يبدأ من 11
+		index = 11
 	else
 		tp(coords[index])
 		index = index + 1
 		if index > #coords then
-			index = 1 -- العودة للبداية بعد الموقع الأخير
+			index = 1
 		end
 	end
 end)
