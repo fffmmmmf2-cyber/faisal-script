@@ -1,18 +1,21 @@
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
 
+-- الإحداثيات
 local coords = {
-    Vector3.new(199, -3, 23),  -- الاولى
-    Vector3.new(285, -3, 35),  -- الثانية
+	Vector3.new(199, -3, 23),  -- الموقع الأول
+	Vector3.new(285, -3, 35),  -- الموقع الثاني
 }
 
 local index = 1
 
--- GUI
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.ResetOnSpawn = true
+-- GUI يبقى دائمًا
+local gui = Instance.new("ScreenGui")
+gui.Name = "TeleportGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
+-- الزر
 local btn = Instance.new("TextButton", gui)
 btn.Size = UDim2.new(0, 120, 0, 40)
 btn.Position = UDim2.new(0.5, -60, 0, 10)
@@ -24,38 +27,43 @@ btn.Active = true
 btn.Draggable = true
 
 -- Rainbow
-local RunService = game:GetService("RunService")
 local hue = 0
 RunService.RenderStepped:Connect(function()
 	hue = (hue + 1) % 360
 	btn.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
 end)
 
--- تأكد من وجود الكركتر عند الريسباون
-local function refresh()
+-- المتغيرات اللي تربط الشخصية
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+
+-- دالة تعيد تهيئة root لما تموت
+local function refreshChar()
 	char = player.Character or player.CharacterAdded:Wait()
 	root = char:WaitForChild("HumanoidRootPart")
 end
 
+-- ربط عند وفاة الشخصية
 player.CharacterAdded:Connect(function()
+	refreshChar()
 	index = 1
-	refresh()
 end)
 
--- Teleport function مع تأكيد النقل
+-- تيليبورت مع تحقق من الوصول
 local function tp(pos)
+	if not root then refreshChar() end
 	for i = 1, 5 do
-		root.CFrame = CFrame.new(pos)
-		task.wait(0.1)
-		if (root.Position - pos).Magnitude < 2 then
-			break
+		if root and root.Parent then
+			root.CFrame = CFrame.new(pos)
+			task.wait(0.1)
+			if (root.Position - pos).Magnitude < 2 then break end
 		end
 	end
 end
 
+-- الزر
 btn.MouseButton1Click:Connect(function()
-	if not char or not root then refresh() end
-
+	if not root or not root.Parent then refreshChar() end
 	tp(coords[index])
 	index = index + 1
 	if index > #coords then index = 1 end
