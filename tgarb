@@ -76,10 +76,13 @@ local function tp(pos)
 	end
 end
 
--- وظيفة الزر
+-- وظيفة الزر → تنتقل بالتتابع حتى آخر موقع ثم تبدأ من البداية
 btn.MouseButton1Click:Connect(function()
 	if not root or not root.Parent then refreshRoot() end
+
 	tp(coords[index])
 	index = index + 1
-	if index > #coords then index = 1 end
+	if index > #coords then
+		index = 1 -- يرجع للبداية بعد آخر موقع
+	end
 end)
