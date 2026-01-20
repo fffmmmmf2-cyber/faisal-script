@@ -12,6 +12,8 @@ local coords = {
 	Vector3.new(1321, 3, 13),    -- 7
 	Vector3.new(1557, -3, 25),   -- 8
 	Vector3.new(1856, 3, 25),    -- 9
+	Vector3.new(2268, -3, 7),    -- 10
+	Vector3.new(2599, -3, 0),    -- 11
 }
 
 local index = 1
@@ -73,21 +75,25 @@ local function tp(pos)
 	end
 end
 
--- وظيفة الزر مع دمج الموقع 7 و 8 في ضغطة واحدة
+-- وظيفة الزر مع دمج المواقع 7+8 و 9+10
 btn.MouseButton1Click:Connect(function()
 	if not root or not root.Parent then refreshRoot() end
 
 	if index == 7 then
-		-- ضغطة واحدة تنقل للموقع 7 ثم 8
 		tp(coords[7])
-		task.wait(0.2) -- وقت قصير بين الموقعين
+		task.wait(0.2)
 		tp(coords[8])
-		index = 9 -- بعد دمج 7 و 8، التتابع يبدأ من الموقع التاسع
+		index = 9 -- بعد دمج 7+8، التتابع يبدأ من 9
+	elseif index == 9 then
+		tp(coords[9])
+		task.wait(0.2)
+		tp(coords[10])
+		index = 11 -- بعد دمج 9+10، التتابع يبدأ من 11
 	else
 		tp(coords[index])
 		index = index + 1
 		if index > #coords then
-			index = 1
+			index = 1 -- العودة للبداية بعد الموقع الأخير
 		end
 	end
 end)
