@@ -1,13 +1,19 @@
--- أول شي يمسح الموجود حاليًا
-for _, obj in pairs(workspace:GetDescendants()) do
-    if obj.Name:lower():find("wave") then
-        obj:Destroy()
-    end
-end
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
 
--- بعدين يراقب الجديد ويشيله فورًا
-workspace.DescendantAdded:Connect(function(obj)
-    if obj.Name:lower():find("wave") then
-        obj:Destroy()
+local lastX, lastZ = nil, nil
+
+hrp:GetPropertyChangedSignal("Position"):Connect(function()
+    local pos = hrp.Position
+
+    local x = math.floor(pos.X)
+    local z = math.floor(pos.Z)
+
+    -- ما يطبع إلا إذا تغيرت فعلاً
+    if x ~= lastX or z ~= lastZ then
+        lastX = x
+        lastZ = z
+        print(z.."y "..x.."x")
     end
 end)
