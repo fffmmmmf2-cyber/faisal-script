@@ -1,7 +1,7 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات السبعة
+-- الإحداثيات الثمانية بعد تعديل السابع والثامن
 local coords = {
 	Vector3.new(199, -3, 23),    -- الموقع الأول
 	Vector3.new(285, -3, 35),    -- الموقع الثاني
@@ -9,7 +9,8 @@ local coords = {
 	Vector3.new(545, -3, 8),     -- الموقع الرابع
 	Vector3.new(756, -3, 6),     -- الموقع الخامس
 	Vector3.new(1079, -3, 5),    -- الموقع السادس
-	Vector3.new(1557, -3, 25),   -- الموقع السابع
+	Vector3.new(1321, 3, 13),    -- الموقع السابع الجديد
+	Vector3.new(1557, -3, 25),   -- الموقع الثامن
 }
 
 local index = 1
@@ -79,7 +80,6 @@ end
 -- وظيفة الزر → تنتقل بالتتابع حتى آخر موقع ثم تبدأ من البداية
 btn.MouseButton1Click:Connect(function()
 	if not root or not root.Parent then refreshRoot() end
-
 	tp(coords[index])
 	index = index + 1
 	if index > #coords then
