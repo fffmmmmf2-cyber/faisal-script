@@ -1,7 +1,35 @@
-local a=game:GetService("Players");local b=a.LocalPlayer;local c=b.Character or b.CharacterAdded:Wait();local d=game:GetService("UserInputService");local e=Instance.new("ScreenGui");e.ResetOnSpawn=false;e.Parent=b:WaitForChild("PlayerGui");local f=Instance.new("TextButton");f.Text="Teleport";f.Size=UDim2.new(0,90,0,30);f.Position=UDim2.new(0.5,-45,0.5,-15);f.BackgroundColor3=Color3.fromRGB(0,0,0);f.TextColor3=Color3.fromRGB(255,255,255);f.Active=true;f.Draggable=true;f.Parent=e
+local a=game:GetService("Players")
+local b=a.LocalPlayer
+local c=b.Character or b.CharacterAdded:Wait()
+local d=game:GetService("UserInputService")
 
-local g={{Vector3.new(199,-3,23),Vector3.new(285,-3,35)},{Vector3.new(404,-3,0)},{Vector3.new(545,-3,8)},{Vector3.new(756,-3,6)},{Vector3.new(1079,-3,5)},{Vector3.new(1321,3,13),Vector3.new(1557,-3,25)},{Vector3.new(1731,3,-6),Vector3.new(1949,3,16),Vector3.new(2250,-3,-20),Vector3.new(2609,-3,7)}}
-local h=1;local i=false;local j=task
+local e=Instance.new("ScreenGui")
+e.ResetOnSpawn=false
+e.Parent=b:WaitForChild("PlayerGui")
+
+local f=Instance.new("TextButton")
+f.Text="Teleport"
+f.Size=UDim2.new(0,90,0,30)
+f.Position=UDim2.new(0.5,-45,0.5,-15)
+f.BackgroundColor3=Color3.fromRGB(0,0,0)
+f.TextColor3=Color3.fromRGB(255,255,255)
+f.Active=true
+f.Draggable=true
+f.Parent=e
+
+local g={
+	{Vector3.new(199,-3,23),Vector3.new(285,-3,35)},
+	{Vector3.new(404,-3,0)},
+	{Vector3.new(545,-3,8)},
+	{Vector3.new(756,-3,6)},
+	{Vector3.new(1079,-3,5)},
+	{Vector3.new(1321,3,13),Vector3.new(1557,-3,25)},
+	{Vector3.new(1731,3,-6),Vector3.new(1949,3,16),Vector3.new(2250,-3,-20),Vector3.new(2609,-3,7)}
+}
+
+local h=1
+local i=false
+local j=task
 
 local function k(l)
 	local m=b.Character or b.CharacterAdded:Wait()
@@ -9,12 +37,30 @@ local function k(l)
 end
 
 local function n()
-	if i then return end;i=true;f.Text="";for o=10,1,-1 do f.Text=tostring(o/10);j.wait(0.1)end;f.Text="Teleport";i=false
+	if i then return end
+	i=true
+	f.Text=""
+	for o=10,1,-1 do
+		f.Text=tostring(o/10)
+		j.wait(0.1)
+	end
+	f.Text="Teleport"
+	i=false
 end
 
 local function p()
-	local q=g[h];if typeof(q)=="table" then for r=1,#q do k(q[r]);j.wait(0.1)end else k(q)end
-	h=h+1;if h>#g then h=1 end;n()
+	local q=g[h]
+	if typeof(q)=="table" then
+		for r=1,#q do
+			k(q[r])
+			j.wait(0.1)
+		end
+	else
+		k(q)
+	end
+	h=h+1
+	if h>#g then h=1 end
+	n()
 end
 
 f.MouseButton1Click:Connect(p)
