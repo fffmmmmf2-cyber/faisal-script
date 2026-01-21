@@ -1,58 +1,51 @@
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-
--- نضمن وجود HumanoidRootPart
-local hrp = char:WaitForChild("HumanoidRootPart")
 local RunService = game:GetService("RunService")
 
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.ResetOnSpawn = false
+local gui = player:WaitForChild("PlayerGui"):FindFirstChild("CoordsGUI")
+if not gui then
+	gui = Instance.new("ScreenGui")
+	gui.Name = "CoordsGUI"
+	gui.ResetOnSpawn = false
+	gui.Parent = player:WaitForChild("PlayerGui")
+end
 
--- Label للإحداثيات
-local label = Instance.new("TextLabel", gui)
-label.Size = UDim2.new(0, 260, 0, 50)
-label.Position = UDim2.new(0.5, -130, 0, 10) -- فوق النص
-label.TextScaled = true
-label.BackgroundTransparency = 0.3
-label.BackgroundColor3 = Color3.fromRGB(20,20,20)
-label.TextColor3 = Color3.fromRGB(255,255,255)
-label.Font = Enum.Font.GothamBold
-label.Active = true
-label.Draggable = true
-label.Text = ""
+local frame = gui:FindFirstChild("CoordsFrame")
+if not frame then
+	frame = Instance.new("Frame")
+	frame.Name = "CoordsFrame"
+	frame.Size = UDim2.new(0, 140, 0, 30) -- حجم أصغر
+	frame.Position = UDim2.new(0, 10, 0, 10)
+	frame.BackgroundTransparency = 1 -- مخفي عشان ما يشوه الشكل
+	frame.Active = true
+	frame.Draggable = true
+	frame.Parent = gui
+end
 
--- زر النسخ
-local copy = Instance.new("TextButton", gui)
-copy.Size = UDim2.new(0, 260, 0, 40)
-copy.Position = UDim2.new(0.5, -130, 0, 62)
-copy.Text = "Copy"
-copy.TextScaled = true
-copy.BackgroundTransparency = 0.3
-copy.BackgroundColor3 = Color3.fromRGB(40,40,40)
-copy.TextColor3 = Color3.fromRGB(255,255,255)
-copy.Font = Enum.Font.GothamBold
-copy.Active = true
-copy.Draggable = true
+local label = frame:FindFirstChild("CoordsLabel")
+if not label then
+	label = Instance.new("TextLabel")
+	label.Name = "CoordsLabel"
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.Position = UDim2.new(0, 0, 0, 0)
+	label.TextScaled = true
+	label.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	label.TextColor3 = Color3.fromRGB(255,255,255)
+	label.Font = Enum.Font.GothamMedium
+	label.Parent = frame
+end
 
-local lastCoord = ""
+local root
 
-RunService.RenderStepped:Connect(function()
-	if hrp and hrp.Parent ~= nil then
-		local pos = hrp.Position
-		local x = math.floor(pos.X)
-		local y = math.floor(pos.Y)
-		local z = math.floor(pos.Z)
-		lastCoord = "X:"..x.."  Y:"..y.."  Z:"..z
-		label.Text = lastCoord
-	end
-end)
+local function getRoot()
+	local char = player.Character or player.CharacterAdded:Wait()
+	root = char:WaitForChild("HumanoidRootPart")
+end
 
-copy.MouseButton1Click:Connect(function()
-	if lastCoord ~= "" then
-		setclipboard(lastCoord)
-		copy.Text = "Copied!"
-		task.delay(1, function()
-			copy.Text = "Copy"
-		end)
-	end
+getRoot()
+player.CharacterAdded:Connect(getRoot)
+
+RunService.Heartbeat:Connect(function()
+	if not root or not root.Parent then return end
+	local pos = root.Position
+	label.Text = math.floor(pos.X) .. "X " .. math.floor(pos.Y) .. "Y " .. math.floor(pos.Z) .. "Z"
 end)
