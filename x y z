@@ -1,21 +1,22 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("CoordsGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
 	gui.Name = "CoordsGUI"
 	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui")
+	gui.Parent = player.PlayerGui
 end
 
 local frame = gui:FindFirstChild("CoordsFrame")
 if not frame then
 	frame = Instance.new("Frame")
 	frame.Name = "CoordsFrame"
-	frame.Size = UDim2.new(0, 140, 0, 30) -- حجم أصغر
+	frame.Size = UDim2.new(0, 180, 0, 28)
 	frame.Position = UDim2.new(0, 10, 0, 10)
-	frame.BackgroundTransparency = 1 -- مخفي عشان ما يشوه الشكل
+	frame.BackgroundTransparency = 1
 	frame.Active = true
 	frame.Draggable = true
 	frame.Parent = gui
@@ -25,13 +26,27 @@ local label = frame:FindFirstChild("CoordsLabel")
 if not label then
 	label = Instance.new("TextLabel")
 	label.Name = "CoordsLabel"
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.Position = UDim2.new(0, 0, 0, 0)
+	label.Size = UDim2.new(0.7, 0, 1, 0) -- 70%
+	label.Position = UDim2.new(0,0,0,0)
 	label.TextScaled = true
 	label.BackgroundColor3 = Color3.fromRGB(0,0,0)
 	label.TextColor3 = Color3.fromRGB(255,255,255)
 	label.Font = Enum.Font.GothamMedium
 	label.Parent = frame
+end
+
+local copyBtn = frame:FindFirstChild("CopyBtn")
+if not copyBtn then
+	copyBtn = Instance.new("TextButton")
+	copyBtn.Name = "CopyBtn"
+	copyBtn.Size = UDim2.new(0.3, 0, 1, 0) -- 30%
+	copyBtn.Position = UDim2.new(0.7, 0, 0, 0)
+	copyBtn.Text = "Copy"
+	copyBtn.TextScaled = true
+	copyBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	copyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+	copyBtn.Font = Enum.Font.GothamMedium
+	copyBtn.Parent = frame
 end
 
 local root
@@ -45,7 +60,15 @@ getRoot()
 player.CharacterAdded:Connect(getRoot)
 
 RunService.Heartbeat:Connect(function()
-	if not root or not root.Parent then return end
-	local pos = root.Position
-	label.Text = math.floor(pos.X) .. "X " .. math.floor(pos.Y) .. "Y " .. math.floor(pos.Z) .. "Z"
+	if root and root.Parent then
+		local pos = root.Position
+		label.Text = math.floor(pos.X).."X "..math.floor(pos.Y).."Y "..math.floor(pos.Z).."Z"
+	end
+end)
+
+copyBtn.MouseButton1Click:Connect(function()
+	if root and root.Parent then
+		local pos = root.Position
+		setclipboard(math.floor(pos.X).." "..math.floor(pos.Y).." "..math.floor(pos.Z))
+	end
 end)
