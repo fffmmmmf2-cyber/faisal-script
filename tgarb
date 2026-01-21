@@ -10,13 +10,14 @@ e.Parent=b:WaitForChild("PlayerGui")
 local f=Instance.new("TextButton")
 f.Text="Teleport"
 f.Size=UDim2.new(0,90,0,30)
-f.Position=UDim2.new(0.5,-45,0.5,-15)
+f.Position=UDim2.new(0.5,-45,0,10)
 f.BackgroundColor3=Color3.fromRGB(0,0,0)
 f.TextColor3=Color3.fromRGB(255,255,255)
 f.Active=true
 f.Draggable=true
 f.Parent=e
 
+-- النقاط
 local g={
 	{Vector3.new(199,-3,23),Vector3.new(285,-3,35)},
 	{Vector3.new(404,-3,0)},
@@ -24,16 +25,24 @@ local g={
 	{Vector3.new(756,-3,6)},
 	{Vector3.new(1079,-3,5)},
 	{Vector3.new(1321,3,13),Vector3.new(1557,-3,25)},
-	{Vector3.new(1731,3,-6),Vector3.new(1949,3,16),Vector3.new(2250,-3,-20),Vector3.new(2609,-3,7)}
+	{Vector3.new(1731,3,-6),Vector3.new(1949,3,16),Vector3.new(2250,-3,-20)},
+	{Vector3.new(2609,-3,7)}
 }
 
 local h=1
 local i=false
 local j=task
 
-local function k(l)
-	local m=b.Character or b.CharacterAdded:Wait()
-	m:WaitForChild("HumanoidRootPart").CFrame=CFrame.new(l)
+local function k(pos)
+	local char=b.Character or b.CharacterAdded:Wait()
+	local root=char:WaitForChild("HumanoidRootPart")
+	for attempt=1,5 do
+		if root and root.Parent then
+			root.CFrame=CFrame.new(pos)
+			j.wait(0.1)
+			if (root.Position-pos).Magnitude<2 then break end
+		end
+	end
 end
 
 local function n()
@@ -41,7 +50,7 @@ local function n()
 	i=true
 	f.Text=""
 	for o=10,1,-1 do
-		f.Text=tostring(o/10)
+		f.Text=string.format("%.1f",o/10)
 		j.wait(0.1)
 	end
 	f.Text="Teleport"
@@ -49,14 +58,14 @@ local function n()
 end
 
 local function p()
-	local q=g[h]
-	if typeof(q)=="table" then
-		for r=1,#q do
-			k(q[r])
-			j.wait(0.1)
+	if i then return end -- يمنع الضغط أثناء العد التنازلي
+	local group=g[h]
+	if typeof(group)=="table" then
+		for r=1,#group do
+			k(group[r])
 		end
 	else
-		k(q)
+		k(group)
 	end
 	h=h+1
 	if h>#g then h=1 end
