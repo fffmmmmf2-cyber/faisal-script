@@ -1,6 +1,7 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
+-- الإحداثيات
 local coords = {
 	Vector3.new(199, -3, 23),
 	Vector3.new(285, -3, 35),
@@ -19,6 +20,7 @@ local coords = {
 local index = 1
 local root
 
+-- إنشاء GUI
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
@@ -31,12 +33,13 @@ local btn = gui:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
 	btn.Name = "TeleportButton"
-	btn.Size = UDim2.new(0, 120, 0, 40)
-	btn.Position = UDim2.new(0.5, -60, 0, 10)
+	btn.Size = UDim2.new(0, 90, 0, 32) -- أصغر شوي
+	btn.Position = UDim2.new(0.5, -45, 0, 10)
 	btn.Text = "Teleport"
 	btn.TextScaled = true
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Font = Enum.Font.GothamBold
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.Font = Enum.Font.GothamMedium
+	btn.BackgroundColor3 = Color3.fromRGB(0,0,0)
 	btn.Active = true
 	btn.Draggable = true
 	btn.Parent = gui
@@ -44,8 +47,7 @@ end
 
 local hue = 0
 RunService.RenderStepped:Connect(function()
-	hue = (hue + 1) % 360
-	btn.BackgroundColor3 = Color3.fromHSV(hue/360,1,1)
+	-- هنا لو تحب تتركه ثابت أسود, ممكن نحذف هالجزء
 end)
 
 local function refreshRoot()
@@ -70,8 +72,21 @@ local function tp(pos)
 	end
 end
 
+-- تبريد بين الضغطات
+local cooldown = false
+local function startCooldown()
+	cooldown = true
+	for t = 10, 1, -1 do
+		btn.Text = string.format("%.1f", t/10)
+		task.wait(0.1)
+	end
+	btn.Text = "Teleport"
+	cooldown = false
+end
+
+-- حدث الضغط على الزر
 btn.MouseButton1Click:Connect(function()
-	if not root or not root.Parent then refreshRoot() end
+	if cooldown then return end
 
 	if index == 7 then
 		tp(coords[7])
@@ -94,4 +109,6 @@ btn.MouseButton1Click:Connect(function()
 			index = 1
 		end
 	end
+
+	startCooldown()
 end)
