@@ -10,6 +10,10 @@ local coords = {
 	Vector3.new(1079, -3, 5),
 	Vector3.new(1321, 3, 13),
 	Vector3.new(1569, -6, -28),
+	Vector3.new(1731, 3, -6),
+	Vector3.new(1949, 3, 16),
+	Vector3.new(2250, -3, -20),
+	Vector3.new(2609, -3, 7),
 }
 
 local index = 1
@@ -20,7 +24,7 @@ if not gui then
 	gui = Instance.new("ScreenGui")
 	gui.Name = "TeleportGUI"
 	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui")
+	gui.Parent = player.PlayerGui
 end
 
 local btn = gui:FindFirstChild("TeleportButton")
@@ -73,7 +77,16 @@ btn.MouseButton1Click:Connect(function()
 		tp(coords[7])
 		task.wait(0.2)
 		tp(coords[8])
-		index = 1
+		index = 9
+
+	elseif index == 9 then
+		tp(coords[9])
+		task.wait(0.2)
+		tp(coords[10])
+		task.wait(0.2)
+		tp(coords[11])
+		index = 12
+
 	else
 		tp(coords[index])
 		index = index + 1
