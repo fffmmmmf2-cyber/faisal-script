@@ -1,7 +1,6 @@
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- الإحداثيات
 local coords = {
 	Vector3.new(199, -3, 23),
 	Vector3.new(285, -3, 35),
@@ -20,7 +19,6 @@ local coords = {
 local index = 1
 local root
 
--- إنشاء GUI
 local gui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportGUI")
 if not gui then
 	gui = Instance.new("ScreenGui")
@@ -33,7 +31,7 @@ local btn = gui:FindFirstChild("TeleportButton")
 if not btn then
 	btn = Instance.new("TextButton")
 	btn.Name = "TeleportButton"
-	btn.Size = UDim2.new(0, 90, 0, 32) -- أصغر شوي
+	btn.Size = UDim2.new(0, 90, 0, 32)
 	btn.Position = UDim2.new(0.5, -45, 0, 10)
 	btn.Text = "Teleport"
 	btn.TextScaled = true
@@ -47,7 +45,6 @@ end
 
 local hue = 0
 RunService.RenderStepped:Connect(function()
-	-- هنا لو تحب تتركه ثابت أسود, ممكن نحذف هالجزء
 end)
 
 local function refreshRoot()
@@ -72,7 +69,6 @@ local function tp(pos)
 	end
 end
 
--- تبريد بين الضغطات
 local cooldown = false
 local function startCooldown()
 	cooldown = true
@@ -84,7 +80,6 @@ local function startCooldown()
 	cooldown = false
 end
 
--- حدث الضغط على الزر
 btn.MouseButton1Click:Connect(function()
 	if cooldown then return end
 
