@@ -1,5 +1,6 @@
 -- ✅ LocalScript (StarterPlayerScripts)
 -- نسخة مصغّرة أنيقة 🔥 by ChatGPT & Faisal
+-- تم تعديلها لتبقى تعمل بعد الموت
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,14 +15,14 @@ screenGui.Name = "ControlPanel"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 150, 0, 60) -- ⬅️ تم تصغير الحجم للنصف
+mainFrame.Size = UDim2.new(0, 150, 0, 60)
 mainFrame.Position = UDim2.new(0.5, -75, 0.8, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 mainFrame.BorderSizePixel = 0
 mainFrame.BackgroundTransparency = 0.3
-mainFrame.Parent = screenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
+mainFrame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 10)
@@ -39,7 +40,7 @@ layout.Parent = mainFrame
 -------------------------------------------------
 local function createButton(name)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 65, 0, 40) -- ⬅️ الأزرار أصغر
+	btn.Size = UDim2.new(0, 65, 0, 40)
 	btn.Text = name
 	btn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -54,9 +55,6 @@ local function createButton(name)
 	return btn
 end
 
--------------------------------------------------
--- 🟥 الزرين
--------------------------------------------------
 local button1 = createButton("خانة 1")
 local button2 = createButton("خانة 2")
 
@@ -64,8 +62,6 @@ local button2 = createButton("خانة 2")
 -- 🔹 سكربت 1 (حدود الموديل)
 -------------------------------------------------
 local borderRunning = false
-local borderThread
-
 local SEARCH_RADIUS = 60
 local REFRESH_INTERVAL = 0.4
 local LINE_THICKNESS = 0.5
@@ -163,32 +159,25 @@ local function updateBorders()
 	borderLabel.Visible = true
 end
 
--------------------------------------------------
--- 🟩 زر 1 للتشغيل والإيقاف
--------------------------------------------------
+local function runBorders()
+	while borderRunning do
+		if player.Character then updateBorders() end
+		task.wait(REFRESH_INTERVAL)
+	end
+	clearFolder()
+	borderLabel.Visible = false
+end
+
 button1.MouseButton1Click:Connect(function()
 	borderRunning = not borderRunning
-	if borderRunning then
-		button1.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-		borderThread = task.spawn(function()
-			while borderRunning do
-				updateBorders()
-				task.wait(0.4)
-			end
-			clearFolder()
-			borderLabel.Visible = false
-		end)
-	else
-		button1.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-		borderRunning = false
-	end
+	button1.BackgroundColor3 = borderRunning and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+	if borderRunning then task.spawn(runBorders) end
 end)
 
 -------------------------------------------------
 -- 🔹 سكربت 2 (عرض أسماء الأجزاء القريبة)
 -------------------------------------------------
 local labelRunning = false
-local labelThread
 local labels = {}
 local ignoreParts = {
 	"Head","Torso","HumanoidRootPart","LeftHand","RightHand","LeftFoot","RightFoot",
@@ -249,23 +238,26 @@ local function updateLabels()
 	end
 end
 
--------------------------------------------------
--- 🟩 زر 2 للتشغيل والإيقاف
--------------------------------------------------
+local function runLabels()
+	while labelRunning do
+		if player.Character then updateLabels() end
+		task.wait(updateInterval)
+	end
+	for _, billboard in pairs(labels) do billboard:Destroy() end
+	table.clear(labels)
+end
+
 button2.MouseButton1Click:Connect(function()
 	labelRunning = not labelRunning
-	if labelRunning then
-		button2.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-		labelThread = task.spawn(function()
-			while labelRunning do
-				updateLabels()
-				task.wait(updateInterval)
-			end
-			for _, billboard in pairs(labels) do billboard:Destroy() end
-			table.clear(labels)
-		end)
-	else
-		button2.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-		labelRunning = false
-	end
+	button2.BackgroundColor3 = labelRunning and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+	if labelRunning then task.spawn(runLabels) end
+end)
+
+-------------------------------------------------
+-- 🔹 استمرار الوظائف بعد الموت
+-------------------------------------------------
+player.CharacterAdded:Connect(function(char)
+	task.wait(0.1) -- تأخير بسيط للتأكد أن الشخصية جاهزة
+	if borderRunning then task.spawn(runBorders) end
+	if labelRunning then task.spawn(runLabels) end
 end)
