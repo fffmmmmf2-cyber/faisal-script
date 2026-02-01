@@ -1,0 +1,120 @@
+local TravelSpeed = 2000
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local DeleteWallsBtn = Instance.new("TextButton")
+local TpButton = Instance.new("TextButton")
+local BackButton = Instance.new("TextButton")
+local StatusLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game.CoreGui
+MainFrame.Name = "Tsunami_Ultimate_Hub"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Position = UDim2.new(0.5, -75, 0.5, -120)
+MainFrame.Size = UDim2.new(0, 180, 0, 260)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+Title.Parent = MainFrame
+Title.Text = "Tsunami Pro V5"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+
+StatusLabel.Parent = MainFrame
+StatusLabel.Position = UDim2.new(0, 0, 0, 35)
+StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.Text = "Memory Empty"
+StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+StatusLabel.BackgroundTransparency = 1
+
+DeleteWallsBtn.Parent = MainFrame
+DeleteWallsBtn.Text = "Unlock All Rooms"
+DeleteWallsBtn.BackgroundColor3 = Color3.fromRGB(180, 140, 40)
+DeleteWallsBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
+DeleteWallsBtn.Size = UDim2.new(0.8, 0, 0, 30)
+
+DeleteWallsBtn.MouseButton1Click:Connect(function()
+    local walls = game.Workspace:FindFirstChild("VIPWalls")
+    if walls then walls:Destroy() DeleteWallsBtn.Text = "Unlocked!" end
+end)
+
+local TweenService = game:GetService("TweenService")
+local tpPoints = {
+    Vector3.new(152.048, 3.142, -135.319),
+    Vector3.new(242, 10, -135.749),
+    Vector3.new(341, 10, -135.499),
+    Vector3.new(470, 10, -135.499),
+    Vector3.new(649, 10, -135.499),
+    Vector3.new(913, 10, -135.499),
+    Vector3.new(1310, 10, -135.499),
+    Vector3.new(1900, 10, -135.499),
+    Vector3.new(2430.5, 10, -135.655)
+}
+
+local currentPoint = 0
+local positionHistory = {}
+
+local function SmoothFly(targetPos)
+    local char = game.Players.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    table.insert(positionHistory, root.Position)
+    
+    local distance = (root.Position - targetPos).Magnitude
+    local tweenInfo = TweenInfo.new(distance / TravelSpeed, Enum.EasingStyle.Linear)
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
+    
+    tween:Play()
+end
+
+TpButton.Parent = MainFrame
+TpButton.Text = "Fly to Next Room"
+TpButton.BackgroundColor3 = Color3.fromRGB(40, 100, 200)
+TpButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+TpButton.Size = UDim2.new(0.8, 0, 0, 40)
+
+TpButton.MouseButton1Click:Connect(function()
+    currentPoint = currentPoint + 1
+    
+    if currentPoint > #tpPoints then
+        StatusLabel.Text = "ًںڈپ Final Point Reached!"
+        StatusLabel.TextColor3 = Color3.new(1, 0.2, 0.2)
+        currentPoint = 0 
+    else
+        StatusLabel.Text = "Room: " .. currentPoint .. " / 9"
+        StatusLabel.TextColor3 = Color3.new(0.4, 1, 0.4)
+        SmoothFly(tpPoints[currentPoint])
+    end
+end)
+
+BackButton.Parent = MainFrame
+BackButton.Text = "Fly Back (History)"
+BackButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+BackButton.Position = UDim2.new(0.1, 0, 0.72, 0)
+BackButton.Size = UDim2.new(0.8, 0, 0, 40)
+
+BackButton.MouseButton1Click:Connect(function()
+    if #positionHistory > 0 then
+        local prevPos = positionHistory[#positionHistory]
+        table.remove(positionHistory, #positionHistory)
+        
+        local char = game.Players.LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            local distance = (root.Position - prevPos).Magnitude
+            local tweenInfo = TweenInfo.new(distance / TravelSpeed, Enum.EasingStyle.Linear)
+            TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(prevPos)}):Play()
+            
+            StatusLabel.Text = "Backing.. (" .. #positionHistory .. " left)"
+            StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+            if currentPoint > 0 then currentPoint = currentPoint - 1 end
+        end
+    else
+        StatusLabel.Text = "End of History!"
+        StatusLabel.TextColor3 = Color3.new(1, 0.5, 0)
+    end
+end)
