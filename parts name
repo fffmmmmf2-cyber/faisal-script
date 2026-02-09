@@ -12,6 +12,7 @@ local camera = workspace.CurrentCamera
 -------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ControlPanel"
+screenGui.ResetOnSpawn = false -- ✅ لا تختفي بعد الموت
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
@@ -69,8 +70,11 @@ local LINE_COLOR = Color3.fromRGB(255, 0, 0)
 local MAX_DISTANCE_TO_TARGET = SEARCH_RADIUS
 local FOLDER_NAME = "LocalBorderLines"
 
-local borderLabelGui = Instance.new("ScreenGui", player.PlayerGui)
+local borderLabelGui = Instance.new("ScreenGui")
 borderLabelGui.Name = "ModelNameDisplay"
+borderLabelGui.ResetOnSpawn = false -- ✅ لا تختفي بعد الموت
+borderLabelGui.Parent = player.PlayerGui
+
 local borderLabel = Instance.new("TextLabel")
 borderLabel.Size = UDim2.new(0, 200, 0, 35)
 borderLabel.Position = UDim2.new(1, -210, 0.5, -25)
